@@ -9,21 +9,40 @@ type IconMapping = Record<SymbolViewProps["name"], ComponentProps<typeof Materia
 type IconSymbolName = keyof typeof MAPPING;
 
 /**
- * Add your SF Symbols to Material Icons mappings here.
- * - see Material Icons in the [Icons Directory](https://icons.expo.fyi).
- * - see SF Symbols in the [SF Symbols](https://developer.apple.com/sf-symbols/) app.
+ * SF Symbols to Material Icons mappings.
  */
 const MAPPING = {
+  // Tab bar icons
   "house.fill": "home",
-  "paperplane.fill": "send",
-  "chevron.left.forwardslash.chevron.right": "code",
+  "wrench.and.screwdriver.fill": "build",
+  "folder.fill": "folder",
+  "person.circle.fill": "account-circle",
+  // Navigation
   "chevron.right": "chevron-right",
+  "chevron.left.forwardslash.chevron.right": "code",
+  // Module icons
+  "camera.fill": "camera-alt",
+  "map.fill": "map",
+  "doc.text.fill": "description",
+  "chart.bar.fill": "bar-chart",
+  "link": "link",
+  "rectangle.grid.2x2.fill": "grid-view",
+  "magnifyingglass": "search",
+  "bell.fill": "notifications",
+  "gearshape.fill": "settings",
+  "arrow.right.square.fill": "open-in-new",
+  "paperplane.fill": "send",
+  "receipt": "receipt",
+  "building.2.fill": "business",
+  "hammer.fill": "construction",
+  "book.fill": "menu-book",
+  "shield.fill": "admin-panel-settings",
+  "bolt.fill": "bolt",
+  "photo.fill": "photo",
 } as IconMapping;
 
 /**
  * An icon component that uses native SF Symbols on iOS, and Material Icons on Android and web.
- * This ensures a consistent look across platforms, and optimal resource usage.
- * Icon `name`s are based on SF Symbols and require manual mapping to Material Icons.
  */
 export function IconSymbol({
   name,
