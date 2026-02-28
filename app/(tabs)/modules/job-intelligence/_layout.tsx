@@ -3,4 +3,8 @@
  * Prevents Expo Router from treating utility files as routes
  */
 
-export { };
+import React from 'react';
+
+export default function JobIntelligenceLayout() {
+  return null;
+}

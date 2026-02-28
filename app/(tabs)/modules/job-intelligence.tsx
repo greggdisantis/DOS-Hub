@@ -25,12 +25,18 @@ export default function JobIntelligenceScreen() {
     setError(null);
 
     try {
+      console.log('Starting file upload:', file.name);
       const parsedJobs = await parseServiceFusionExcel(file);
+      console.log('Parsed jobs:', parsedJobs.length);
       const readinessJobs = parsedJobs.map(calculateJobReadiness);
+      console.log('Readiness jobs:', readinessJobs.length);
       setJobs(readinessJobs);
+      console.log('Setting viewMode to reports');
       setViewMode('reports');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to parse file');
+      const errorMsg = err instanceof Error ? err.message : 'Failed to parse file';
+      console.error('File upload error:', errorMsg, err);
+      setError(errorMsg);
     } finally {
       setIsLoading(false);
     }
