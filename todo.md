@@ -60,3 +60,4 @@
 - [x] Screen Ordering: PDF — include uploaded photos on page(s) following each screen's data
 - [x] Screen Ordering: PDF — professional formatting matching original DOS form layout
 - [x] BUG: PDF preview screen not rendering HTML content — fixed by removing jspdf/html2canvas (Metro incompatible)
+- [x] BUG: PDF second page (Raw Measurements + Calc Summary) missing SCREEN #N label at top — fixed with running page header and condensed layout

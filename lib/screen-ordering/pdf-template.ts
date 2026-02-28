@@ -31,80 +31,95 @@ function fmtMeasure(v: number | null | undefined): string {
 // ─── Styles ─────────────────────────────────────────────────────────────────
 
 const CSS = `
-  @page { margin: 40px 50px; size: letter portrait; }
+  @page { margin: 36px 44px; size: letter portrait; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    font-size: 12px;
+    font-size: 11px;
     color: #333;
-    line-height: 1.4;
+    line-height: 1.35;
   }
   .page-break-section {
     page-break-after: always;
-    padding: 20px 0;
+    padding: 10px 0;
   }
   .page-break-section:last-child { page-break-after: auto; }
 
-  /* Screen # badge */
+  /* Running page header — repeats on every printed page within a screen section */
+  .screen-page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0 8px 0;
+    border-bottom: 2px solid #1B3A5C;
+    margin-bottom: 12px;
+  }
   .screen-badge {
     display: inline-block;
     background: #1B3A5C;
     color: #fff;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 800;
-    padding: 6px 18px;
-    border-radius: 6px;
+    padding: 5px 14px;
+    border-radius: 5px;
     letter-spacing: 1px;
-    margin-bottom: 16px;
+  }
+  .screen-page-header-right {
+    font-size: 10px;
+    color: #666;
+    text-align: right;
+  }
+  .screen-page-header-right strong {
+    color: #333;
   }
 
   /* Header */
-  .header { text-align: center; margin-bottom: 20px; }
-  .header h1 { font-size: 22px; font-weight: 700; color: #222; margin-bottom: 2px; }
-  .header h2 { font-size: 14px; font-weight: 400; color: #555; }
+  .header { text-align: center; margin-bottom: 12px; }
+  .header h1 { font-size: 20px; font-weight: 700; color: #222; margin-bottom: 1px; }
+  .header h2 { font-size: 13px; font-weight: 400; color: #555; }
 
   /* Info grid */
-  .info-grid { display: flex; flex-wrap: wrap; gap: 0; margin-bottom: 8px; }
-  .info-field { flex: 1; min-width: 30%; padding: 4px 0; }
+  .info-grid { display: flex; flex-wrap: wrap; gap: 0; margin-bottom: 4px; }
+  .info-field { flex: 1; min-width: 30%; padding: 2px 0; }
   .info-field.full { flex: 0 0 100%; }
   .info-field.half { flex: 0 0 50%; }
-  .info-label { font-size: 10px; color: #888; text-transform: none; margin-bottom: 1px; }
+  .info-label { font-size: 9px; color: #888; text-transform: none; margin-bottom: 0; }
   .info-value {
-    font-size: 13px; font-weight: 600; color: #222;
-    border-bottom: 1px solid #ccc; padding-bottom: 3px;
-  }
-
-  /* Colored divider */
-  .divider { height: 2px; background: #e8732a; margin: 14px 0; }
-  .divider-light { height: 1px; background: #ddd; margin: 10px 0; }
-
-  /* Section */
-  .section { margin-bottom: 14px; }
-  .section-title {
-    font-size: 13px; font-weight: 700; text-transform: uppercase;
-    color: #333; border-bottom: 2px solid #555; padding-bottom: 4px;
-    margin-bottom: 10px; letter-spacing: 0.3px;
-  }
-  .section-row { display: flex; gap: 20px; margin-bottom: 6px; }
-  .section-col { flex: 1; }
-  .field { margin-bottom: 6px; }
-  .field-label { font-size: 10px; color: #888; }
-  .field-value {
-    font-size: 12px; font-weight: 600; color: #222;
+    font-size: 11px; font-weight: 600; color: #222;
     border-bottom: 1px solid #ccc; padding-bottom: 2px;
   }
 
-  /* Raw Measurements + Calc Summary */
-  .raw-section { margin-top: 6px; }
-  .raw-title {
-    font-size: 12px; font-weight: 700; text-transform: uppercase;
-    margin-bottom: 8px; color: #333;
+  /* Colored divider */
+  .divider { height: 2px; background: #e8732a; margin: 8px 0; }
+  .divider-light { height: 1px; background: #ddd; margin: 6px 0; }
+
+  /* Section */
+  .section { margin-bottom: 8px; }
+  .section-title {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    color: #333; border-bottom: 2px solid #555; padding-bottom: 3px;
+    margin-bottom: 6px; letter-spacing: 0.3px;
   }
-  .raw-grid { display: flex; gap: 24px; }
+  .section-row { display: flex; gap: 16px; margin-bottom: 3px; }
+  .section-col { flex: 1; }
+  .field { margin-bottom: 4px; }
+  .field-label { font-size: 9px; color: #888; }
+  .field-value {
+    font-size: 11px; font-weight: 600; color: #222;
+    border-bottom: 1px solid #ccc; padding-bottom: 1px;
+  }
+
+  /* Raw Measurements + Calc Summary */
+  .raw-section { margin-top: 4px; }
+  .raw-title {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    margin-bottom: 6px; color: #333;
+  }
+  .raw-grid { display: flex; gap: 20px; }
   .raw-col { flex: 1; }
   .raw-col-title {
-    font-size: 10px; font-weight: 700; text-transform: uppercase;
-    color: #555; margin-bottom: 6px;
+    font-size: 9px; font-weight: 700; text-transform: uppercase;
+    color: #555; margin-bottom: 4px;
   }
 
   /* Warning */
@@ -170,13 +185,13 @@ function screenDataPageHtml(
   const totalScreens = state.screens.length;
 
   return `<div class="page-break-section">
-    <!-- Screen Badge -->
-    <div class="screen-badge">SCREEN #${screenIndex + 1}</div>
-
-    <!-- Header -->
-    <div class="header">
-      <h1>Distinctive Outdoor Structures</h1>
-      <h2>Motorized Screen Form</h2>
+    <!-- Screen Page Header (visible at top of every printed page) -->
+    <div class="screen-page-header">
+      <div class="screen-badge">SCREEN #${screenIndex + 1}</div>
+      <div class="screen-page-header-right">
+        <strong>Distinctive Outdoor Structures</strong> &mdash; Motorized Screen Form<br/>
+        ${esc(state.project.name) !== "\u2014" ? esc(state.project.name) + " | " : ""}Screen ${screenIndex + 1} of ${totalScreens}
+      </div>
     </div>
 
     <!-- Project Info -->
@@ -186,18 +201,13 @@ function screenDataPageHtml(
       ${infoFieldHtml("Address", state.project.address)}
     </div>
     <div class="info-grid">
-      ${infoFieldHtml("Submitter", state.project.submitterName, "full")}
-    </div>
-    <div class="info-grid">
-      ${infoFieldHtml("Job Number", state.project.jobNumber, "full")}
+      ${infoFieldHtml("Submitter", state.project.submitterName)}
+      ${infoFieldHtml("Job Number", state.project.jobNumber)}
     </div>
     <div class="info-grid">
       ${infoFieldHtml("Screen Manufacturer", state.manufacturer)}
       ${infoFieldHtml("Total # of Screens", String(totalScreens))}
-      ${infoFieldHtml("Screen #", `${screenIndex + 1} of ${totalScreens}`)}
-    </div>
-    <div class="info-grid">
-      ${infoFieldHtml("Description", screen.description || "—", "full")}
+      ${infoFieldHtml("Description", screen.description || "\u2014")}
     </div>
 
     <div class="divider"></div>
@@ -341,8 +351,12 @@ function photosPageHtml(
   }).join("\n");
 
   return `<div class="page-break-section">
-    <div class="screen-badge">SCREEN #${screenIndex + 1} — PHOTOS</div>
-    <div class="photos-page-title">Measurement Photos — ${esc(description) || `Screen ${screenIndex + 1}`}</div>
+    <div class="screen-page-header">
+      <div class="screen-badge">SCREEN #${screenIndex + 1} — PHOTOS</div>
+      <div class="screen-page-header-right">
+        <strong>${esc(description) || `Screen ${screenIndex + 1}`}</strong><br/>Measurement Photos
+      </div>
+    </div>
     <div class="photos-grid">
       ${photoItems}
     </div>
