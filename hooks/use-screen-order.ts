@@ -326,6 +326,12 @@ export function useScreenOrder() {
     }));
   }, []);
 
+  // ─── Load saved order ─────────────────────────────────────────────
+  const loadState = useCallback((savedState: OrderState) => {
+    setState(savedState);
+    setActiveScreenIndex(0);
+  }, []);
+
   // ─── Reset ────────────────────────────────────────────────────────
   const resetOrder = useCallback(() => {
     setState(createInitialState());
@@ -409,6 +415,7 @@ export function useScreenOrder() {
     setApplyUChannelToAll,
     recalculateAll,
     resetOrder,
+    loadState,
     isProjectValid,
     anyUChannelRequired,
     getScreenWarnings,

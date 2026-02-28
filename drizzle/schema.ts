@@ -1,7 +1,8 @@
-import { boolean, int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal } from "drizzle-orm/mysql-core";
+import { boolean, int, json, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
+ * Extended with approval status and DOS-specific roles.
  */
 export const users = mysqlTable("users", {
   id: int("id").autoincrement().primaryKey(),
@@ -9,7 +10,10 @@ export const users = mysqlTable("users", {
   name: text("name"),
   email: varchar("email", { length: 320 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
-  role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
+  /** Role hierarchy: pending (unapproved) → technician → manager → admin */
+  role: mysqlEnum("role", ["user", "admin", "pending", "technician", "manager"]).default("pending").notNull(),
+  /** Whether the user has been approved by an admin */
+  approved: boolean("approved").default(false).notNull(),
   companyId: int("companyId"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
@@ -18,7 +22,6 @@ export const users = mysqlTable("users", {
 
 /**
  * Companies table for white-label multi-tenancy.
- * Each subscribing company has its own branding and settings.
  */
 export const companies = mysqlTable("companies", {
   id: int("id").autoincrement().primaryKey(),
@@ -46,6 +49,54 @@ export const projects = mysqlTable("projects", {
   serviceFusionJobId: varchar("serviceFusionJobId", { length: 64 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+/**
+ * Screen orders table — stores the full order data as JSON.
+ * Each order is linked to a user and optionally a project.
+ */
+export const screenOrders = mysqlTable("screen_orders", {
+  id: int("id").autoincrement().primaryKey(),
+  /** The user who created this order */
+  userId: int("userId").notNull(),
+  companyId: int("companyId"),
+  projectId: int("projectId"),
+  /** Display title for the order (project name + date) */
+  title: varchar("title", { length: 255 }).notNull(),
+  /** Current status of the order */
+  status: mysqlEnum("status", ["draft", "submitted", "approved", "rejected", "completed"]).default("draft").notNull(),
+  /** The full order state as JSON (OrderState from screen-ordering types) */
+  orderData: json("orderData").notNull(),
+  /** Total number of screens in this order */
+  screenCount: int("screenCount").default(1).notNull(),
+  /** The manufacturer selected */
+  manufacturer: varchar("manufacturer", { length: 64 }),
+  /** Notes from the submitter */
+  submitterNotes: text("submitterNotes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+/**
+ * Order revisions table — audit trail for every change.
+ * When a manager or admin edits an order, a new revision is created
+ * preserving the previous state. The original is always revision 1.
+ */
+export const orderRevisions = mysqlTable("order_revisions", {
+  id: int("id").autoincrement().primaryKey(),
+  /** The order this revision belongs to */
+  orderId: int("orderId").notNull(),
+  /** Sequential revision number (1 = original, 2 = first edit, etc.) */
+  revisionNumber: int("revisionNumber").notNull(),
+  /** Who made this revision */
+  editedByUserId: int("editedByUserId").notNull(),
+  /** Name of the editor at time of edit */
+  editedByName: varchar("editedByName", { length: 255 }),
+  /** What was changed (brief description) */
+  changeDescription: text("changeDescription"),
+  /** The full order state snapshot at this revision */
+  orderData: json("orderData").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
 /**
@@ -100,6 +151,10 @@ export type Company = typeof companies.$inferSelect;
 export type InsertCompany = typeof companies.$inferInsert;
 export type Project = typeof projects.$inferSelect;
 export type InsertProject = typeof projects.$inferInsert;
+export type ScreenOrder = typeof screenOrders.$inferSelect;
+export type InsertScreenOrder = typeof screenOrders.$inferInsert;
+export type OrderRevision = typeof orderRevisions.$inferSelect;
+export type InsertOrderRevision = typeof orderRevisions.$inferInsert;
 export type Receipt = typeof receipts.$inferSelect;
 export type InsertReceipt = typeof receipts.$inferInsert;
 export type ZoningLookup = typeof zoningLookups.$inferSelect;

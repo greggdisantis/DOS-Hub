@@ -1,6 +1,13 @@
-import { eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import {
+  InsertUser,
+  InsertScreenOrder,
+  InsertOrderRevision,
+  users,
+  screenOrders,
+  orderRevisions,
+} from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -17,6 +24,8 @@ export async function getDb() {
   }
   return _db;
 }
+
+// ─── USER QUERIES ───────────────────────────────────────────────────────────
 
 export async function upsertUser(user: InsertUser): Promise<void> {
   if (!user.openId) {
@@ -52,12 +61,16 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       values.lastSignedIn = user.lastSignedIn;
       updateSet.lastSignedIn = user.lastSignedIn;
     }
-    if (user.role !== undefined) {
+
+    // Owner always gets admin role and auto-approved
+    if (user.openId === ENV.ownerOpenId) {
+      values.role = "admin";
+      values.approved = true;
+      updateSet.role = "admin";
+      updateSet.approved = true;
+    } else if (user.role !== undefined) {
       values.role = user.role;
       updateSet.role = user.role;
-    } else if (user.openId === ENV.ownerOpenId) {
-      values.role = "admin";
-      updateSet.role = "admin";
     }
 
     if (!values.lastSignedIn) {
@@ -85,8 +98,140 @@ export async function getUserByOpenId(openId: string) {
   }
 
   const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
-
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+export async function getAllUsers() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(users).orderBy(desc(users.createdAt));
+}
+
+export async function getPendingUsers() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(users).where(eq(users.approved, false)).orderBy(desc(users.createdAt));
+}
+
+export async function approveUser(userId: number, role: "technician" | "manager" | "admin") {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(users).set({ approved: true, role }).where(eq(users.id, userId));
+}
+
+export async function rejectUser(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  // Delete the user record entirely
+  await db.delete(users).where(eq(users.id, userId));
+}
+
+export async function updateUserRole(userId: number, role: "pending" | "technician" | "manager" | "admin") {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(users).set({ role }).where(eq(users.id, userId));
+}
+
+// ─── SCREEN ORDER QUERIES ───────────────────────────────────────────────────
+
+export async function createScreenOrder(data: InsertScreenOrder): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const [result] = await db.insert(screenOrders).values(data).$returningId();
+  const orderId = result.id;
+
+  // Create the initial revision (revision 1 = original)
+  await db.insert(orderRevisions).values({
+    orderId,
+    revisionNumber: 1,
+    editedByUserId: data.userId,
+    editedByName: null,
+    changeDescription: "Original submission",
+    orderData: data.orderData,
+  });
+
+  return orderId;
+}
+
+export async function updateScreenOrder(
+  orderId: number,
+  data: Partial<InsertScreenOrder>,
+  editedByUserId: number,
+  editedByName: string | null,
+  changeDescription: string,
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  // Get the current max revision number
+  const revisions = await db
+    .select()
+    .from(orderRevisions)
+    .where(eq(orderRevisions.orderId, orderId))
+    .orderBy(desc(orderRevisions.revisionNumber))
+    .limit(1);
+
+  const nextRevision = revisions.length > 0 ? revisions[0].revisionNumber + 1 : 1;
+
+  // Update the order
+  await db.update(screenOrders).set(data).where(eq(screenOrders.id, orderId));
+
+  // Create a revision record if orderData changed
+  if (data.orderData) {
+    await db.insert(orderRevisions).values({
+      orderId,
+      revisionNumber: nextRevision,
+      editedByUserId,
+      editedByName,
+      changeDescription,
+      orderData: data.orderData,
+    });
+  }
+}
+
+export async function getScreenOrder(orderId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+
+  const result = await db.select().from(screenOrders).where(eq(screenOrders.id, orderId)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getUserScreenOrders(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db
+    .select()
+    .from(screenOrders)
+    .where(eq(screenOrders.userId, userId))
+    .orderBy(desc(screenOrders.updatedAt));
+}
+
+export async function getAllScreenOrders() {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db.select().from(screenOrders).orderBy(desc(screenOrders.updatedAt));
+}
+
+export async function getOrderRevisions(orderId: number) {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db
+    .select()
+    .from(orderRevisions)
+    .where(eq(orderRevisions.orderId, orderId))
+    .orderBy(desc(orderRevisions.revisionNumber));
+}
+
+export async function deleteScreenOrder(orderId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  // Delete revisions first (foreign key)
+  await db.delete(orderRevisions).where(eq(orderRevisions.orderId, orderId));
+  await db.delete(screenOrders).where(eq(screenOrders.id, orderId));
+}

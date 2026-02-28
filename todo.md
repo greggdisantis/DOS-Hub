@@ -61,3 +61,17 @@
 - [x] Screen Ordering: PDF — professional formatting matching original DOS form layout
 - [x] BUG: PDF preview screen not rendering HTML content — fixed by removing jspdf/html2canvas (Metro incompatible)
 - [x] BUG: PDF second page (Raw Measurements + Calc Summary) missing SCREEN #N label at top — fixed with running page header and condensed layout
+- [x] Auth: User login via Manus OAuth (email/password handled by OAuth portal)
+- [x] Auth: New users start as "pending" until admin approves
+- [x] Auth: Admin approval workflow — AuthGuard blocks unapproved users
+- [x] Auth: Role-based permissions — Admin, Manager, Technician (+ pending)
+- [x] Auth: AuthGuard component with login prompt, pending screen, role checks
+- [x] Auth: Profile screen shows role badge, approval status, sign out
+- [x] Auth: Redirect unapproved users to "Pending Approval" screen via AuthGuard
+- [x] Admin: User management panel — view all users, approve/reject, set roles
+- [x] Orders: Save screen orders to database linked to user account (tRPC API)
+- [x] Orders: Load saved orders from database (tRPC API)
+- [x] Orders: List view of saved orders (My Orders for all, All Orders for managers/admins)
+- [x] Orders: Manager can view and adjust any order + change status
+- [x] Orders: Audit trail — every update creates a revision record preserving the original
+- [x] Orders: View revision history for any order with PDF preview per revision

@@ -26,6 +26,9 @@ import {
 } from "@/lib/screen-ordering/types";
 import { generateOrderPdfHtml, generateScreenPdfHtml } from "@/lib/screen-ordering/pdf-template";
 import { usePdfPreview } from "@/lib/screen-ordering/pdf-context";
+import { useAuth } from "@/hooks/use-auth";
+import { trpc } from "@/lib/trpc";
+import type { OrderState } from "@/lib/screen-ordering/types";
 
 const SCREEN_COUNT_OPTIONS = Array.from({ length: 20 }, (_, i) => String(i + 1));
 
@@ -35,6 +38,80 @@ export default function ScreenOrderingScreen() {
   const { setData: setPdfPreview } = usePdfPreview();
   const order = useScreenOrder();
   const { state, activeScreen, activeScreenIndex } = order;
+  const { user, isAuthenticated } = useAuth();
+  const [savedOrderId, setSavedOrderId] = useState<number | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [showSavedOrders, setShowSavedOrders] = useState(false);
+
+  const utils = trpc.useUtils();
+  const createOrderMutation = trpc.orders.create.useMutation({
+    onSuccess: (data) => {
+      setSavedOrderId(data.orderId);
+      setIsSaving(false);
+      Alert.alert("Saved", "Order saved successfully.");
+      utils.orders.list.invalidate();
+    },
+    onError: (err) => {
+      setIsSaving(false);
+      Alert.alert("Error", err.message || "Failed to save order.");
+    },
+  });
+  const updateOrderMutation = trpc.orders.update.useMutation({
+    onSuccess: () => {
+      setIsSaving(false);
+      Alert.alert("Saved", "Order updated successfully.");
+      utils.orders.list.invalidate();
+    },
+    onError: (err) => {
+      setIsSaving(false);
+      Alert.alert("Error", err.message || "Failed to update order.");
+    },
+  });
+  const { data: savedOrders } = trpc.orders.list.useQuery(undefined, {
+    enabled: isAuthenticated && showSavedOrders,
+  });
+
+  const handleSaveOrder = () => {
+    if (!isAuthenticated) {
+      Alert.alert("Sign In Required", "Please sign in to save orders.");
+      return;
+    }
+    setIsSaving(true);
+    const title = state.project.name
+      ? `${state.project.name} - ${state.project.date}`
+      : `Screen Order - ${state.project.date}`;
+    // Strip photos base64 from saved data to keep payload small
+    const cleanState = {
+      ...state,
+      screens: state.screens.map((s) => ({
+        ...s,
+        photos: s.photos.map((p) => ({ ...p, base64: undefined })),
+      })),
+    };
+    if (savedOrderId) {
+      updateOrderMutation.mutate({
+        orderId: savedOrderId,
+        title,
+        orderData: cleanState,
+        screenCount: state.screens.length,
+        manufacturer: state.manufacturer,
+        changeDescription: "Updated from app",
+      });
+    } else {
+      createOrderMutation.mutate({
+        title,
+        orderData: cleanState,
+        screenCount: state.screens.length,
+        manufacturer: state.manufacturer,
+      });
+    }
+  };
+
+  const handleLoadOrder = (orderData: any, orderId: number) => {
+    order.loadState(orderData as OrderState);
+    setSavedOrderId(orderId);
+    setShowSavedOrders(false);
+  };
 
   const screen = activeScreen;
   const sel = screen.selections;
@@ -615,6 +692,73 @@ export default function ScreenOrderingScreen() {
             )}
           </View>
 
+          {/* Save / Load Order */}
+          {isAuthenticated && (
+            <View style={styles.saveLoadRow}>
+              <Pressable
+                onPress={handleSaveOrder}
+                disabled={isSaving}
+                style={({ pressed }) => [
+                  styles.saveBtn,
+                  { backgroundColor: colors.success },
+                  pressed && { opacity: 0.8 },
+                  isSaving && { opacity: 0.5 },
+                ]}
+              >
+                <IconSymbol name="checkmark.circle.fill" size={18} color="#fff" />
+                <Text style={styles.saveBtnText}>
+                  {isSaving ? "Saving..." : savedOrderId ? "Update Order" : "Save Order"}
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setShowSavedOrders(!showSavedOrders)}
+                style={({ pressed }) => [
+                  styles.loadBtn,
+                  { backgroundColor: colors.surface, borderColor: colors.border },
+                  pressed && { opacity: 0.8 },
+                ]}
+              >
+                <IconSymbol name="folder.fill" size={18} color={colors.primary} />
+                <Text style={[styles.loadBtnText, { color: colors.primary }]}>
+                  {showSavedOrders ? "Hide Saved" : "Load Order"}
+                </Text>
+              </Pressable>
+            </View>
+          )}
+
+          {/* Saved Orders List */}
+          {showSavedOrders && savedOrders && savedOrders.length > 0 && (
+            <View style={[styles.savedOrdersList, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <Text className="text-sm font-semibold text-foreground mb-2">Saved Orders</Text>
+              {savedOrders.map((o: any) => (
+                <Pressable
+                  key={o.id}
+                  onPress={() => handleLoadOrder(o.orderData, o.id)}
+                  style={({ pressed }) => [
+                    styles.savedOrderItem,
+                    { borderColor: colors.border },
+                    pressed && { opacity: 0.7 },
+                  ]}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text className="text-sm font-medium text-foreground">{o.title}</Text>
+                    <Text className="text-xs text-muted">
+                      {o.screenCount} screen{o.screenCount > 1 ? "s" : ""} · {o.manufacturer || ""} · {o.status}
+                    </Text>
+                  </View>
+                  <Text className="text-xs text-muted">
+                    {new Date(o.updatedAt).toLocaleDateString()}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          )}
+          {showSavedOrders && (!savedOrders || savedOrders.length === 0) && (
+            <View style={[styles.savedOrdersList, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <Text className="text-sm text-muted text-center py-4">No saved orders yet.</Text>
+            </View>
+          )}
+
           {/* Export to PDF */}
           <Pressable
             onPress={() => {
@@ -856,5 +1000,30 @@ const styles = StyleSheet.create({
   },
   addPhotoText: {
     fontSize: 11, fontWeight: "600",
+  },
+  // Save / Load
+  saveLoadRow: {
+    flexDirection: "row", gap: 10, marginTop: 16, marginBottom: 4,
+  },
+  saveBtn: {
+    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: 6, paddingVertical: 14, borderRadius: 10,
+  },
+  saveBtnText: {
+    color: "#fff", fontSize: 15, fontWeight: "700",
+  },
+  loadBtn: {
+    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: 6, paddingVertical: 14, borderRadius: 10, borderWidth: 1,
+  },
+  loadBtnText: {
+    fontSize: 15, fontWeight: "700",
+  },
+  savedOrdersList: {
+    borderRadius: 10, borderWidth: 1, padding: 12, marginBottom: 8,
+  },
+  savedOrderItem: {
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    paddingVertical: 10, borderBottomWidth: 1, gap: 8,
   },
 });
