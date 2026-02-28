@@ -210,46 +210,6 @@ export const appRouter = router({
       return db.getDashboardStats();
     }),
   }),
-  jobIntelligence: router({
-    exportToExcel: protectedProcedure
-      .input(
-        z.object({
-          jobs: z.array(
-            z.object({
-              customer: z.string(),
-              projectSupervisor: z.string().optional(),
-              struXure: z.object({
-                readyMonth: z.string(),
-                confidence: z.string(),
-                status: z.string(),
-              }).optional(),
-              screens: z.object({
-                readyMonth: z.string(),
-                confidence: z.string(),
-                status: z.string(),
-              }).optional(),
-              pergotenda: z.object({
-                readyMonth: z.string(),
-                confidence: z.string(),
-                status: z.string(),
-              }).optional(),
-              awning: z.object({
-                readyMonth: z.string(),
-                confidence: z.string(),
-                status: z.string(),
-              }).optional(),
-            })
-          ),
-        })
-      )
-      .mutation(async ({ input }) => {
-        const buffer = await generateExcelWorkbook(input.jobs);
-        return {
-          success: true,
-          buffer: buffer.toString("base64"),
-          filename: `Job-Intelligence-Report-${new Date().toISOString().split("T")[0]}.xlsx`,
-        };
-      }),
-  }),
 });
+
 export type AppRouter = typeof appRouter;

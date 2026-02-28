@@ -1,36 +1,30 @@
 /**
- * Job Intelligence Server - Excel Export
- * Server-side Excel workbook generation for Job Intelligence reports
+ * Job Intelligence Module - Excel Workbook Generator
+ * Creates professional multi-tab Excel reports with DOS Hub branding
  */
 
 import ExcelJS from 'exceljs';
+import type { JobReadiness } from './readiness-calculator';
 
-export interface JobReadiness {
-  customer: string;
-  projectSupervisor?: string;
-  struXure?: {
-    readyMonth: string;
-    confidence: string;
-    status: string;
-  };
-  screens?: {
-    readyMonth: string;
-    confidence: string;
-    status: string;
-  };
-  pergotenda?: {
-    readyMonth: string;
-    confidence: string;
-    status: string;
-  };
-  awning?: {
-    readyMonth: string;
-    confidence: string;
-    status: string;
-  };
+export interface ExcelExportOptions {
+  logoUrl?: string;
+  companyName?: string;
+  generatedDate?: Date;
 }
 
-export async function generateExcelWorkbook(jobs: JobReadiness[]): Promise<Buffer> {
+const DEFAULT_OPTIONS: ExcelExportOptions = {
+  companyName: 'DOS Hub',
+  generatedDate: new Date(),
+};
+
+/**
+ * Generate professional multi-tab Excel workbook
+ */
+export async function generateExcelWorkbook(
+  jobs: JobReadiness[],
+  options: ExcelExportOptions = {}
+): Promise<ExcelJS.Workbook> {
+  const opts = { ...DEFAULT_OPTIONS, ...options };
   const workbook = new ExcelJS.Workbook();
 
   // Remove default sheet
@@ -39,21 +33,25 @@ export async function generateExcelWorkbook(jobs: JobReadiness[]): Promise<Buffe
   }
 
   // Create all report sheets
-  createFinalReportSheet(workbook, jobs);
-  createBlockedReportSheet(workbook, jobs);
-  createPermitDateListSheet(workbook, jobs);
-  createPermitStatusSheet(workbook, jobs);
-  createMaterialStatusSheet(workbook, jobs);
-  createSupervisorWorkloadSheet(workbook, jobs);
-  createStruXureSheet(workbook, jobs);
-  createScreensSheet(workbook, jobs);
-  createPergotendaSheet(workbook, jobs);
-  createAwningsSheet(workbook, jobs);
+  createFinalReportSheet(workbook, jobs, opts);
+  createBlockedReportSheet(workbook, jobs, opts);
+  createPermitDateListSheet(workbook, jobs, opts);
+  createPermitStatusSheet(workbook, jobs, opts);
+  createMaterialStatusSheet(workbook, jobs, opts);
+  createSupervisorWorkloadSheet(workbook, jobs, opts);
+  createStruXureSheet(workbook, jobs, opts);
+  createScreensSheet(workbook, jobs, opts);
+  createPergotendaSheet(workbook, jobs, opts);
+  createAwningsSheet(workbook, jobs, opts);
 
-  return await workbook.xlsx.writeBuffer() as Buffer;
+  return workbook;
 }
 
-function applyHeaderStyle(worksheet: ExcelJS.Worksheet, title: string) {
+/**
+ * Apply professional header styling to worksheet
+ */
+function applyHeaderStyle(worksheet: ExcelJS.Worksheet, title: string, opts: ExcelExportOptions) {
+  // Add title row
   const titleRow = worksheet.insertRow(1, []);
   titleRow.height = 30;
   const titleCell = titleRow.getCell(1);
@@ -62,27 +60,33 @@ function applyHeaderStyle(worksheet: ExcelJS.Worksheet, title: string) {
   titleCell.alignment = { horizontal: 'left', vertical: 'middle' };
   worksheet.mergeCells('A1:J1');
 
+  // Add generated date
   const dateRow = worksheet.insertRow(2, []);
   dateRow.height = 16;
   const dateCell = dateRow.getCell(1);
-  dateCell.value = `Generated: ${new Date().toLocaleDateString()}`;
+  dateCell.value = `Generated: ${opts.generatedDate?.toLocaleDateString()}`;
   dateCell.font = { size: 10, color: { argb: 'FF666666' } };
   dateCell.alignment = { horizontal: 'left', vertical: 'middle' };
   worksheet.mergeCells('A2:J2');
 
+  // Add blank row for spacing
   worksheet.insertRow(3, []);
-  return 4;
+
+  return 4; // Return starting row for data
 }
 
+/**
+ * Apply professional table header styling
+ */
 function applyTableHeaderStyle(headerRow: ExcelJS.Row) {
   headerRow.height = 20;
   headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 };
-  (headerRow.fill as any) = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0A7EA4' } };
+  headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0A7EA4' } };
   headerRow.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
 
   for (let i = 1; i <= headerRow.cellCount; i++) {
     const cell = headerRow.getCell(i);
-    (cell.border as any) = {
+    cell.border = {
       top: { style: 'thin', color: { argb: 'FF000000' } },
       left: { style: 'thin', color: { argb: 'FF000000' } },
       bottom: { style: 'thin', color: { argb: 'FF000000' } },
@@ -91,11 +95,14 @@ function applyTableHeaderStyle(headerRow: ExcelJS.Row) {
   }
 }
 
+/**
+ * Apply professional data row styling
+ */
 function applyDataRowStyle(row: ExcelJS.Row, isAlternate: boolean = false) {
   row.height = 18;
   row.font = { size: 10, color: { argb: 'FF000000' } };
   if (isAlternate) {
-    (row.fill as any) = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
+    row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } } as any;
   }
   row.alignment = { horizontal: 'left', vertical: 'middle', wrapText: true };
 
@@ -110,15 +117,20 @@ function applyDataRowStyle(row: ExcelJS.Row, isAlternate: boolean = false) {
   }
 }
 
-function createFinalReportSheet(workbook: ExcelJS.Workbook, jobs: JobReadiness[]) {
+/**
+ * Create Final Report sheet with all jobs
+ */
+function createFinalReportSheet(workbook: ExcelJS.Workbook, jobs: JobReadiness[], opts: ExcelExportOptions) {
   const sheet = workbook.addWorksheet('Final Report');
-  let rowNum = applyHeaderStyle(sheet, 'Final Report - All Jobs');
+  let rowNum = applyHeaderStyle(sheet, 'Final Report - All Jobs', opts);
 
+  // Table headers
   const headers = ['Customer', 'Supervisor', 'Final Ready Month', 'Confidence', 'StruXure', 'Screens', 'Pergotenda', 'Awning'];
   const headerRow = sheet.insertRow(rowNum, headers);
   applyTableHeaderStyle(headerRow);
   rowNum++;
 
+  // Data rows
   jobs.forEach((job, index) => {
     const readyMonth = getEarliestReadyMonth(job);
     const confidence = getOverallConfidence(job);
@@ -138,6 +150,7 @@ function createFinalReportSheet(workbook: ExcelJS.Workbook, jobs: JobReadiness[]
     rowNum++;
   });
 
+  // Set column widths
   sheet.columns = [
     { width: 25 },
     { width: 18 },
@@ -150,9 +163,12 @@ function createFinalReportSheet(workbook: ExcelJS.Workbook, jobs: JobReadiness[]
   ];
 }
 
-function createBlockedReportSheet(workbook: ExcelJS.Workbook, jobs: JobReadiness[]) {
+/**
+ * Create Blocked Report sheet
+ */
+function createBlockedReportSheet(workbook: ExcelJS.Workbook, jobs: JobReadiness[], opts: ExcelExportOptions) {
   const sheet = workbook.addWorksheet('Blocked Report');
-  let rowNum = applyHeaderStyle(sheet, 'Blocked Report - Jobs with Blocked Products');
+  let rowNum = applyHeaderStyle(sheet, 'Blocked Report - Jobs with Blocked Products', opts);
 
   const blockedJobs = jobs.filter((job) => {
     return (
@@ -191,9 +207,12 @@ function createBlockedReportSheet(workbook: ExcelJS.Workbook, jobs: JobReadiness
   sheet.columns = [{ width: 25 }, { width: 18 }, { width: 15 }, { width: 25 }, { width: 30 }];
 }
 
-function createPermitDateListSheet(workbook: ExcelJS.Workbook, jobs: JobReadiness[]) {
+/**
+ * Create Permit Date List sheet
+ */
+function createPermitDateListSheet(workbook: ExcelJS.Workbook, jobs: JobReadiness[], opts: ExcelExportOptions) {
   const sheet = workbook.addWorksheet('Permit Date List');
-  let rowNum = applyHeaderStyle(sheet, 'Permit Date List');
+  let rowNum = applyHeaderStyle(sheet, 'Permit Date List', opts);
 
   const headers = ['Customer', 'Permit Status', 'Est. Approval Date', 'Source'];
   const headerRow = sheet.insertRow(rowNum, headers);
@@ -201,7 +220,12 @@ function createPermitDateListSheet(workbook: ExcelJS.Workbook, jobs: JobReadines
   rowNum++;
 
   jobs.forEach((job, index) => {
-    const row = sheet.insertRow(rowNum, [job.customer, '', '', '']);
+    const row = sheet.insertRow(rowNum, [
+      job.customer,
+      '',
+      '',
+      '',
+    ]);
     applyDataRowStyle(row, index % 2 === 1);
     rowNum++;
   });
@@ -209,9 +233,12 @@ function createPermitDateListSheet(workbook: ExcelJS.Workbook, jobs: JobReadines
   sheet.columns = [{ width: 25 }, { width: 18 }, { width: 18 }, { width: 25 }];
 }
 
-function createPermitStatusSheet(workbook: ExcelJS.Workbook, jobs: JobReadiness[]) {
+/**
+ * Create Permit Status sheet
+ */
+function createPermitStatusSheet(workbook: ExcelJS.Workbook, jobs: JobReadiness[], opts: ExcelExportOptions) {
   const sheet = workbook.addWorksheet('Permit Status');
-  let rowNum = applyHeaderStyle(sheet, 'Permit Status Report');
+  let rowNum = applyHeaderStyle(sheet, 'Permit Status Report', opts);
 
   const headers = ['Customer', 'Status', 'Ready Month'];
   const headerRow = sheet.insertRow(rowNum, headers);
@@ -227,9 +254,12 @@ function createPermitStatusSheet(workbook: ExcelJS.Workbook, jobs: JobReadiness[
   sheet.columns = [{ width: 25 }, { width: 20 }, { width: 16 }];
 }
 
-function createMaterialStatusSheet(workbook: ExcelJS.Workbook, jobs: JobReadiness[]) {
+/**
+ * Create Material Status sheet
+ */
+function createMaterialStatusSheet(workbook: ExcelJS.Workbook, jobs: JobReadiness[], opts: ExcelExportOptions) {
   const sheet = workbook.addWorksheet('Material Status');
-  let rowNum = applyHeaderStyle(sheet, 'Material Status Report');
+  let rowNum = applyHeaderStyle(sheet, 'Material Status Report', opts);
 
   const headers = ['Customer', 'Product', 'Material Status', 'Ready Month'];
   const headerRow = sheet.insertRow(rowNum, headers);
@@ -259,9 +289,12 @@ function createMaterialStatusSheet(workbook: ExcelJS.Workbook, jobs: JobReadines
   sheet.columns = [{ width: 25 }, { width: 15 }, { width: 20 }, { width: 16 }];
 }
 
-function createSupervisorWorkloadSheet(workbook: ExcelJS.Workbook, jobs: JobReadiness[]) {
+/**
+ * Create Supervisor Workload sheet
+ */
+function createSupervisorWorkloadSheet(workbook: ExcelJS.Workbook, jobs: JobReadiness[], opts: ExcelExportOptions) {
   const sheet = workbook.addWorksheet('Supervisor Workload');
-  let rowNum = applyHeaderStyle(sheet, 'Supervisor Workload');
+  let rowNum = applyHeaderStyle(sheet, 'Supervisor Workload', opts);
 
   const headers = ['Supervisor', 'Customer', 'Ready Month', 'Confidence'];
   const headerRow = sheet.insertRow(rowNum, headers);
@@ -292,9 +325,12 @@ function createSupervisorWorkloadSheet(workbook: ExcelJS.Workbook, jobs: JobRead
   sheet.columns = [{ width: 20 }, { width: 25 }, { width: 16 }, { width: 12 }];
 }
 
-function createStruXureSheet(workbook: ExcelJS.Workbook, jobs: JobReadiness[]) {
+/**
+ * Create StruXure sheet
+ */
+function createStruXureSheet(workbook: ExcelJS.Workbook, jobs: JobReadiness[], opts: ExcelExportOptions) {
   const sheet = workbook.addWorksheet('StruXure');
-  let rowNum = applyHeaderStyle(sheet, 'StruXure Material Readiness');
+  let rowNum = applyHeaderStyle(sheet, 'StruXure Material Readiness', opts);
 
   const struXureJobs = jobs.filter((j) => j.struXure);
   const headers = ['Customer', 'Supervisor', 'Ready Month', 'Confidence', 'Status'];
@@ -317,9 +353,12 @@ function createStruXureSheet(workbook: ExcelJS.Workbook, jobs: JobReadiness[]) {
   sheet.columns = [{ width: 25 }, { width: 18 }, { width: 16 }, { width: 12 }, { width: 25 }];
 }
 
-function createScreensSheet(workbook: ExcelJS.Workbook, jobs: JobReadiness[]) {
+/**
+ * Create Screens sheet
+ */
+function createScreensSheet(workbook: ExcelJS.Workbook, jobs: JobReadiness[], opts: ExcelExportOptions) {
   const sheet = workbook.addWorksheet('Screens');
-  let rowNum = applyHeaderStyle(sheet, 'Screens Material Readiness');
+  let rowNum = applyHeaderStyle(sheet, 'Screens Material Readiness', opts);
 
   const screensJobs = jobs.filter((j) => j.screens);
   const headers = ['Customer', 'Supervisor', 'Ready Month', 'Confidence', 'Status'];
@@ -342,9 +381,12 @@ function createScreensSheet(workbook: ExcelJS.Workbook, jobs: JobReadiness[]) {
   sheet.columns = [{ width: 25 }, { width: 18 }, { width: 16 }, { width: 12 }, { width: 25 }];
 }
 
-function createPergotendaSheet(workbook: ExcelJS.Workbook, jobs: JobReadiness[]) {
+/**
+ * Create Pergotenda sheet
+ */
+function createPergotendaSheet(workbook: ExcelJS.Workbook, jobs: JobReadiness[], opts: ExcelExportOptions) {
   const sheet = workbook.addWorksheet('Pergotenda');
-  let rowNum = applyHeaderStyle(sheet, 'Pergotenda Material Readiness');
+  let rowNum = applyHeaderStyle(sheet, 'Pergotenda Material Readiness', opts);
 
   const pergotendaJobs = jobs.filter((j) => j.pergotenda);
   const headers = ['Customer', 'Supervisor', 'Ready Month', 'Confidence', 'Status'];
@@ -367,9 +409,12 @@ function createPergotendaSheet(workbook: ExcelJS.Workbook, jobs: JobReadiness[])
   sheet.columns = [{ width: 25 }, { width: 18 }, { width: 16 }, { width: 12 }, { width: 25 }];
 }
 
-function createAwningsSheet(workbook: ExcelJS.Workbook, jobs: JobReadiness[]) {
+/**
+ * Create Awnings sheet
+ */
+function createAwningsSheet(workbook: ExcelJS.Workbook, jobs: JobReadiness[], opts: ExcelExportOptions) {
   const sheet = workbook.addWorksheet('Awnings');
-  let rowNum = applyHeaderStyle(sheet, 'Awnings Material Readiness');
+  let rowNum = applyHeaderStyle(sheet, 'Awnings Material Readiness', opts);
 
   const awningJobs = jobs.filter((j) => j.awning);
   const headers = ['Customer', 'Supervisor', 'Ready Month', 'Confidence', 'Status'];
@@ -391,6 +436,10 @@ function createAwningsSheet(workbook: ExcelJS.Workbook, jobs: JobReadiness[]) {
 
   sheet.columns = [{ width: 25 }, { width: 18 }, { width: 16 }, { width: 12 }, { width: 25 }];
 }
+
+// ============================================================================
+// Helper Functions
+// ============================================================================
 
 function getConfidenceLabel(confidence: string): string {
   switch (confidence) {
@@ -414,7 +463,7 @@ function getEarliestReadyMonth(job: JobReadiness): string {
   ].filter(Boolean) as string[];
 
   if (months.length === 0) return 'N/A';
-  return months.sort().reverse()[0];
+  return months.sort().reverse()[0]; // Latest month (most conservative estimate)
 }
 
 function getOverallConfidence(job: JobReadiness): string {
