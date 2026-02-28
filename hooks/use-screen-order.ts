@@ -10,8 +10,9 @@ import type {
   ScreenMeasurements,
   MeasurementPoint,
   ProjectInfo,
+  GlobalMaterialSelections,
 } from "@/lib/screen-ordering/types";
-import { createEmptyScreen, createEmptySelections } from "@/lib/screen-ordering/types";
+import { createEmptyScreen, createEmptySelections, createEmptyGlobalMaterial } from "@/lib/screen-ordering/types";
 import { calculateScreen } from "@/lib/screen-ordering/calculations";
 import type { ScreenManufacturer } from "@/lib/screen-ordering/constants";
 
@@ -25,29 +26,18 @@ function createInitialState(): OrderState {
       jobNumber: "",
     },
     manufacturer: "DOS Screens",
+    globalMotorType: "",
+    inputUnits: "Inches + 1/16\"",
+    allSame: true,
+    globalMaterial: createEmptyGlobalMaterial(),
     screens: [createEmptyScreen(0)],
     applyUChannelToAll: false,
-    allSame: true,
   };
 }
 
 export function useScreenOrder() {
   const [state, setState] = useState<OrderState>(createInitialState);
   const [activeScreenIndex, setActiveScreenIndex] = useState(0);
-
-  // ─── Recalculate a single screen ──────────────────────────────────
-  const recalcScreen = useCallback(
-    (screen: ScreenConfig, manufacturer: ScreenManufacturer): ScreenConfig => {
-      const calculations = calculateScreen(
-        screen.measurements,
-        manufacturer,
-        screen.selections.installMount,
-        screen.reversedMeasurements
-      );
-      return { ...screen, calculations };
-    },
-    []
-  );
 
   // ─── Project Info ─────────────────────────────────────────────────
   const updateProject = useCallback((updates: Partial<ProjectInfo>) => {
@@ -62,6 +52,8 @@ export function useScreenOrder() {
     setState((prev) => ({
       ...prev,
       manufacturer,
+      globalMotorType: "",
+      globalMaterial: createEmptyGlobalMaterial(),
       screens: prev.screens.map((s) => ({
         ...s,
         selections: {
@@ -73,6 +65,88 @@ export function useScreenOrder() {
       })),
     }));
   }, []);
+
+  // ─── Global Motor Type ────────────────────────────────────────────
+  const setGlobalMotorType = useCallback((motorType: string) => {
+    setState((prev) => ({
+      ...prev,
+      globalMotorType: motorType,
+      // Reset remote on all screens when global motor type changes
+      screens: prev.screens.map((s) => ({
+        ...s,
+        selections: { ...s.selections, remoteOption: "" },
+      })),
+    }));
+  }, []);
+
+  // ─── Input Units ──────────────────────────────────────────────────
+  const setInputUnits = useCallback((units: string) => {
+    setState((prev) => ({ ...prev, inputUnits: units }));
+  }, []);
+
+  // ─── All Same Toggle ──────────────────────────────────────────────
+  const setAllSame = useCallback((allSame: boolean) => {
+    setState((prev) => {
+      if (allSame && !prev.allSame) {
+        // Switching to allSame=true: copy first screen's material to global
+        const first = prev.screens[0]?.selections;
+        return {
+          ...prev,
+          allSame,
+          globalMaterial: first ? {
+            screenType: first.screenType,
+            series: first.series,
+            screenColor: first.screenColor,
+            frameColorCollection: first.frameColorCollection,
+            frameColor: first.frameColor,
+            vinylWindowConfig: first.vinylWindowConfig,
+            vinylOrientation: first.vinylOrientation,
+          } : createEmptyGlobalMaterial(),
+        };
+      }
+      if (!allSame && prev.allSame) {
+        // Switching to allSame=false: copy global material to all screens
+        return {
+          ...prev,
+          allSame,
+          screens: prev.screens.map((s) => ({
+            ...s,
+            selections: {
+              ...s.selections,
+              screenType: prev.globalMaterial.screenType,
+              series: prev.globalMaterial.series,
+              screenColor: prev.globalMaterial.screenColor,
+              frameColorCollection: prev.globalMaterial.frameColorCollection,
+              frameColor: prev.globalMaterial.frameColor,
+              vinylWindowConfig: prev.globalMaterial.vinylWindowConfig,
+              vinylOrientation: prev.globalMaterial.vinylOrientation,
+            },
+          })),
+        };
+      }
+      return { ...prev, allSame };
+    });
+  }, []);
+
+  // ─── Global Material ──────────────────────────────────────────────
+  const updateGlobalMaterial = useCallback(
+    (key: keyof GlobalMaterialSelections, value: string) => {
+      setState((prev) => {
+        const gm = { ...prev.globalMaterial, [key]: value };
+        // Cascade resets
+        if (key === "screenType") {
+          gm.series = "";
+          gm.screenColor = "";
+          gm.vinylWindowConfig = "";
+          gm.vinylOrientation = "";
+        }
+        if (key === "series") gm.screenColor = "";
+        if (key === "frameColorCollection") gm.frameColor = "";
+        return { ...prev, globalMaterial: gm };
+      });
+    },
+    []
+  );
 
   // ─── Screen Count ─────────────────────────────────────────────────
   const setScreenCount = useCallback((count: number) => {
@@ -110,7 +184,7 @@ export function useScreenOrder() {
     setActiveScreenIndex((prev) => Math.max(0, prev - 1));
   }, []);
 
-  // ─── Screen Selections ────────────────────────────────────────────
+  // ─── Per-Screen Selections ────────────────────────────────────────
   const updateSelection = useCallback(
     (screenIndex: number, key: keyof ScreenSelections, value: string) => {
       setState((prev) => {
@@ -118,7 +192,7 @@ export function useScreenOrder() {
         const screen = { ...screens[screenIndex] };
         const selections = { ...screen.selections, [key]: value };
 
-        // Cascade resets
+        // Cascade resets for per-screen material fields
         if (key === "screenType") {
           selections.series = "";
           selections.screenColor = "";
@@ -130,7 +204,6 @@ export function useScreenOrder() {
         }
         if (key === "series") selections.screenColor = "";
         if (key === "frameColorCollection") selections.frameColor = "";
-        if (key === "motorType") selections.remoteOption = "";
         if (key === "installMount" && value !== "Face-mount") selections.faceMountSides = "";
         if (key === "windowBorderMaterial") {
           selections.windowBorderSeries = "";
@@ -139,15 +212,14 @@ export function useScreenOrder() {
         if (key === "windowBorderSeries") selections.windowBorderColor = "";
 
         screen.selections = selections;
-        // Recalculate if mount changed (affects extended hood)
+        // Recalculate if mount changed
         if (key === "installMount") {
-          const calcs = calculateScreen(
+          screen.calculations = calculateScreen(
             screen.measurements,
             prev.manufacturer,
             selections.installMount,
             screen.reversedMeasurements
           );
-          screen.calculations = calcs;
         }
         screens[screenIndex] = screen;
         return { ...prev, screens };
@@ -205,11 +277,6 @@ export function useScreenOrder() {
     []
   );
 
-  // ─── All Same Toggle ──────────────────────────────────────────────
-  const setAllSame = useCallback((allSame: boolean) => {
-    setState((prev) => ({ ...prev, allSame }));
-  }, []);
-
   // ─── U-Channel Apply to All ───────────────────────────────────────
   const setApplyUChannelToAll = useCallback((apply: boolean) => {
     setState((prev) => ({ ...prev, applyUChannelToAll: apply }));
@@ -243,13 +310,31 @@ export function useScreenOrder() {
     [state.screens, activeScreenIndex]
   );
 
+  // ─── Effective material for a screen (global or per-screen) ───────
+  const getEffectiveMaterial = useCallback(
+    (screen: ScreenConfig) => {
+      if (state.allSame) {
+        return state.globalMaterial;
+      }
+      return {
+        screenType: screen.selections.screenType,
+        series: screen.selections.series,
+        screenColor: screen.selections.screenColor,
+        frameColorCollection: screen.selections.frameColorCollection,
+        frameColor: screen.selections.frameColor,
+        vinylWindowConfig: screen.selections.vinylWindowConfig,
+        vinylOrientation: screen.selections.vinylOrientation,
+      };
+    },
+    [state.allSame, state.globalMaterial]
+  );
+
   // ─── Validation ───────────────────────────────────────────────────
   const isProjectValid = useMemo(() => {
     const p = state.project;
     return p.name.trim().length > 0 && p.submitterName.trim().length > 0;
   }, [state.project]);
 
-  // ─── Any U-Channel Required ───────────────────────────────────────
   const anyUChannelRequired = useMemo(() => {
     return state.screens.some((s) => s.calculations?.uChannelNeeded);
   }, [state.screens]);
@@ -261,10 +346,10 @@ export function useScreenOrder() {
     if (!c) return warnings;
 
     if (c.leftSideMismatch) {
-      warnings.push("Left side check mismatch: UL + LL ≠ OL (difference > 1/8\")");
+      warnings.push("Left side check: Upper Left (UL) + Lower Left (LL) must equal Overall Left (OL) within 1/8\". Please verify.");
     }
     if (c.rightSideMismatch) {
-      warnings.push("Right side check mismatch: UR + LR ≠ OR (difference > 1/8\")");
+      warnings.push("Right side check: Upper Right (UR) + Lower Right (LR) must equal Overall Right (OR) within 1/8\". Please verify.");
     }
     if (c.buildOutType === "FLAG") {
       warnings.push("Build-out FLAG: Slope exceeds 1 3/4\" — requires engineering review");
@@ -282,6 +367,10 @@ export function useScreenOrder() {
     setActiveScreenIndex,
     updateProject,
     setManufacturer,
+    setGlobalMotorType,
+    setInputUnits,
+    setAllSame,
+    updateGlobalMaterial,
     setScreenCount,
     addScreen,
     removeScreen,
@@ -289,12 +378,12 @@ export function useScreenOrder() {
     updateMeasurement,
     toggleReverseMeasurements,
     updateScreenField,
-    setAllSame,
     setApplyUChannelToAll,
     recalculateAll,
     resetOrder,
     isProjectValid,
     anyUChannelRequired,
     getScreenWarnings,
+    getEffectiveMaterial,
   };
 }

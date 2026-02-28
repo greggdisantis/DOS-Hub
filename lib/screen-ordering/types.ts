@@ -57,19 +57,21 @@ export type ScreenMeasurements = Record<MeasurementPoint, number | null>;
 
 export type BuildOutType = "None" | "1x2" | "2x2" | "FLAG";
 
-// ─── Screen Selections ─────────────────────────────────────────────────────
+// ─── Screen Selections (per-screen only) ────────────────────────────────────
 
 export interface ScreenSelections {
+  // Per-screen fields (always per-screen)
+  installMount: string;
+  faceMountSides: string;
+  motorSide: string;
+  remoteOption: string;
+  // Material fields — used per-screen when allSame=false
   screenType: string;
   series: string;
   screenColor: string;
   frameColorCollection: string;
   frameColor: string;
-  motorType: string;
-  remoteOption: string;
-  installMount: string;
-  faceMountSides: string;
-  motorSide: string;
+  // Vinyl-specific
   vinylWindowConfig: string;
   vinylOrientation: string;
   windowBorderMaterial: string;
@@ -77,10 +79,21 @@ export interface ScreenSelections {
   windowBorderColor: string;
 }
 
+// ─── Global Material Selections ─────────────────────────────────────────────
+
+export interface GlobalMaterialSelections {
+  screenType: string;
+  series: string;
+  screenColor: string;
+  frameColorCollection: string;
+  frameColor: string;
+  vinylWindowConfig: string;
+  vinylOrientation: string;
+}
+
 // ─── Calculation Results ────────────────────────────────────────────────────
 
 export interface ScreenCalculations {
-  // Core structural calculations
   upperSlopeIn: number | null;
   leftHeightIn: number | null;
   rightHeightIn: number | null;
@@ -89,19 +102,13 @@ export interface ScreenCalculations {
   lowSide: "Left" | "Right" | "Level" | null;
   trackToTrackIn: number | null;
   tbDiffIn: number | null;
-
-  // Material requirements
   uChannelNeeded: boolean;
   buildOutNeeded: boolean;
   buildOutType: BuildOutType;
-
-  // Additional calculations
   extendedHoodIn: number | null;
   biasIn: number | null;
   orderableWidthIn: number;
   orderableHeightIn: number;
-
-  // Validation flags
   leftSideMismatch: boolean;
   rightSideMismatch: boolean;
 }
@@ -127,9 +134,12 @@ export interface ScreenConfig {
 export interface OrderState {
   project: ProjectInfo;
   manufacturer: ScreenManufacturer;
+  globalMotorType: string;
+  inputUnits: string;
+  allSame: boolean;
+  globalMaterial: GlobalMaterialSelections;
   screens: ScreenConfig[];
   applyUChannelToAll: boolean;
-  allSame: boolean;
 }
 
 // ─── Factory Functions ──────────────────────────────────────────────────────
@@ -144,12 +154,19 @@ export function createEmptyMeasurements(): ScreenMeasurements {
 
 export function createEmptySelections(): ScreenSelections {
   return {
+    installMount: "Undermount", faceMountSides: "", motorSide: "", remoteOption: "",
     screenType: "", series: "", screenColor: "",
     frameColorCollection: "", frameColor: "",
-    motorType: "", remoteOption: "",
-    installMount: "Undermount", faceMountSides: "",
-    motorSide: "", vinylWindowConfig: "", vinylOrientation: "",
+    vinylWindowConfig: "", vinylOrientation: "",
     windowBorderMaterial: "", windowBorderSeries: "", windowBorderColor: "",
+  };
+}
+
+export function createEmptyGlobalMaterial(): GlobalMaterialSelections {
+  return {
+    screenType: "", series: "", screenColor: "",
+    frameColorCollection: "", frameColor: "",
+    vinylWindowConfig: "", vinylOrientation: "",
   };
 }
 

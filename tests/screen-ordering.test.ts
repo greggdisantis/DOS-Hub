@@ -20,6 +20,7 @@ import {
   createEmptyScreen,
   createEmptyMeasurements,
   createEmptySelections,
+  createEmptyGlobalMaterial,
   MEASUREMENT_POINTS,
 } from "../lib/screen-ordering/types";
 
@@ -453,5 +454,21 @@ describe("Screen Ordering — Type Helpers", () => {
     const s1 = createEmptyScreen(0);
     const s2 = createEmptyScreen(1);
     expect(s1.id).not.toBe(s2.id);
+  });
+
+  it("creates empty global material with empty strings", () => {
+    const gm = createEmptyGlobalMaterial();
+    expect(gm.screenType).toBe("");
+    expect(gm.series).toBe("");
+    expect(gm.screenColor).toBe("");
+    expect(gm.frameColorCollection).toBe("");
+    expect(gm.frameColor).toBe("");
+    expect(gm.vinylWindowConfig).toBe("");
+    expect(gm.vinylOrientation).toBe("");
+  });
+
+  it("selections no longer have motorType field", () => {
+    const s = createEmptySelections();
+    expect("motorType" in s).toBe(false);
   });
 });

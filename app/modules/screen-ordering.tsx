@@ -23,6 +23,8 @@ import {
   type MeasurementPoint,
 } from "@/lib/screen-ordering/types";
 
+const SCREEN_COUNT_OPTIONS = Array.from({ length: 20 }, (_, i) => String(i + 1));
+
 export default function ScreenOrderingScreen() {
   const colors = useColors();
   const order = useScreenOrder();
@@ -32,19 +34,26 @@ export default function ScreenOrderingScreen() {
   const sel = screen.selections;
   const mfr = state.manufacturer;
 
-  // Determine which series options to show
-  let seriesOptions: string[] = [];
-  if (sel.screenType === "Twichell Solar") seriesOptions = TWICHELL_SOLAR_SERIES;
-  else if (sel.screenType === "Ferrari Soltis") seriesOptions = FERRARI_SOLTIS_SERIES;
+  // Global material (used when allSame=true) or per-screen material
+  const effectiveMat = order.getEffectiveMaterial(screen);
 
-  const needsSeries = sel.screenType === "Twichell Solar" || sel.screenType === "Ferrari Soltis";
-  const isVinyl = sel.screenType === "Vinyl";
-  const colorOptions = getScreenColorOptions(sel.screenType, sel.series);
+  // Determine series options based on effective screen type
+  let seriesOptions: string[] = [];
+  if (effectiveMat.screenType === "Twichell Solar") seriesOptions = TWICHELL_SOLAR_SERIES;
+  else if (effectiveMat.screenType === "Ferrari Soltis") seriesOptions = FERRARI_SOLTIS_SERIES;
+
+  const needsSeries = effectiveMat.screenType === "Twichell Solar" || effectiveMat.screenType === "Ferrari Soltis";
+  const isVinyl = effectiveMat.screenType === "Vinyl";
+  const colorOptions = getScreenColorOptions(effectiveMat.screenType, effectiveMat.series);
   const frameCollections = FRAME_COLOR_COLLECTIONS[mfr] ?? [];
-  const frameColors = FRAME_COLORS[sel.frameColorCollection] ?? [];
+  const frameColors = FRAME_COLORS[effectiveMat.frameColorCollection] ?? [];
   const motorTypes = MOTOR_TYPES[mfr] ?? [];
-  const remoteOptions = REMOTE_OPTIONS[sel.motorType] ?? [];
+  const remoteOptions = REMOTE_OPTIONS[state.globalMotorType] ?? [];
   const warnings = order.getScreenWarnings(screen);
+
+  // Inline side-check warnings for measurement columns
+  const leftSideMismatch = screen.calculations?.leftSideMismatch ?? false;
+  const rightSideMismatch = screen.calculations?.rightSideMismatch ?? false;
 
   return (
     <>
@@ -81,45 +90,137 @@ export default function ScreenOrderingScreen() {
             onChangeText={(v) => order.updateProject({ date: v })} placeholder="YYYY-MM-DD" />
 
           {/* ═══════════════════════════════════════════════════════════════
-              GLOBAL SETTINGS
+              GLOBAL SELECTIONS
               ═══════════════════════════════════════════════════════════════ */}
-          <SectionHeader title="Global Settings" colors={colors} />
+          <SectionHeader title="Global Selections" colors={colors} />
 
-          <View style={styles.row2Col}>
+          {/* Row 1: Manufacturer, Total Screens, Input Units, Motor Type */}
+          <View style={styles.row4Col}>
             <View style={styles.col}>
               <FieldPicker
-                label="Manufacturer"
+                label="Screen Manufacturer"
                 value={state.manufacturer}
                 options={["DOS Screens", "MagnaTrack"]}
                 onSelect={(v) => order.setManufacturer(v as ScreenManufacturer)}
                 required
               />
             </View>
+            <View style={styles.colSmall}>
+              <FieldPicker
+                label="Total # of Screens"
+                value={String(state.screens.length)}
+                options={SCREEN_COUNT_OPTIONS}
+                onSelect={(v) => order.setScreenCount(parseInt(v, 10))}
+                required
+              />
+            </View>
             <View style={styles.col}>
-              <View style={styles.formField}>
-                <Text style={[styles.formLabel, { color: colors.foreground }]}>Total Screens</Text>
-                <View style={styles.counterRow}>
-                  <Pressable
-                    onPress={() => order.setScreenCount(Math.max(1, state.screens.length - 1))}
-                    style={({ pressed }) => [styles.counterBtn, { backgroundColor: colors.surface, borderColor: colors.border }, pressed && { opacity: 0.7 }]}
-                  >
-                    <Text style={[styles.counterBtnText, { color: colors.foreground }]}>−</Text>
-                  </Pressable>
-                  <Text style={[styles.counterValue, { color: colors.foreground }]}>{state.screens.length}</Text>
-                  <Pressable
-                    onPress={() => order.setScreenCount(state.screens.length + 1)}
-                    style={({ pressed }) => [styles.counterBtn, { backgroundColor: colors.surface, borderColor: colors.border }, pressed && { opacity: 0.7 }]}
-                  >
-                    <Text style={[styles.counterBtnText, { color: colors.foreground }]}>+</Text>
-                  </Pressable>
-                </View>
-              </View>
+              <FieldPicker
+                label="Input Units"
+                value={state.inputUnits}
+                options={["Inches + 1/16\""]}
+                onSelect={(v) => order.setInputUnits(v)}
+              />
+            </View>
+            <View style={styles.col}>
+              <FieldPicker
+                label="Motor Type (Global)"
+                value={state.globalMotorType}
+                options={motorTypes}
+                onSelect={(v) => order.setGlobalMotorType(v)}
+                placeholder="— Select —"
+                required
+              />
             </View>
           </View>
 
+          {/* Divider */}
+          <View style={[styles.divider, { backgroundColor: colors.border }]} />
+
+          {/* All Same Toggle */}
+          <View style={styles.allSameRow}>
+            <Text style={[styles.allSameLabel, { color: colors.foreground }]}>
+              All Screen Material & Frame Colors the Same?
+            </Text>
+            <View style={styles.yesNoRow}>
+              <Pressable
+                onPress={() => order.setAllSame(true)}
+                style={[
+                  styles.yesNoBtn,
+                  state.allSame
+                    ? { backgroundColor: colors.primary }
+                    : { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 },
+                ]}
+              >
+                <Text style={[styles.yesNoBtnText, { color: state.allSame ? "#fff" : colors.foreground }]}>Yes</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => order.setAllSame(false)}
+                style={[
+                  styles.yesNoBtn,
+                  !state.allSame
+                    ? { backgroundColor: colors.primary }
+                    : { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 },
+                ]}
+              >
+                <Text style={[styles.yesNoBtnText, { color: !state.allSame ? "#fff" : colors.foreground }]}>No</Text>
+              </Pressable>
+            </View>
+          </View>
+
+          {/* Global Screen Material & Frame (when allSame=true) */}
+          {state.allSame && (
+            <View style={styles.globalMaterialRow}>
+              {/* Screen Material column */}
+              <View style={styles.col}>
+                <SubSectionHeader title="Screen Material" colors={colors} />
+                <FieldPicker label="Screen Type" value={state.globalMaterial.screenType}
+                  options={getScreenTypes(mfr)}
+                  onSelect={(v) => order.updateGlobalMaterial("screenType", v)} required />
+                {needsSeries && (
+                  <FieldPicker label={effectiveMat.screenType === "Twichell Solar" ? "Twichell Series" : "Ferrari Series"}
+                    value={state.globalMaterial.series}
+                    options={seriesOptions}
+                    onSelect={(v) => order.updateGlobalMaterial("series", v)} required />
+                )}
+                {isVinyl && (
+                  <>
+                    <FieldPicker label="Window Config" value={state.globalMaterial.vinylWindowConfig}
+                      options={VINYL_WINDOW_CONFIGS}
+                      onSelect={(v) => order.updateGlobalMaterial("vinylWindowConfig", v)} />
+                    <FieldPicker label="Orientation" value={state.globalMaterial.vinylOrientation}
+                      options={VINYL_ORIENTATIONS}
+                      onSelect={(v) => order.updateGlobalMaterial("vinylOrientation", v)} />
+                  </>
+                )}
+                {colorOptions.length > 0 && (
+                  <FieldPicker label="Screen Color" value={state.globalMaterial.screenColor}
+                    options={colorOptions}
+                    onSelect={(v) => order.updateGlobalMaterial("screenColor", v)} required />
+                )}
+              </View>
+
+              {/* Frame column */}
+              <View style={styles.col}>
+                <SubSectionHeader title="Frame" colors={colors} />
+                <FieldPicker label="Frame Color Collection" value={state.globalMaterial.frameColorCollection}
+                  options={frameCollections}
+                  onSelect={(v) => order.updateGlobalMaterial("frameColorCollection", v)} required />
+                {frameColors.length > 0 && (
+                  <FieldPicker label="Frame Color" value={state.globalMaterial.frameColor}
+                    options={frameColors}
+                    onSelect={(v) => order.updateGlobalMaterial("frameColor", v)} required />
+                )}
+              </View>
+            </View>
+          )}
+
           {/* ═══════════════════════════════════════════════════════════════
-              SCREEN TABS
+              SCREENS CONFIGURATION
               ═══════════════════════════════════════════════════════════════ */}
+          <SectionHeader title="Screens Configuration" colors={colors} />
+
+          {/* Screen tabs (when multiple screens) */}
           {state.screens.length > 1 && (
             <View style={styles.screenTabs}>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsRow}>
@@ -129,7 +230,10 @@ export default function ScreenOrderingScreen() {
                     onPress={() => order.setActiveScreenIndex(i)}
                     style={({ pressed }) => [
                       styles.screenTab,
-                      { backgroundColor: i === activeScreenIndex ? colors.primary : colors.surface, borderColor: colors.border },
+                      {
+                        backgroundColor: i === activeScreenIndex ? colors.primary : colors.surface,
+                        borderColor: i === activeScreenIndex ? colors.primary : colors.border,
+                      },
                       pressed && { opacity: 0.7 },
                     ]}
                   >
@@ -142,132 +246,213 @@ export default function ScreenOrderingScreen() {
             </View>
           )}
 
-          {/* ═══════════════════════════════════════════════════════════════
-              PER-SCREEN CONFIGURATION
-              ═══════════════════════════════════════════════════════════════ */}
-          <SectionHeader
-            title={`Screen ${activeScreenIndex + 1} of ${state.screens.length}`}
-            subtitle={screen.description || undefined}
-            colors={colors}
-          />
-
-          <FormInput label="Description" value={screen.description}
-            onChangeText={(v) => order.updateScreenField(activeScreenIndex, "description", v)}
-            placeholder={`Screen ${activeScreenIndex + 1} label`} />
-
-          {/* Screen Material */}
-          <SubSectionHeader title="Screen Material" colors={colors} />
-          <FieldPicker label="Screen Type" value={sel.screenType}
-            options={getScreenTypes(mfr)} onSelect={(v) => order.updateSelection(activeScreenIndex, "screenType", v)} required />
-          {needsSeries && (
-            <FieldPicker label="Series" value={sel.series}
-              options={seriesOptions} onSelect={(v) => order.updateSelection(activeScreenIndex, "series", v)} required />
-          )}
-          {isVinyl && (
-            <>
-              <FieldPicker label="Window Config" value={sel.vinylWindowConfig}
-                options={VINYL_WINDOW_CONFIGS} onSelect={(v) => order.updateSelection(activeScreenIndex, "vinylWindowConfig", v)} />
-              <FieldPicker label="Orientation" value={sel.vinylOrientation}
-                options={VINYL_ORIENTATIONS} onSelect={(v) => order.updateSelection(activeScreenIndex, "vinylOrientation", v)} />
-            </>
-          )}
-          {colorOptions.length > 0 && (
-            <FieldPicker label="Screen Color" value={sel.screenColor}
-              options={colorOptions} onSelect={(v) => order.updateSelection(activeScreenIndex, "screenColor", v)} required />
-          )}
-
-          {/* Frame */}
-          <SubSectionHeader title="Frame" colors={colors} />
-          <FieldPicker label="Frame Collection" value={sel.frameColorCollection}
-            options={frameCollections} onSelect={(v) => order.updateSelection(activeScreenIndex, "frameColorCollection", v)} required />
-          {frameColors.length > 0 && (
-            <FieldPicker label="Frame Color" value={sel.frameColor}
-              options={frameColors} onSelect={(v) => order.updateSelection(activeScreenIndex, "frameColor", v)} required />
-          )}
-
-          {/* Motor */}
-          <SubSectionHeader title="Motor" colors={colors} />
-          <FieldPicker label="Motor Type" value={sel.motorType}
-            options={motorTypes} onSelect={(v) => order.updateSelection(activeScreenIndex, "motorType", v)} required />
-          {remoteOptions.length > 0 && (
-            <FieldPicker label="Remote" value={sel.remoteOption}
-              options={remoteOptions} onSelect={(v) => order.updateSelection(activeScreenIndex, "remoteOption", v)} />
-          )}
-          <View style={styles.row2Col}>
-            <View style={styles.col}>
-              <FieldPicker label="Motor Side" value={sel.motorSide}
-                options={MOTOR_SIDE_OPTIONS} onSelect={(v) => order.updateSelection(activeScreenIndex, "motorSide", v)} required />
+          {/* ─── Per-Screen Card ─────────────────────────────────────── */}
+          <View style={[styles.screenCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            {/* Screen header */}
+            <View style={styles.screenCardHeader}>
+              <Text style={[styles.screenCardTitle, { color: colors.foreground }]}>
+                SCREEN #{activeScreenIndex + 1}
+              </Text>
             </View>
-            <View style={styles.col}>
-              <FieldPicker label="Mount Type" value={sel.installMount}
-                options={INSTALL_MOUNT_OPTIONS} onSelect={(v) => order.updateSelection(activeScreenIndex, "installMount", v)} required />
+
+            {/* Description */}
+            <FormInput label="Description" value={screen.description}
+              onChangeText={(v) => order.updateScreenField(activeScreenIndex, "description", v)}
+              placeholder="e.g., Middle Area" />
+
+            {/* Divider */}
+            <View style={[styles.divider, { backgroundColor: colors.border }]} />
+
+            {/* Per-screen material (only when allSame=false) */}
+            {!state.allSame && (
+              <>
+                <View style={styles.row2Col}>
+                  <View style={styles.col}>
+                    <SubSectionHeader title="Screen Material" colors={colors} />
+                    <FieldPicker label="Screen Type" value={sel.screenType}
+                      options={getScreenTypes(mfr)}
+                      onSelect={(v) => order.updateSelection(activeScreenIndex, "screenType", v)} required />
+                    {needsSeries && (
+                      <FieldPicker label="Series" value={sel.series}
+                        options={seriesOptions}
+                        onSelect={(v) => order.updateSelection(activeScreenIndex, "series", v)} required />
+                    )}
+                    {isVinyl && (
+                      <>
+                        <FieldPicker label="Window Config" value={sel.vinylWindowConfig}
+                          options={VINYL_WINDOW_CONFIGS}
+                          onSelect={(v) => order.updateSelection(activeScreenIndex, "vinylWindowConfig", v)} />
+                        <FieldPicker label="Orientation" value={sel.vinylOrientation}
+                          options={VINYL_ORIENTATIONS}
+                          onSelect={(v) => order.updateSelection(activeScreenIndex, "vinylOrientation", v)} />
+                      </>
+                    )}
+                    {colorOptions.length > 0 && (
+                      <FieldPicker label="Screen Color" value={sel.screenColor}
+                        options={colorOptions}
+                        onSelect={(v) => order.updateSelection(activeScreenIndex, "screenColor", v)} required />
+                    )}
+                  </View>
+                  <View style={styles.col}>
+                    <SubSectionHeader title="Frame" colors={colors} />
+                    <FieldPicker label="Frame Collection" value={sel.frameColorCollection}
+                      options={frameCollections}
+                      onSelect={(v) => order.updateSelection(activeScreenIndex, "frameColorCollection", v)} required />
+                    {frameColors.length > 0 && (
+                      <FieldPicker label="Frame Color" value={sel.frameColor}
+                        options={frameColors}
+                        onSelect={(v) => order.updateSelection(activeScreenIndex, "frameColor", v)} required />
+                    )}
+                  </View>
+                </View>
+                <View style={[styles.divider, { backgroundColor: colors.border }]} />
+              </>
+            )}
+
+            {/* Install Mount / Motor Side / Remote — one row */}
+            <View style={styles.row3Col}>
+              <View style={styles.col}>
+                <FieldPicker label="Install Mount Type" value={sel.installMount}
+                  options={INSTALL_MOUNT_OPTIONS}
+                  onSelect={(v) => order.updateSelection(activeScreenIndex, "installMount", v)} required />
+              </View>
+              <View style={styles.col}>
+                <FieldPicker label="Motor Side" value={sel.motorSide}
+                  options={MOTOR_SIDE_OPTIONS}
+                  onSelect={(v) => order.updateSelection(activeScreenIndex, "motorSide", v)} required />
+              </View>
+              <View style={styles.col}>
+                <FieldPicker label="Remote" value={sel.remoteOption}
+                  options={remoteOptions}
+                  onSelect={(v) => order.updateSelection(activeScreenIndex, "remoteOption", v)}
+                  placeholder={state.globalMotorType ? "— Select —" : "Select motor type first"}
+                />
+              </View>
             </View>
-          </View>
-          {sel.installMount === "Face-mount" && (
-            <FieldPicker label="Face Mount Sides" value={sel.faceMountSides}
-              options={FACE_MOUNT_SIDES} onSelect={(v) => order.updateSelection(activeScreenIndex, "faceMountSides", v)} required />
-          )}
 
-          {/* ═══════════════════════════════════════════════════════════════
-              MEASUREMENTS
-              ═══════════════════════════════════════════════════════════════ */}
-          <SectionHeader title="Measurements" colors={colors} />
+            {sel.installMount === "Face-mount" && (
+              <FieldPicker label="Face Mount Sides" value={sel.faceMountSides}
+                options={FACE_MOUNT_SIDES}
+                onSelect={(v) => order.updateSelection(activeScreenIndex, "faceMountSides", v)} required />
+            )}
 
-          {/* Reverse toggle */}
-          <View style={[styles.toggleRow, { borderColor: colors.border }]}>
-            <Text style={[styles.toggleLabel, { color: colors.foreground }]}>Reverse Measurements (swap L/R)</Text>
-            <Switch
-              value={screen.reversedMeasurements}
-              onValueChange={() => order.toggleReverseMeasurements(activeScreenIndex)}
-              trackColor={{ false: colors.border, true: colors.primary + "80" }}
-              thumbColor={screen.reversedMeasurements ? colors.primary : "#f4f3f4"}
-            />
-          </View>
+            {/* ─── Measurements ──────────────────────────────────────── */}
+            <View style={[styles.divider, { backgroundColor: colors.border }]} />
+            <Text style={[styles.measureSectionTitle, { color: colors.foreground }]}>Measurements</Text>
 
-          {/* Left Side Heights */}
-          <Text style={[styles.measureGroup, { color: colors.muted }]}>LEFT SIDE (Heights)</Text>
-          <View style={styles.measureRow}>
-            {(["upperLeft", "lowerLeft", "overallLeft"] as MeasurementPoint[]).map((pt) => (
-              <MeasurementInput
-                key={pt}
-                label={MEASUREMENT_LABELS[pt]}
-                shortLabel={MEASUREMENT_SHORT_LABELS[pt]}
-                value={screen.measurements[pt]}
-                onChange={(v) => order.updateMeasurement(activeScreenIndex, pt, v)}
-                required={pt === "upperLeft" || pt === "overallLeft"}
-              />
-            ))}
-          </View>
+            {/* Reverse toggle */}
+            <View style={[styles.reverseRow, { borderColor: colors.border }]}>
+              <View style={styles.reverseLeft}>
+                <Text style={[styles.reverseLabel, { color: colors.foreground }]}>Reverse measurements?</Text>
+                <IconSymbol name="info.circle.fill" size={14} color={colors.muted} />
+              </View>
+              <View style={styles.yesNoRow}>
+                <Pressable
+                  onPress={() => { if (!screen.reversedMeasurements) order.toggleReverseMeasurements(activeScreenIndex); }}
+                  style={[
+                    styles.yesNoBtn,
+                    screen.reversedMeasurements
+                      ? { backgroundColor: colors.primary }
+                      : { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 },
+                  ]}
+                >
+                  <Text style={[styles.yesNoBtnText, { color: screen.reversedMeasurements ? "#fff" : colors.foreground }]}>Yes</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => { if (screen.reversedMeasurements) order.toggleReverseMeasurements(activeScreenIndex); }}
+                  style={[
+                    styles.yesNoBtn,
+                    !screen.reversedMeasurements
+                      ? { backgroundColor: colors.primary }
+                      : { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 },
+                  ]}
+                >
+                  <Text style={[styles.yesNoBtnText, { color: !screen.reversedMeasurements ? "#fff" : colors.foreground }]}>No</Text>
+                </Pressable>
+              </View>
+              {screen.reversedMeasurements && (
+                <Text style={[styles.reverseHint, { color: colors.muted }]}>
+                  If active, Left and Right values are swapped for all calculations.
+                </Text>
+              )}
+            </View>
 
-          {/* Right Side Heights */}
-          <Text style={[styles.measureGroup, { color: colors.muted }]}>RIGHT SIDE (Heights)</Text>
-          <View style={styles.measureRow}>
-            {(["upperRight", "lowerRight", "overallRight"] as MeasurementPoint[]).map((pt) => (
-              <MeasurementInput
-                key={pt}
-                label={MEASUREMENT_LABELS[pt]}
-                shortLabel={MEASUREMENT_SHORT_LABELS[pt]}
-                value={screen.measurements[pt]}
-                onChange={(v) => order.updateMeasurement(activeScreenIndex, pt, v)}
-                required={pt === "upperRight" || pt === "overallRight"}
-              />
-            ))}
-          </View>
+            {/* 3-column measurement grid */}
+            <View style={styles.measureGrid}>
+              {/* LEFT SIDE column */}
+              <View style={[styles.measureCol, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                <Text style={[styles.measureColHeader, { color: colors.foreground }]}>LEFT SIDE</Text>
+                {(["upperLeft", "lowerLeft", "overallLeft"] as MeasurementPoint[]).map((pt) => (
+                  <MeasurementInput
+                    key={pt}
+                    label={MEASUREMENT_LABELS[pt]}
+                    shortLabel={MEASUREMENT_SHORT_LABELS[pt]}
+                    value={screen.measurements[pt]}
+                    onChange={(v) => order.updateMeasurement(activeScreenIndex, pt, v)}
+                    required={pt === "upperLeft" || pt === "overallLeft"}
+                  />
+                ))}
+                {leftSideMismatch && (
+                  <View style={[styles.inlineWarning, { backgroundColor: "#FFF3CD", borderColor: "#FFCC02" }]}>
+                    <Text style={styles.inlineWarningIcon}>⚠️</Text>
+                    <Text style={[styles.inlineWarningText, { color: "#856404" }]}>
+                      Left side check: Upper Left (UL) + Lower Left (LL) must equal Overall Left (OL) within 1/8". Please verify.
+                    </Text>
+                  </View>
+                )}
+              </View>
 
-          {/* Horizontal Widths */}
-          <Text style={[styles.measureGroup, { color: colors.muted }]}>HORIZONTAL (Widths)</Text>
-          <View style={styles.measureRow}>
-            {(["top", "middle", "bottom"] as MeasurementPoint[]).map((pt) => (
-              <MeasurementInput
-                key={pt}
-                label={MEASUREMENT_LABELS[pt]}
-                shortLabel={MEASUREMENT_SHORT_LABELS[pt]}
-                value={screen.measurements[pt]}
-                onChange={(v) => order.updateMeasurement(activeScreenIndex, pt, v)}
-                required={pt === "top" || pt === "bottom"}
-              />
-            ))}
+              {/* RIGHT SIDE column */}
+              <View style={[styles.measureCol, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                <Text style={[styles.measureColHeader, { color: colors.foreground }]}>RIGHT SIDE</Text>
+                {(["upperRight", "lowerRight", "overallRight"] as MeasurementPoint[]).map((pt) => (
+                  <MeasurementInput
+                    key={pt}
+                    label={MEASUREMENT_LABELS[pt]}
+                    shortLabel={MEASUREMENT_SHORT_LABELS[pt]}
+                    value={screen.measurements[pt]}
+                    onChange={(v) => order.updateMeasurement(activeScreenIndex, pt, v)}
+                    required={pt === "upperRight" || pt === "overallRight"}
+                  />
+                ))}
+                {rightSideMismatch && (
+                  <View style={[styles.inlineWarning, { backgroundColor: "#FFF3CD", borderColor: "#FFCC02" }]}>
+                    <Text style={styles.inlineWarningIcon}>⚠️</Text>
+                    <Text style={[styles.inlineWarningText, { color: "#856404" }]}>
+                      Right side check: Upper Right (UR) + Lower Right (LR) must equal Overall Right (OR) within 1/8". Please verify.
+                    </Text>
+                  </View>
+                )}
+              </View>
+
+              {/* HORIZONTAL column */}
+              <View style={[styles.measureCol, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                <Text style={[styles.measureColHeader, { color: colors.foreground }]}>HORIZONTAL</Text>
+                {(["top", "middle", "bottom"] as MeasurementPoint[]).map((pt) => (
+                  <MeasurementInput
+                    key={pt}
+                    label={MEASUREMENT_LABELS[pt]}
+                    shortLabel={MEASUREMENT_SHORT_LABELS[pt]}
+                    value={screen.measurements[pt]}
+                    onChange={(v) => order.updateMeasurement(activeScreenIndex, pt, v)}
+                    required={pt === "top" || pt === "bottom"}
+                  />
+                ))}
+              </View>
+            </View>
+
+            {/* # of Cuts */}
+            <FormInput label="# of Cuts" value={screen.numberOfCuts}
+              onChangeText={(v) => order.updateScreenField(activeScreenIndex, "numberOfCuts", v)}
+              placeholder="e.g., 2" keyboardType="number-pad" />
+
+            {/* Special Instructions */}
+            <FormInput label="Special Instructions" value={screen.specialInstructions}
+              onChangeText={(v) => order.updateScreenField(activeScreenIndex, "specialInstructions", v)}
+              placeholder="Type any special notes for this screen..." multiline />
+
           </View>
+          {/* End per-screen card */}
 
           {/* ═══════════════════════════════════════════════════════════════
               CALCULATED RESULTS & WARNINGS
@@ -303,23 +488,6 @@ export default function ScreenOrderingScreen() {
               </View>
             </>
           )}
-
-          {/* ═══════════════════════════════════════════════════════════════
-              MISC
-              ═══════════════════════════════════════════════════════════════ */}
-          <SectionHeader title="Misc" colors={colors} />
-          <View style={styles.row2Col}>
-            <View style={styles.col}>
-              <FormInput label="Number of Cuts" value={screen.numberOfCuts}
-                onChangeText={(v) => order.updateScreenField(activeScreenIndex, "numberOfCuts", v)}
-                placeholder="e.g., 2" keyboardType="number-pad" />
-            </View>
-            <View style={styles.col}>
-              <FormInput label="Special Instructions" value={screen.specialInstructions}
-                onChangeText={(v) => order.updateScreenField(activeScreenIndex, "specialInstructions", v)}
-                placeholder="Any special notes..." multiline />
-            </View>
-          </View>
 
           {/* ═══════════════════════════════════════════════════════════════
               ACTIONS
@@ -409,7 +577,7 @@ function FormInput({
         keyboardType={keyboardType as any}
         style={[
           styles.formInput,
-          { backgroundColor: colors.surface, borderColor: colors.border, color: colors.foreground },
+          { backgroundColor: "#EEF0F8", borderColor: colors.border, color: colors.foreground },
           multiline && { minHeight: 60, textAlignVertical: "top" },
         ]}
         returnKeyType={multiline ? "default" : "done"}
@@ -440,30 +608,77 @@ const styles = StyleSheet.create({
 
   // Layout
   row2Col: { flexDirection: "row", gap: 12 },
-  col: { flex: 1 },
+  row3Col: { flexDirection: "row", gap: 10 },
+  row4Col: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
+  col: { flex: 1, minWidth: 120 },
+  colSmall: { flex: 0.6, minWidth: 80 },
+
+  // Divider
+  divider: { height: 1, marginVertical: 16 },
+
+  // All Same toggle
+  allSameRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: 16 },
+  allSameLabel: { fontSize: 14, fontWeight: "600" },
+  yesNoRow: { flexDirection: "row", gap: 0 },
+  yesNoBtn: {
+    paddingHorizontal: 18, paddingVertical: 8, borderRadius: 6,
+  },
+  yesNoBtnText: { fontSize: 14, fontWeight: "600" },
+
+  // Global material
+  globalMaterialRow: { flexDirection: "row", gap: 16 },
+
+  // Screen tabs
+  screenTabs: { marginBottom: 12 },
+  tabsRow: { gap: 8 },
+  screenTab: {
+    paddingHorizontal: 16, paddingVertical: 10, borderRadius: 10, borderWidth: 1,
+  },
+  screenTabText: { fontSize: 14, fontWeight: "600" },
+
+  // Screen card
+  screenCard: {
+    borderRadius: 14, borderWidth: 1, padding: 16, marginBottom: 8,
+  },
+  screenCardHeader: {
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12,
+  },
+  screenCardTitle: { fontSize: 16, fontWeight: "800", letterSpacing: 0.5 },
 
   // Measurements
-  measureGroup: {
-    fontSize: 12, fontWeight: "700", marginTop: 12, marginBottom: 8,
+  measureSectionTitle: { fontSize: 16, fontWeight: "700", marginBottom: 12 },
+  reverseRow: {
+    flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 10,
+    paddingVertical: 10, marginBottom: 12, borderBottomWidth: 0.5,
+  },
+  reverseLeft: { flexDirection: "row", alignItems: "center", gap: 6 },
+  reverseLabel: { fontSize: 14, fontWeight: "600" },
+  reverseHint: { fontSize: 12, fontStyle: "italic", width: "100%" },
+
+  measureGrid: { flexDirection: "row", gap: 8, marginBottom: 16 },
+  measureCol: {
+    flex: 1, borderRadius: 10, borderWidth: 1, padding: 10,
+  },
+  measureColHeader: {
+    fontSize: 12, fontWeight: "800", textAlign: "center", marginBottom: 10,
     textTransform: "uppercase", letterSpacing: 0.8,
   },
-  measureRow: { flexDirection: "row", gap: 8 },
 
-  // Toggle
+  // Inline warning
+  inlineWarning: {
+    flexDirection: "row", alignItems: "flex-start", gap: 6,
+    padding: 8, borderRadius: 8, borderWidth: 1, marginTop: 4,
+  },
+  inlineWarningIcon: { fontSize: 12, marginTop: 1 },
+  inlineWarningText: { fontSize: 11, fontWeight: "600", flex: 1, lineHeight: 15 },
+
+  // Toggle (legacy)
   toggleRow: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
     paddingVertical: 10, paddingHorizontal: 4, marginBottom: 8,
     borderBottomWidth: 0.5,
   },
   toggleLabel: { fontSize: 14, fontWeight: "500" },
-
-  // Screen tabs
-  screenTabs: { marginBottom: 8 },
-  tabsRow: { gap: 8 },
-  screenTab: {
-    paddingHorizontal: 16, paddingVertical: 10, borderRadius: 10, borderWidth: 1,
-  },
-  screenTabText: { fontSize: 14, fontWeight: "600" },
 
   // Counter
   counterRow: { flexDirection: "row", alignItems: "center", gap: 12 },

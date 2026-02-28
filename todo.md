@@ -24,7 +24,7 @@
 - [ ] Implement Screen Ordering module — PDF quote generation (deferred)
 - [x] Screen Ordering: Add Project Info section (Project Name, Date, Job Number, Address, Submitter)
 - [x] Screen Ordering: Add Global Selections section (manufacturer, total screens, motor type)
-- [ ] Screen Ordering: Add "All Colors Same?" toggle with global screen material and frame color pickers
+- [x] Screen Ordering: Add "All Colors Same?" toggle with global screen material and frame color pickers
 - [x] Screen Ordering: Rebuild per-screen config as single scrollable form (description, mount, motor side, remote)
 - [x] Screen Ordering: Add 9-point measurement grid with whole number + fraction inputs (LEFT/RIGHT/HORIZONTAL columns)
 - [x] Screen Ordering: Add "Reverse measurements?" toggle
@@ -32,3 +32,13 @@
 - [ ] Screen Ordering: Add Photos & Attachments section (measurement photos, general photos, PDFs)
 - [x] Screen Ordering: Add Output Summary section with calculation results and warnings/flags
 - [ ] Screen Ordering: Add footer with Preview All Pages, Save, and Export to PDF buttons
+- [x] Screen Ordering: Global Selections — add Total # of Screens as dropdown (1–20)
+- [x] Screen Ordering: Global Selections — add Input Units dropdown (Inches + 1/16")
+- [x] Screen Ordering: Global Selections — add Motor Type (Global) dropdown per manufacturer
+- [x] Screen Ordering: Global Selections — add "All Screen Material & Frame Colors the Same?" Yes/No toggle
+- [x] Screen Ordering: Global Selections — when "Yes", show global Screen Material (Type, Series, Color) and Frame (Collection, Color) pickers
+- [x] Screen Ordering: Global Selections — propagate global selections to all screens
+- [x] Screen Ordering: Per-Screen — move Screen Material & Frame out when allSame=Yes
+- [x] Screen Ordering: Per-Screen — Remote dropdown depends on global Motor Type
+- [x] Screen Ordering: Per-Screen — Install Mount / Motor Side / Remote in one row
+- [x] Screen Ordering: Per-Screen — inline side-check warning under LEFT/RIGHT measurement columns
