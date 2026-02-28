@@ -28,7 +28,7 @@ export default function JobIntelligenceScreen() {
       const parsedJobs = await parseServiceFusionExcel(file);
       const readinessJobs = parsedJobs.map(calculateJobReadiness);
       setJobs(readinessJobs);
-      setViewMode('results');
+      setViewMode('reports');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to parse file');
     } finally {
@@ -40,19 +40,7 @@ export default function JobIntelligenceScreen() {
     return <UploadView onFileUpload={handleFileUpload} isLoading={isLoading} error={error} />;
   }
 
-  if (viewMode === 'results') {
-    return (
-      <ResultsView
-        jobs={jobs}
-        onViewReports={() => setViewMode('reports')}
-        onBack={() => {
-          setViewMode('upload');
-          setJobs([]);
-          setError(null);
-        }}
-      />
-    );
-  }
+
 
   if (viewMode === 'reports') {
     console.log('Converting jobs to JobData format, count:', jobs.length);
@@ -100,15 +88,7 @@ export default function JobIntelligenceScreen() {
   }
 
   return (
-    <ResultsView
-      jobs={jobs}
-      onViewReports={() => setViewMode('reports')}
-      onBack={() => {
-        setViewMode('upload');
-        setJobs([]);
-        setError(null);
-      }}
-    />
+    <UploadView onFileUpload={handleFileUpload} isLoading={isLoading} error={error} />
   );
 }
 
