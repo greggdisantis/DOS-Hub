@@ -1,7 +1,8 @@
 /**
  * PDF Preview Screen
  * Full-screen in-app preview of the generated PDF HTML.
- * - Export: generates a real PDF file and triggers browser download (no print dialog)
+ * - Export: on web, opens a new window with the HTML and triggers Save-as-PDF via print dialog
+ *           on native, uses expo-print to generate a PDF file and share via share sheet
  * - Print: opens the system print dialog for the preview content
  */
 import { useCallback, useRef, useState } from "react";
@@ -25,114 +26,40 @@ export default function PdfPreviewScreen() {
   const title = data?.title || "PDF Preview";
   const html = data?.html || "";
 
-  // ─── Export: generate PDF file and download (NO print dialog) ─────────────
+  // ─── Export: generate PDF file and save/download ───────────────────────────
   const handleExport = useCallback(async () => {
     if (!html) return;
     setExporting(true);
 
     try {
       if (Platform.OS === "web") {
-        // Create a hidden iframe, render the HTML, then use jsPDF + html2canvas
-        // to generate a real PDF file and trigger a download
-        const jsPDF = (await import("jspdf")).default;
-        const html2canvas = (await import("html2canvas")).default;
-
-        // Create a temporary container to render the HTML
-        const container = document.createElement("div");
-        container.style.position = "absolute";
-        container.style.left = "-9999px";
-        container.style.top = "0";
-        container.style.width = "816px"; // US Letter at 96dpi (8.5 * 96)
-        container.style.background = "#fff";
-        container.innerHTML = html;
-        document.body.appendChild(container);
-
-        // Wait for images to load
-        const images = container.querySelectorAll("img");
-        await Promise.all(
-          Array.from(images).map(
-            (img) =>
-              new Promise<void>((resolve) => {
-                if (img.complete) return resolve();
-                img.onload = () => resolve();
-                img.onerror = () => resolve();
-              })
-          )
-        );
-
-        // Find all page breaks to split into pages
-        const pages = container.querySelectorAll(".page-break-section");
-        const pdf = new jsPDF({ orientation: "portrait", unit: "pt", format: "letter" });
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = pdf.internal.pageSize.getHeight();
-
-        if (pages.length > 0) {
-          // Multi-page: render each page section separately
-          for (let i = 0; i < pages.length; i++) {
-            const pageEl = pages[i] as HTMLElement;
-            // Temporarily show only this page
-            const allPages = Array.from(pages) as HTMLElement[];
-            allPages.forEach((p, idx) => {
-              (p as HTMLElement).style.display = idx === i ? "block" : "none";
-            });
-
-            const canvas = await html2canvas(container, {
-              scale: 2,
-              useCORS: true,
-              allowTaint: true,
-              width: 816,
-              windowWidth: 816,
-              backgroundColor: "#ffffff",
-            });
-
-            const imgData = canvas.toDataURL("image/jpeg", 0.95);
-            const imgWidth = pdfWidth;
-            const imgHeight = (canvas.height * pdfWidth) / canvas.width;
-
-            if (i > 0) pdf.addPage();
-            pdf.addImage(imgData, "JPEG", 0, 0, imgWidth, Math.min(imgHeight, pdfHeight));
-
-            // Restore visibility
-            allPages.forEach((p) => {
-              (p as HTMLElement).style.display = "block";
-            });
-          }
+        // On web: create a Blob from the HTML, open it in a new tab,
+        // then use the browser's built-in print-to-PDF (Save as PDF)
+        const blob = new Blob([html], { type: "text/html" });
+        const url = URL.createObjectURL(blob);
+        const exportWindow = window.open(url, "_blank");
+        if (exportWindow) {
+          exportWindow.onload = () => {
+            // Auto-trigger print dialog after content loads
+            setTimeout(() => {
+              exportWindow.print();
+              URL.revokeObjectURL(url);
+            }, 600);
+          };
         } else {
-          // Single render fallback
-          const canvas = await html2canvas(container, {
-            scale: 2,
-            useCORS: true,
-            allowTaint: true,
-            width: 816,
-            windowWidth: 816,
-            backgroundColor: "#ffffff",
-          });
-
-          const imgData = canvas.toDataURL("image/jpeg", 0.95);
-          const imgWidth = pdfWidth;
-          const imgHeight = (canvas.height * pdfWidth) / canvas.width;
-
-          // Split into pages if content is taller than one page
-          let yOffset = 0;
-          let pageNum = 0;
-          while (yOffset < imgHeight) {
-            if (pageNum > 0) pdf.addPage();
-            pdf.addImage(imgData, "JPEG", 0, -yOffset, imgWidth, imgHeight);
-            yOffset += pdfHeight;
-            pageNum++;
-          }
+          // Fallback: direct download as HTML
+          const a = document.createElement("a");
+          a.href = url;
+          const safeName = (data?.title || "screen-order")
+            .replace(/[^a-zA-Z0-9\s-]/g, "")
+            .replace(/\s+/g, "-")
+            .toLowerCase();
+          a.download = `${safeName}-${new Date().toISOString().split("T")[0]}.html`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
         }
-
-        // Clean up
-        document.body.removeChild(container);
-
-        // Generate filename
-        const safeName = (data?.title || "screen-order")
-          .replace(/[^a-zA-Z0-9\s-]/g, "")
-          .replace(/\s+/g, "-")
-          .toLowerCase();
-        const dateStr = new Date().toISOString().split("T")[0];
-        pdf.save(`${safeName}-${dateStr}.pdf`);
       } else {
         // On native: use expo-print to generate PDF file, then share via share sheet
         const Print = await import("expo-print");
@@ -252,7 +179,7 @@ export default function PdfPreviewScreen() {
 
         {/* Bottom Toolbar */}
         <View style={[styles.toolbar, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
-          {/* Export Button — downloads PDF file */}
+          {/* Export Button — saves PDF file */}
           <Pressable
             onPress={handleExport}
             disabled={exporting}

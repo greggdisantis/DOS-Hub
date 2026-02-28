@@ -59,3 +59,4 @@
 - [x] Screen Ordering: PDF — each screen on its own page with clear SCREEN #N badge label
 - [x] Screen Ordering: PDF — include uploaded photos on page(s) following each screen's data
 - [x] Screen Ordering: PDF — professional formatting matching original DOS form layout
+- [x] BUG: PDF preview screen not rendering HTML content — fixed by removing jspdf/html2canvas (Metro incompatible)
