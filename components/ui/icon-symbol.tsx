@@ -39,6 +39,18 @@ const MAPPING = {
   "shield.fill": "admin-panel-settings",
   "bolt.fill": "bolt",
   "photo.fill": "photo",
+  "plus.circle.fill": "add-circle",
+  "minus.circle.fill": "remove-circle",
+  "checkmark.circle.fill": "check-circle",
+  "xmark.circle.fill": "cancel",
+  "arrow.up.arrow.down": "swap-vert",
+  "ruler.fill": "straighten",
+  "paintbrush.fill": "brush",
+  "square.and.arrow.up": "share",
+  "trash.fill": "delete",
+  "pencil": "edit",
+  "info.circle.fill": "info",
+  "exclamationmark.triangle.fill": "warning",
 } as IconMapping;
 
 /**

@@ -17,3 +17,8 @@
 - [x] Update app.config.ts with branding info (appName, logoUrl)
 - [x] Set up database schema for multi-tenancy (companies, branding)
 - [ ] Implement dynamic branding engine (load company colors/logo on login) — deferred to next phase
+- [x] Implement Screen Ordering module — product configuration (dimensions, fabric, motor, housing)
+- [x] Implement Screen Ordering module — structural calculations engine
+- [x] Implement Screen Ordering module — multi-line order management (add/remove lines)
+- [x] Implement Screen Ordering module — order summary review
+- [ ] Implement Screen Ordering module — PDF quote generation (deferred)
