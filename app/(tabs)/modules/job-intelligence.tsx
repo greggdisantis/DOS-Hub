@@ -4,12 +4,12 @@
  */
 
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, FlatList } from 'react-native';
 import { ScreenContainer } from '@/components/screen-container';
 import { parseServiceFusionExcel, type ParsedJob } from './job-intelligence/excel-parser';
 import { calculateJobReadiness, type JobReadiness } from './job-intelligence/readiness-calculator';
 import { ReportsView } from './job-intelligence/reports-view';
-import { type JobData } from './job-intelligence/report-types';
+import { type JobData, REPORT_CONFIGS } from './job-intelligence/report-types';
 
 type ViewMode = 'upload' | 'results' | 'reports';
 
@@ -55,6 +55,7 @@ export default function JobIntelligenceScreen() {
   }
 
   if (viewMode === 'reports') {
+    console.log('Converting jobs to JobData format, count:', jobs.length);
     const jobsData: JobData[] = jobs.map((job) => ({
       customer: job.customer,
       projectSupervisor: job.projectSupervisor,
@@ -92,7 +93,9 @@ export default function JobIntelligenceScreen() {
     }));
 
     return (
-      <ReportsView jobs={jobsData} />
+      <View className="flex-1">
+        <ReportsView jobs={jobsData} />
+      </View>
     );
   }
 

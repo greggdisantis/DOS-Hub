@@ -21,6 +21,10 @@ export function ReportsView({ jobs, isLoading = false }: ReportsViewProps) {
   const [activeReport, setActiveReport] = useState<ReportType>('final');
   const [exporting, setExporting] = useState(false);
 
+  console.log('ReportsView - REPORT_CONFIGS:', REPORT_CONFIGS);
+  console.log('ReportsView - jobs count:', jobs.length);
+  console.log('ReportsView - activeReport:', activeReport);
+
   const reportData = getReportData(jobs, activeReport);
   const currentReport = REPORT_CONFIGS.find((r) => r.id === activeReport);
 
@@ -47,31 +51,37 @@ export function ReportsView({ jobs, isLoading = false }: ReportsViewProps) {
 
   return (
     <ScreenContainer className="flex-1">
-      {/* Report Tabs */}
+      {/* Report Tabs - Horizontal ScrollView */}
       <ScrollView
         horizontal
-        showsHorizontalScrollIndicator={false}
-        className="border-b border-border"
-        contentContainerStyle={{ paddingHorizontal: 12 }}
+        showsHorizontalScrollIndicator={true}
+        scrollEventThrottle={16}
+        style={{
+          backgroundColor: colors.surface,
+          borderBottomWidth: 1,
+          borderBottomColor: colors.border,
+        }}
       >
         {REPORT_CONFIGS.map((report) => (
           <Pressable
             key={report.id}
             onPress={() => setActiveReport(report.id)}
-            className={cn(
-              'px-4 py-3 border-b-2 mr-2',
-              activeReport === report.id
-                ? 'border-primary'
-                : 'border-transparent'
-            )}
+            style={{
+              paddingHorizontal: 12,
+              paddingVertical: 12,
+              borderBottomWidth: 3,
+              borderBottomColor: activeReport === report.id ? colors.primary : 'transparent',
+              minWidth: 110,
+              alignItems: 'center',
+            }}
           >
             <Text
-              className={cn(
-                'text-sm font-semibold',
-                activeReport === report.id
-                  ? 'text-primary'
-                  : 'text-muted'
-              )}
+              style={{
+                fontSize: 12,
+                fontWeight: '600',
+                color: activeReport === report.id ? colors.primary : colors.muted,
+              }}
+              numberOfLines={1}
             >
               {report.title}
             </Text>
@@ -80,29 +90,31 @@ export function ReportsView({ jobs, isLoading = false }: ReportsViewProps) {
       </ScrollView>
 
       {/* Report Header with Export Button */}
-      <View className="flex-row items-center justify-between px-4 py-4 border-b border-border">
-        <View className="flex-1">
-          <Text className="text-lg font-bold text-foreground">
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontSize: 18, fontWeight: 'bold', color: colors.foreground }}>
             {currentReport?.title}
           </Text>
-          <Text className="text-sm text-muted mt-1">
+          <Text style={{ fontSize: 14, color: colors.muted, marginTop: 4 }}>
             {currentReport?.description}
           </Text>
-          <Text className="text-xs text-muted mt-2">
+          <Text style={{ fontSize: 12, color: colors.muted, marginTop: 8 }}>
             {reportData.length} job{reportData.length !== 1 ? 's' : ''}
           </Text>
         </View>
         <Pressable
           onPress={handleExportPDF}
           disabled={exporting || reportData.length === 0}
-          className={cn(
-            'px-4 py-2 rounded-lg',
-            exporting || reportData.length === 0
-              ? 'bg-muted opacity-50'
-              : 'bg-primary'
-          )}
+          style={{
+            paddingHorizontal: 16,
+            paddingVertical: 8,
+            borderRadius: 8,
+            backgroundColor: exporting || reportData.length === 0 ? colors.muted : colors.primary,
+            opacity: exporting || reportData.length === 0 ? 0.5 : 1,
+            marginLeft: 16,
+          }}
         >
-          <Text className="text-white font-semibold text-sm">
+          <Text style={{ color: 'white', fontWeight: '600', fontSize: 14 }}>
             {exporting ? 'Exporting...' : 'Export PDF'}
           </Text>
         </Pressable>
@@ -110,8 +122,8 @@ export function ReportsView({ jobs, isLoading = false }: ReportsViewProps) {
 
       {/* Report Content */}
       {reportData.length === 0 ? (
-        <View className="flex-1 items-center justify-center px-4">
-          <Text className="text-muted text-center">
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 }}>
+          <Text style={{ color: colors.muted, textAlign: 'center' }}>
             No data available for this report
           </Text>
         </View>
@@ -142,23 +154,26 @@ function ReportRow({ job, reportType, index }: ReportRowProps) {
 
   return (
     <View
-      className={cn(
-        'px-4 py-3 border-b border-border',
-        isAlternate ? 'bg-surface' : ''
-      )}
+      style={{
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.border,
+        backgroundColor: isAlternate ? colors.surface : colors.background,
+      }}
     >
-      <View className="flex-row justify-between items-start">
-        <View className="flex-1">
-          <Text className="font-bold text-foreground text-sm">
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontWeight: 'bold', color: colors.foreground, fontSize: 14 }}>
             {job.customer}
           </Text>
           {job.projectSupervisor && (
-            <Text className="text-xs text-muted mt-1">
+            <Text style={{ fontSize: 12, color: colors.muted, marginTop: 4 }}>
               Supervisor: {job.projectSupervisor}
             </Text>
           )}
           {job.jobNumber && (
-            <Text className="text-xs text-muted">
+            <Text style={{ fontSize: 12, color: colors.muted }}>
               Job #: {job.jobNumber}
             </Text>
           )}
@@ -179,11 +194,11 @@ function renderReportColumns(
   switch (reportType) {
     case 'final':
       return (
-        <View className="ml-4 items-end">
-          <Text className="text-xs font-semibold text-primary">
+        <View style={{ marginLeft: 16, alignItems: 'flex-end' }}>
+          <Text style={{ fontSize: 12, fontWeight: '600', color: colors.primary }}>
             {getEarliestReadyMonth(job)}
           </Text>
-          <Text className="text-xs text-muted mt-1">
+          <Text style={{ fontSize: 12, color: colors.muted, marginTop: 4 }}>
             {getOverallConfidence(job)}
           </Text>
         </View>
@@ -191,9 +206,9 @@ function renderReportColumns(
 
     case 'blocked':
       return (
-        <View className="ml-4 items-end">
-          <Text className="text-xs font-semibold text-error">BLOCKED</Text>
-          <Text className="text-xs text-muted mt-1">
+        <View style={{ marginLeft: 16, alignItems: 'flex-end' }}>
+          <Text style={{ fontSize: 12, fontWeight: '600', color: '#ef4444' }}>BLOCKED</Text>
+          <Text style={{ fontSize: 12, color: colors.muted, marginTop: 4 }}>
             {getBlockedProducts(job).join(', ')}
           </Text>
         </View>
@@ -201,11 +216,11 @@ function renderReportColumns(
 
     case 'permit-date-list':
       return (
-        <View className="ml-4 items-end">
-          <Text className="text-xs font-semibold text-foreground">
+        <View style={{ marginLeft: 16, alignItems: 'flex-end' }}>
+          <Text style={{ fontSize: 12, fontWeight: '600', color: colors.foreground }}>
             {job.permitApprovalDate || 'TBD'}
           </Text>
-          <Text className="text-xs text-muted mt-1">
+          <Text style={{ fontSize: 12, color: colors.muted, marginTop: 4 }}>
             {job.permitStatus || 'Unknown'}
           </Text>
         </View>
@@ -213,8 +228,8 @@ function renderReportColumns(
 
     case 'permit-status':
       return (
-        <View className="ml-4 items-end">
-          <Text className="text-xs font-semibold text-foreground">
+        <View style={{ marginLeft: 16, alignItems: 'flex-end' }}>
+          <Text style={{ fontSize: 12, fontWeight: '600', color: colors.foreground }}>
             {job.permitStatus || 'Unknown'}
           </Text>
         </View>
@@ -222,8 +237,8 @@ function renderReportColumns(
 
     case 'material-status':
       return (
-        <View className="ml-4 items-end">
-          <Text className="text-xs text-muted">
+        <View style={{ marginLeft: 16, alignItems: 'flex-end' }}>
+          <Text style={{ fontSize: 12, color: colors.muted }}>
             {getMaterialProducts(job).join(', ')}
           </Text>
         </View>
@@ -231,11 +246,11 @@ function renderReportColumns(
 
     case 'supervisor-workload':
       return (
-        <View className="ml-4 items-end">
-          <Text className="text-xs font-semibold text-foreground">
+        <View style={{ marginLeft: 16, alignItems: 'flex-end' }}>
+          <Text style={{ fontSize: 12, fontWeight: '600', color: colors.foreground }}>
             {getEarliestReadyMonth(job)}
           </Text>
-          <Text className="text-xs text-muted mt-1">
+          <Text style={{ fontSize: 12, color: colors.muted, marginTop: 4 }}>
             {getOverallConfidence(job)}
           </Text>
         </View>
@@ -243,11 +258,11 @@ function renderReportColumns(
 
     case 'struXure':
       return job.struXure ? (
-        <View className="ml-4 items-end">
-          <Text className="text-xs font-semibold text-foreground">
+        <View style={{ marginLeft: 16, alignItems: 'flex-end' }}>
+          <Text style={{ fontSize: 12, fontWeight: '600', color: colors.foreground }}>
             {job.struXure.readyMonth}
           </Text>
-          <Text className="text-xs text-muted mt-1">
+          <Text style={{ fontSize: 12, color: colors.muted, marginTop: 4 }}>
             {getConfidenceLabel(job.struXure.confidence)}
           </Text>
         </View>
@@ -255,11 +270,11 @@ function renderReportColumns(
 
     case 'screens':
       return job.screens ? (
-        <View className="ml-4 items-end">
-          <Text className="text-xs font-semibold text-foreground">
+        <View style={{ marginLeft: 16, alignItems: 'flex-end' }}>
+          <Text style={{ fontSize: 12, fontWeight: '600', color: colors.foreground }}>
             {job.screens.readyMonth}
           </Text>
-          <Text className="text-xs text-muted mt-1">
+          <Text style={{ fontSize: 12, color: colors.muted, marginTop: 4 }}>
             {getConfidenceLabel(job.screens.confidence)}
           </Text>
         </View>
@@ -267,11 +282,11 @@ function renderReportColumns(
 
     case 'pergotenda':
       return job.pergotenda ? (
-        <View className="ml-4 items-end">
-          <Text className="text-xs font-semibold text-foreground">
+        <View style={{ marginLeft: 16, alignItems: 'flex-end' }}>
+          <Text style={{ fontSize: 12, fontWeight: '600', color: colors.foreground }}>
             {job.pergotenda.readyMonth}
           </Text>
-          <Text className="text-xs text-muted mt-1">
+          <Text style={{ fontSize: 12, color: colors.muted, marginTop: 4 }}>
             {getConfidenceLabel(job.pergotenda.confidence)}
           </Text>
         </View>
@@ -279,11 +294,11 @@ function renderReportColumns(
 
     case 'awnings':
       return job.awning ? (
-        <View className="ml-4 items-end">
-          <Text className="text-xs font-semibold text-foreground">
+        <View style={{ marginLeft: 16, alignItems: 'flex-end' }}>
+          <Text style={{ fontSize: 12, fontWeight: '600', color: colors.foreground }}>
             {job.awning.readyMonth}
           </Text>
-          <Text className="text-xs text-muted mt-1">
+          <Text style={{ fontSize: 12, color: colors.muted, marginTop: 4 }}>
             {getConfidenceLabel(job.awning.confidence)}
           </Text>
         </View>
@@ -291,8 +306,8 @@ function renderReportColumns(
 
     case 'dos-magnatrack':
       return (
-        <View className="ml-4 items-end">
-          <Text className="text-xs text-muted">
+        <View style={{ marginLeft: 16, alignItems: 'flex-end' }}>
+          <Text style={{ fontSize: 12, color: colors.muted }}>
             {job.dosScreens ? 'DOS' : ''} {job.magnaTrackScreens ? 'MagnaTrack' : ''}
           </Text>
         </View>
@@ -300,8 +315,8 @@ function renderReportColumns(
 
     case 'exceptions':
       return (
-        <View className="ml-4 items-end">
-          <Text className="text-xs font-semibold text-error">
+        <View style={{ marginLeft: 16, alignItems: 'flex-end' }}>
+          <Text style={{ fontSize: 12, fontWeight: '600', color: '#ef4444' }}>
             {job.exceptions?.length || 0} exceptions
           </Text>
         </View>
