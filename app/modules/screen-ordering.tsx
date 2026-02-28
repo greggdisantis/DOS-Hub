@@ -1,8 +1,9 @@
 import { useState, useCallback } from "react";
 import {
-  Text, View, ScrollView, TextInput, Pressable, Alert, StyleSheet, Platform, Switch,
+  Text, View, ScrollView, TextInput, Pressable, Alert, StyleSheet, Platform, Switch, Image,
 } from "react-native";
-import { Stack } from "expo-router";
+import * as ImagePicker from "expo-image-picker";
+import { Stack, useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
@@ -21,13 +22,17 @@ import {
 import {
   MEASUREMENT_LABELS, MEASUREMENT_SHORT_LABELS,
   type MeasurementPoint,
+  type ScreenPhoto,
 } from "@/lib/screen-ordering/types";
-import { exportOrderPdf, previewScreenPdf } from "@/lib/screen-ordering/pdf-export";
+import { generateOrderPdfHtml, generateScreenPdfHtml } from "@/lib/screen-ordering/pdf-template";
+import { usePdfPreview } from "@/lib/screen-ordering/pdf-context";
 
 const SCREEN_COUNT_OPTIONS = Array.from({ length: 20 }, (_, i) => String(i + 1));
 
 export default function ScreenOrderingScreen() {
   const colors = useColors();
+  const router = useRouter();
+  const { setData: setPdfPreview } = usePdfPreview();
   const order = useScreenOrder();
   const { state, activeScreen, activeScreenIndex } = order;
 
@@ -255,7 +260,12 @@ export default function ScreenOrderingScreen() {
                 SCREEN #{activeScreenIndex + 1}
               </Text>
               <Pressable
-                onPress={() => previewScreenPdf(state, activeScreenIndex)}
+                onPress={() => {
+                  const html = generateScreenPdfHtml(state, activeScreenIndex);
+                  const screenTitle = screen.description || `Screen ${activeScreenIndex + 1}`;
+                  setPdfPreview({ html, title: screenTitle, mode: activeScreenIndex });
+                  router.push("/modules/pdf-preview" as any);
+                }}
                 style={({ pressed }) => [
                   styles.previewBtn,
                   { borderColor: colors.primary },
@@ -462,6 +472,87 @@ export default function ScreenOrderingScreen() {
               onChangeText={(v) => order.updateScreenField(activeScreenIndex, "specialInstructions", v)}
               placeholder="Type any special notes for this screen..." multiline />
 
+            {/* ─── Photos ──────────────────────────────────────────── */}
+            <View style={[styles.divider, { backgroundColor: colors.border }]} />
+            <Text style={[styles.measureSectionTitle, { color: colors.foreground }]}>Measurement Photos</Text>
+
+            <View style={styles.photosGrid}>
+              {screen.photos.map((photo, pIdx) => (
+                <View key={`photo-${pIdx}`} style={[styles.photoThumb, { borderColor: colors.border }]}>
+                  <Image source={{ uri: photo.uri }} style={styles.photoImage} resizeMode="cover" />
+                  <Pressable
+                    onPress={() => order.removePhoto(activeScreenIndex, pIdx)}
+                    style={({ pressed }) => [
+                      styles.photoRemoveBtn,
+                      pressed && { opacity: 0.7 },
+                    ]}
+                  >
+                    <IconSymbol name="xmark" size={14} color="#fff" />
+                  </Pressable>
+                </View>
+              ))}
+
+              {/* Add Photo buttons */}
+              <Pressable
+                onPress={async () => {
+                  const result = await ImagePicker.launchImageLibraryAsync({
+                    mediaTypes: ["images"],
+                    allowsMultipleSelection: true,
+                    quality: 0.8,
+                    base64: true,
+                  });
+                  if (!result.canceled && result.assets.length > 0) {
+                    const newPhotos: ScreenPhoto[] = result.assets.map((a) => ({
+                      uri: a.uri,
+                      base64DataUri: a.base64 ? `data:image/jpeg;base64,${a.base64}` : undefined,
+                      width: a.width,
+                      height: a.height,
+                    }));
+                    order.addPhotos(activeScreenIndex, newPhotos);
+                  }
+                }}
+                style={({ pressed }) => [
+                  styles.addPhotoBtn,
+                  { borderColor: colors.border, backgroundColor: colors.background },
+                  pressed && { opacity: 0.7 },
+                ]}
+              >
+                <IconSymbol name="photo.on.rectangle" size={24} color={colors.muted} />
+                <Text style={[styles.addPhotoText, { color: colors.muted }]}>Gallery</Text>
+              </Pressable>
+
+              <Pressable
+                onPress={async () => {
+                  const { status } = await ImagePicker.requestCameraPermissionsAsync();
+                  if (status !== "granted") {
+                    Alert.alert("Permission Required", "Camera access is needed to take photos.");
+                    return;
+                  }
+                  const result = await ImagePicker.launchCameraAsync({
+                    quality: 0.8,
+                    base64: true,
+                  });
+                  if (!result.canceled && result.assets.length > 0) {
+                    const a = result.assets[0];
+                    order.addPhotos(activeScreenIndex, [{
+                      uri: a.uri,
+                      base64DataUri: a.base64 ? `data:image/jpeg;base64,${a.base64}` : undefined,
+                      width: a.width,
+                      height: a.height,
+                    }]);
+                  }
+                }}
+                style={({ pressed }) => [
+                  styles.addPhotoBtn,
+                  { borderColor: colors.border, backgroundColor: colors.background },
+                  pressed && { opacity: 0.7 },
+                ]}
+              >
+                <IconSymbol name="camera.fill" size={24} color={colors.muted} />
+                <Text style={[styles.addPhotoText, { color: colors.muted }]}>Camera</Text>
+              </Pressable>
+            </View>
+
           </View>
           {/* End per-screen card */}
 
@@ -526,15 +617,20 @@ export default function ScreenOrderingScreen() {
 
           {/* Export to PDF */}
           <Pressable
-            onPress={() => exportOrderPdf(state)}
+            onPress={() => {
+              const html = generateOrderPdfHtml(state);
+              const title = `Screen Order - ${state.project.name || "Untitled"}`;
+              setPdfPreview({ html, title, mode: "all" });
+              router.push("/modules/pdf-preview" as any);
+            }}
             style={({ pressed }) => [
               styles.exportBtn,
               { backgroundColor: colors.primary },
               pressed && { opacity: 0.8, transform: [{ scale: 0.97 }] },
             ]}
           >
-            <IconSymbol name="square.and.arrow.up" size={18} color="#fff" />
-            <Text style={styles.exportBtnText}>Export to PDF</Text>
+            <IconSymbol name="doc.text.fill" size={18} color="#fff" />
+            <Text style={styles.exportBtnText}>Preview PDF</Text>
           </Pressable>
 
           {/* Reset */}
@@ -735,4 +831,30 @@ const styles = StyleSheet.create({
     paddingVertical: 14, borderRadius: 12, gap: 10, marginTop: 16,
   },
   exportBtnText: { fontSize: 16, fontWeight: "700", color: "#fff" },
+
+  // Photos
+  photosGrid: {
+    flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 8,
+  },
+  photoThumb: {
+    width: 90, height: 90, borderRadius: 10, borderWidth: 1, overflow: "hidden",
+    position: "relative",
+  },
+  photoImage: {
+    width: "100%", height: "100%",
+  },
+  photoRemoveBtn: {
+    position: "absolute", top: 4, right: 4,
+    width: 22, height: 22, borderRadius: 11,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    alignItems: "center", justifyContent: "center",
+  },
+  addPhotoBtn: {
+    width: 90, height: 90, borderRadius: 10, borderWidth: 1.5,
+    borderStyle: "dashed",
+    alignItems: "center", justifyContent: "center", gap: 4,
+  },
+  addPhotoText: {
+    fontSize: 11, fontWeight: "600",
+  },
 });

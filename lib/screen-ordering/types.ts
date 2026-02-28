@@ -115,6 +115,14 @@ export interface ScreenCalculations {
 
 // ─── Screen Config ──────────────────────────────────────────────────────────
 
+export interface ScreenPhoto {
+  uri: string;
+  /** base64-encoded data URI for embedding in PDF (data:image/jpeg;base64,...) */
+  base64DataUri?: string;
+  width?: number;
+  height?: number;
+}
+
 export interface ScreenConfig {
   id: string;
   description: string;
@@ -127,6 +135,7 @@ export interface ScreenConfig {
   selections: ScreenSelections;
   measurements: ScreenMeasurements;
   calculations: ScreenCalculations | null;
+  photos: ScreenPhoto[];
 }
 
 // ─── Order State ────────────────────────────────────────────────────────────
@@ -183,5 +192,6 @@ export function createEmptyScreen(index: number): ScreenConfig {
     selections: createEmptySelections(),
     measurements: createEmptyMeasurements(),
     calculations: null,
+    photos: [],
   };
 }

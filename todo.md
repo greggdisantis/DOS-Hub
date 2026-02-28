@@ -29,7 +29,7 @@
 - [x] Screen Ordering: Add 9-point measurement grid with whole number + fraction inputs (LEFT/RIGHT/HORIZONTAL columns)
 - [x] Screen Ordering: Add "Reverse measurements?" toggle
 - [x] Screen Ordering: Add # of Cuts and Special Instructions fields
-- [ ] Screen Ordering: Add Photos & Attachments section (measurement photos, general photos, PDFs)
+- [x] Screen Ordering: Add Photos & Attachments section (measurement photos per screen)
 - [x] Screen Ordering: Add Output Summary section with calculation results and warnings/flags
 - [x] Screen Ordering: Add Export to PDF and Preview Screen PDF buttons
 - [x] Screen Ordering: Global Selections — add Total # of Screens as dropdown (1–20)
@@ -48,3 +48,14 @@
 - [x] Screen Ordering: PDF export — include materials (screen type, color, frame) per screen
 - [x] Screen Ordering: PDF export — add Export to PDF button in the module UI
 - [x] Screen Ordering: PDF export — use expo-print for native and window.print fallback for web
+- [x] Screen Ordering: Replace single "Export to PDF" button with "Preview PDF" button
+- [x] Screen Ordering: Create full-screen PDF preview screen with HTML WebView
+- [x] Screen Ordering: Add "Export" button in preview (saves PDF to Downloads via jsPDF)
+- [x] Screen Ordering: Add "Print" button in preview (opens system print dialog)
+- [x] Screen Ordering: Preview screen has back navigation to return to form
+- [x] Screen Ordering: Add photo upload per screen (image picker from camera/gallery)
+- [x] Screen Ordering: Store photo URIs and base64 in ScreenConfig state
+- [x] Screen Ordering: Display photo thumbnails in each screen card with remove option
+- [x] Screen Ordering: PDF — each screen on its own page with clear SCREEN #N badge label
+- [x] Screen Ordering: PDF — include uploaded photos on page(s) following each screen's data
+- [x] Screen Ordering: PDF — professional formatting matching original DOS form layout

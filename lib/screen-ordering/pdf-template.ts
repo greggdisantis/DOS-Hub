@@ -1,12 +1,15 @@
 /**
  * Screen Ordering Module — PDF HTML Template
  * Generates HTML that matches the original Distinctive Outdoor Structures
- * Motorized Screen Form PDF layout exactly.
+ * Motorized Screen Form PDF layout.
+ *
+ * Each screen gets its own page with a clear SCREEN #N label.
+ * Uploaded photos follow each screen's data page.
  */
 import type {
   OrderState,
   ScreenConfig,
-  GlobalMaterialSelections,
+  ScreenPhoto,
 } from "./types";
 import { formatInchesFrac } from "./calculations";
 
@@ -28,7 +31,7 @@ function fmtMeasure(v: number | null | undefined): string {
 // ─── Styles ─────────────────────────────────────────────────────────────────
 
 const CSS = `
-  @page { margin: 40px 50px; }
+  @page { margin: 40px 50px; size: letter portrait; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -36,14 +39,27 @@ const CSS = `
     color: #333;
     line-height: 1.4;
   }
-  .page {
+  .page-break-section {
     page-break-after: always;
     padding: 20px 0;
   }
-  .page:last-child { page-break-after: auto; }
+  .page-break-section:last-child { page-break-after: auto; }
+
+  /* Screen # badge */
+  .screen-badge {
+    display: inline-block;
+    background: #1B3A5C;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 800;
+    padding: 6px 18px;
+    border-radius: 6px;
+    letter-spacing: 1px;
+    margin-bottom: 16px;
+  }
 
   /* Header */
-  .header { text-align: center; margin-bottom: 24px; }
+  .header { text-align: center; margin-bottom: 20px; }
   .header h1 { font-size: 22px; font-weight: 700; color: #222; margin-bottom: 2px; }
   .header h2 { font-size: 14px; font-weight: 400; color: #555; }
 
@@ -59,19 +75,19 @@ const CSS = `
   }
 
   /* Colored divider */
-  .divider { height: 2px; background: #e8732a; margin: 16px 0; }
-  .divider-light { height: 1px; background: #ddd; margin: 12px 0; }
+  .divider { height: 2px; background: #e8732a; margin: 14px 0; }
+  .divider-light { height: 1px; background: #ddd; margin: 10px 0; }
 
   /* Section */
-  .section { margin-bottom: 16px; }
+  .section { margin-bottom: 14px; }
   .section-title {
     font-size: 13px; font-weight: 700; text-transform: uppercase;
     color: #333; border-bottom: 2px solid #555; padding-bottom: 4px;
-    margin-bottom: 12px; letter-spacing: 0.3px;
+    margin-bottom: 10px; letter-spacing: 0.3px;
   }
-  .section-row { display: flex; gap: 20px; margin-bottom: 8px; }
+  .section-row { display: flex; gap: 20px; margin-bottom: 6px; }
   .section-col { flex: 1; }
-  .field { margin-bottom: 8px; }
+  .field { margin-bottom: 6px; }
   .field-label { font-size: 10px; color: #888; }
   .field-value {
     font-size: 12px; font-weight: 600; color: #222;
@@ -79,7 +95,7 @@ const CSS = `
   }
 
   /* Raw Measurements + Calc Summary */
-  .raw-section { margin-top: 8px; }
+  .raw-section { margin-top: 6px; }
   .raw-title {
     font-size: 12px; font-weight: 700; text-transform: uppercase;
     margin-bottom: 8px; color: #333;
@@ -95,6 +111,28 @@ const CSS = `
   .warning {
     background: #fff3cd; border: 1px solid #ffcc02; border-radius: 4px;
     padding: 6px 10px; margin: 4px 0; font-size: 11px; color: #856404;
+  }
+
+  /* Photos page */
+  .photos-page-title {
+    font-size: 16px; font-weight: 700; color: #222; margin-bottom: 16px;
+  }
+  .photos-grid {
+    display: flex; flex-wrap: wrap; gap: 12px;
+  }
+  .photo-item {
+    width: 48%;
+    margin-bottom: 12px;
+  }
+  .photo-item img {
+    width: 100%;
+    max-height: 360px;
+    object-fit: contain;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+  }
+  .photo-caption {
+    font-size: 10px; color: #888; margin-top: 4px; text-align: center;
   }
 `;
 
@@ -114,9 +152,9 @@ function infoFieldHtml(label: string, value: string, cls = ""): string {
   </div>`;
 }
 
-// ─── Per-Screen Page ────────────────────────────────────────────────────────
+// ─── Per-Screen Data Page ──────────────────────────────────────────────────
 
-function screenPageHtml(
+function screenDataPageHtml(
   state: OrderState,
   screen: ScreenConfig,
   screenIndex: number,
@@ -131,7 +169,10 @@ function screenPageHtml(
   const m = screen.measurements;
   const totalScreens = state.screens.length;
 
-  return `<div class="page">
+  return `<div class="page-break-section">
+    <!-- Screen Badge -->
+    <div class="screen-badge">SCREEN #${screenIndex + 1}</div>
+
     <!-- Header -->
     <div class="header">
       <h1>Distinctive Outdoor Structures</h1>
@@ -161,7 +202,7 @@ function screenPageHtml(
 
     <div class="divider"></div>
 
-    <!-- Section 1: Screen &amp; Frame Config -->
+    <!-- Section 1: Screen & Frame Config -->
     <div class="section">
       <div class="section-title">Section 1 — Screen &amp; Frame Config</div>
       <div class="section-row">
@@ -246,7 +287,6 @@ function screenPageHtml(
     <div class="raw-section">
       <div class="raw-title">Raw Measurements + Calc Summary</div>
       <div class="raw-grid">
-        <!-- Raw Measurements (Inputs) — Left column -->
         <div class="raw-col">
           <div class="raw-col-title">Raw Measurements (Inputs)</div>
           ${fieldHtml("UL", fmtMeasure(m.upperLeft))}
@@ -256,14 +296,12 @@ function screenPageHtml(
           ${fieldHtml("LR", fmtMeasure(m.lowerRight))}
           ${fieldHtml("OR", fmtMeasure(m.overallRight))}
         </div>
-        <!-- Horizontal measurements — Middle column -->
         <div class="raw-col">
           <div class="raw-col-title">&nbsp;</div>
           ${fieldHtml("T", fmtMeasure(m.top))}
           ${fieldHtml("M", fmtMeasure(m.middle))}
           ${fieldHtml("B", fmtMeasure(m.bottom))}
         </div>
-        <!-- Calc Summary — Right column -->
         <div class="raw-col">
           <div class="raw-col-title">Calc Summary (Calculated)</div>
           ${fieldHtml("Upper Slope (S)", fmtMeasure(c?.upperSlopeIn))}
@@ -284,10 +322,39 @@ function screenPageHtml(
   </div>`;
 }
 
+// ─── Photos Page ────────────────────────────────────────────────────────────
+
+function photosPageHtml(
+  screenIndex: number,
+  description: string,
+  photos: ScreenPhoto[]
+): string {
+  if (!photos || photos.length === 0) return "";
+
+  const photoItems = photos.map((photo, i) => {
+    // Use base64 data URI if available, otherwise use the file URI
+    const src = photo.base64DataUri || photo.uri;
+    return `<div class="photo-item">
+      <img src="${src}" alt="Screen ${screenIndex + 1} - Photo ${i + 1}" />
+      <div class="photo-caption">Photo ${i + 1}</div>
+    </div>`;
+  }).join("\n");
+
+  return `<div class="page-break-section">
+    <div class="screen-badge">SCREEN #${screenIndex + 1} — PHOTOS</div>
+    <div class="photos-page-title">Measurement Photos — ${esc(description) || `Screen ${screenIndex + 1}`}</div>
+    <div class="photos-grid">
+      ${photoItems}
+    </div>
+  </div>`;
+}
+
 // ─── Full PDF HTML ──────────────────────────────────────────────────────────
 
 export function generateOrderPdfHtml(state: OrderState): string {
-  const pages = state.screens.map((screen, i) => {
+  const pages: string[] = [];
+
+  state.screens.forEach((screen, i) => {
     const material = state.allSame
       ? state.globalMaterial
       : {
@@ -299,7 +366,15 @@ export function generateOrderPdfHtml(state: OrderState): string {
           vinylWindowConfig: screen.selections.vinylWindowConfig,
           vinylOrientation: screen.selections.vinylOrientation,
         };
-    return screenPageHtml(state, screen, i, material);
+
+    // Data page for this screen
+    pages.push(screenDataPageHtml(state, screen, i, material));
+
+    // Photos page(s) for this screen (immediately after the data page)
+    const photosHtml = photosPageHtml(i, screen.description, screen.photos);
+    if (photosHtml) {
+      pages.push(photosHtml);
+    }
   });
 
   return `<!DOCTYPE html>
@@ -317,7 +392,7 @@ export function generateOrderPdfHtml(state: OrderState): string {
 }
 
 /**
- * Generate HTML for a single screen's PDF preview.
+ * Generate HTML for a single screen's PDF preview (data + photos).
  */
 export function generateScreenPdfHtml(state: OrderState, screenIndex: number): string {
   const screen = state.screens[screenIndex];
@@ -334,6 +409,9 @@ export function generateScreenPdfHtml(state: OrderState, screenIndex: number): s
         vinylOrientation: screen.selections.vinylOrientation,
       };
 
+  const dataPage = screenDataPageHtml(state, screen, screenIndex, material);
+  const photosPage = photosPageHtml(screenIndex, screen.description, screen.photos);
+
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -343,7 +421,8 @@ export function generateScreenPdfHtml(state: OrderState, screenIndex: number): s
   <style>${CSS}</style>
 </head>
 <body>
-  ${screenPageHtml(state, screen, screenIndex, material)}
+  ${dataPage}
+  ${photosPage}
 </body>
 </html>`;
 }

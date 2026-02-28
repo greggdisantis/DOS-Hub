@@ -51,6 +51,8 @@ const MAPPING = {
   "pencil": "edit",
   "info.circle.fill": "info",
   "exclamationmark.triangle.fill": "warning",
+  "xmark": "close",
+  "photo.on.rectangle": "add-photo-alternate",
 } as IconMapping;
 
 /**

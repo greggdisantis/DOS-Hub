@@ -11,6 +11,7 @@ import type {
   MeasurementPoint,
   ProjectInfo,
   GlobalMaterialSelections,
+  ScreenPhoto,
 } from "@/lib/screen-ordering/types";
 import { createEmptyScreen, createEmptySelections, createEmptyGlobalMaterial } from "@/lib/screen-ordering/types";
 import { calculateScreen } from "@/lib/screen-ordering/calculations";
@@ -277,6 +278,33 @@ export function useScreenOrder() {
     []
   );
 
+  // ─── Photo Management ─────────────────────────────────────────────
+  const addPhotos = useCallback(
+    (screenIndex: number, photos: ScreenPhoto[]) => {
+      setState((prev) => {
+        const screens = [...prev.screens];
+        const screen = { ...screens[screenIndex] };
+        screen.photos = [...screen.photos, ...photos];
+        screens[screenIndex] = screen;
+        return { ...prev, screens };
+      });
+    },
+    []
+  );
+
+  const removePhoto = useCallback(
+    (screenIndex: number, photoIndex: number) => {
+      setState((prev) => {
+        const screens = [...prev.screens];
+        const screen = { ...screens[screenIndex] };
+        screen.photos = screen.photos.filter((_, i) => i !== photoIndex);
+        screens[screenIndex] = screen;
+        return { ...prev, screens };
+      });
+    },
+    []
+  );
+
   // ─── U-Channel Apply to All ───────────────────────────────────────
   const setApplyUChannelToAll = useCallback((apply: boolean) => {
     setState((prev) => ({ ...prev, applyUChannelToAll: apply }));
@@ -385,5 +413,7 @@ export function useScreenOrder() {
     anyUChannelRequired,
     getScreenWarnings,
     getEffectiveMaterial,
+    addPhotos,
+    removePhoto,
   };
 }
