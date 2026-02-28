@@ -4,10 +4,10 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { runReadinessEngine } from './readinessEngine';
-import type { CanonicalJob } from './types';
-import { Confidence } from './types';
-import { formatYearMonth, addWeeks } from './dateUtils';
+import { runReadinessEngine } from '../app/(tabs)/modules/job-intelligence/readinessEngine';
+import type { CanonicalJob } from '../app/(tabs)/modules/job-intelligence/types';
+import { Confidence } from '../app/(tabs)/modules/job-intelligence/types';
+import { formatYearMonth, addWeeks } from '../app/(tabs)/modules/job-intelligence/dateUtils';
 
 describe('Readiness Engine', () => {
   describe('StruXure Readiness', () => {
