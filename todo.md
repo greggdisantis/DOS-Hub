@@ -21,7 +21,7 @@
 - [x] Implement Screen Ordering module — structural calculations engine
 - [x] Implement Screen Ordering module — multi-line order management (add/remove lines)
 - [x] Implement Screen Ordering module — order summary review
-- [ ] Implement Screen Ordering module — PDF quote generation (deferred)
+- [x] Implement Screen Ordering module — PDF quote generation
 - [x] Screen Ordering: Add Project Info section (Project Name, Date, Job Number, Address, Submitter)
 - [x] Screen Ordering: Add Global Selections section (manufacturer, total screens, motor type)
 - [x] Screen Ordering: Add "All Colors Same?" toggle with global screen material and frame color pickers
@@ -31,7 +31,7 @@
 - [x] Screen Ordering: Add # of Cuts and Special Instructions fields
 - [ ] Screen Ordering: Add Photos & Attachments section (measurement photos, general photos, PDFs)
 - [x] Screen Ordering: Add Output Summary section with calculation results and warnings/flags
-- [ ] Screen Ordering: Add footer with Preview All Pages, Save, and Export to PDF buttons
+- [x] Screen Ordering: Add Export to PDF and Preview Screen PDF buttons
 - [x] Screen Ordering: Global Selections — add Total # of Screens as dropdown (1–20)
 - [x] Screen Ordering: Global Selections — add Input Units dropdown (Inches + 1/16")
 - [x] Screen Ordering: Global Selections — add Motor Type (Global) dropdown per manufacturer
@@ -42,3 +42,9 @@
 - [x] Screen Ordering: Per-Screen — Remote dropdown depends on global Motor Type
 - [x] Screen Ordering: Per-Screen — Install Mount / Motor Side / Remote in one row
 - [x] Screen Ordering: Per-Screen — inline side-check warning under LEFT/RIGHT measurement columns
+- [x] Screen Ordering: Implement PDF export — HTML template with project info, global selections, per-screen details
+- [x] Screen Ordering: PDF export — include raw measurements table per screen
+- [x] Screen Ordering: PDF export — include calculated results and warnings per screen
+- [x] Screen Ordering: PDF export — include materials (screen type, color, frame) per screen
+- [x] Screen Ordering: PDF export — add Export to PDF button in the module UI
+- [x] Screen Ordering: PDF export — use expo-print for native and window.print fallback for web

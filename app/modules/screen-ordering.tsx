@@ -22,6 +22,7 @@ import {
   MEASUREMENT_LABELS, MEASUREMENT_SHORT_LABELS,
   type MeasurementPoint,
 } from "@/lib/screen-ordering/types";
+import { exportOrderPdf, previewScreenPdf } from "@/lib/screen-ordering/pdf-export";
 
 const SCREEN_COUNT_OPTIONS = Array.from({ length: 20 }, (_, i) => String(i + 1));
 
@@ -253,6 +254,16 @@ export default function ScreenOrderingScreen() {
               <Text style={[styles.screenCardTitle, { color: colors.foreground }]}>
                 SCREEN #{activeScreenIndex + 1}
               </Text>
+              <Pressable
+                onPress={() => previewScreenPdf(state, activeScreenIndex)}
+                style={({ pressed }) => [
+                  styles.previewBtn,
+                  { borderColor: colors.primary },
+                  pressed && { opacity: 0.7 },
+                ]}
+              >
+                <Text style={[styles.previewBtnText, { color: colors.primary }]}>Preview Screen PDF</Text>
+              </Pressable>
             </View>
 
             {/* Description */}
@@ -513,6 +524,19 @@ export default function ScreenOrderingScreen() {
             )}
           </View>
 
+          {/* Export to PDF */}
+          <Pressable
+            onPress={() => exportOrderPdf(state)}
+            style={({ pressed }) => [
+              styles.exportBtn,
+              { backgroundColor: colors.primary },
+              pressed && { opacity: 0.8, transform: [{ scale: 0.97 }] },
+            ]}
+          >
+            <IconSymbol name="square.and.arrow.up" size={18} color="#fff" />
+            <Text style={styles.exportBtnText}>Export to PDF</Text>
+          </Pressable>
+
           {/* Reset */}
           <Pressable
             onPress={() => {
@@ -698,4 +722,17 @@ const styles = StyleSheet.create({
   removeBtnText: { fontSize: 14, fontWeight: "600" },
   textBtn: { alignItems: "center", paddingVertical: 16 },
   textBtnText: { fontSize: 14, fontWeight: "500" },
+
+  // Preview button
+  previewBtn: {
+    paddingHorizontal: 14, paddingVertical: 7, borderRadius: 8, borderWidth: 1,
+  },
+  previewBtnText: { fontSize: 13, fontWeight: "600" },
+
+  // Export button
+  exportBtn: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center",
+    paddingVertical: 14, borderRadius: 12, gap: 10, marginTop: 16,
+  },
+  exportBtnText: { fontSize: 16, fontWeight: "700", color: "#fff" },
 });
