@@ -3,8 +3,8 @@
  * Displays all 12 report types with tab navigation and PDF export
  */
 
-import React, { useState } from 'react';
-import { View, Text, FlatList, Pressable, ScrollView, ActivityIndicator } from 'react-native';
+import React, { useState, useMemo } from 'react';
+import { View, Text, FlatList, Pressable, ScrollView, ActivityIndicator, TextInput } from 'react-native';
 import { ScreenContainer } from '@/components/screen-container';
 import { useColors } from '@/hooks/use-colors';
 import { cn } from '@/lib/utils';
@@ -20,12 +20,26 @@ export function ReportsView({ jobs, isLoading = false }: ReportsViewProps) {
   const colors = useColors();
   const [activeReport, setActiveReport] = useState<ReportType>('final');
   const [exporting, setExporting] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   console.log('ReportsView - REPORT_CONFIGS:', REPORT_CONFIGS);
   console.log('ReportsView - jobs count:', jobs.length);
   console.log('ReportsView - activeReport:', activeReport);
 
-  const reportData = getReportData(jobs, activeReport);
+  // Filter jobs based on search query
+  const filteredJobs = useMemo(() => {
+    if (!searchQuery.trim()) return jobs;
+    
+    const query = searchQuery.toLowerCase();
+    return jobs.filter((job) => 
+      job.customer.toLowerCase().includes(query) ||
+      job.projectSupervisor?.toLowerCase().includes(query) ||
+      job.jobNumber?.toLowerCase().includes(query) ||
+      job.permitStatus?.toLowerCase().includes(query)
+    );
+  }, [jobs, searchQuery]);
+
+  const reportData = getReportData(filteredJobs, activeReport);
   const currentReport = REPORT_CONFIGS.find((r) => r.id === activeReport);
 
   const handleExportPDF = async () => {
@@ -51,6 +65,31 @@ export function ReportsView({ jobs, isLoading = false }: ReportsViewProps) {
 
   return (
     <ScreenContainer className="flex-1">
+      {/* Global Search Bar */}
+      <View style={{ paddingHorizontal: 16, paddingVertical: 12, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+        <TextInput
+          placeholder="Search jobs by customer, supervisor, job #..."
+          placeholderTextColor={colors.muted}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          style={{
+            paddingHorizontal: 12,
+            paddingVertical: 10,
+            borderRadius: 8,
+            backgroundColor: colors.background,
+            borderWidth: 1,
+            borderColor: colors.border,
+            color: colors.foreground,
+            fontSize: 14,
+          }}
+        />
+        {searchQuery.length > 0 && (
+          <Text style={{ fontSize: 12, color: colors.muted, marginTop: 6 }}>
+            Found {filteredJobs.length} job{filteredJobs.length !== 1 ? 's' : ''}
+          </Text>
+        )}
+      </View>
+
       {/* Report Tabs - Horizontal ScrollView */}
       <ScrollView
         horizontal
@@ -100,6 +139,7 @@ export function ReportsView({ jobs, isLoading = false }: ReportsViewProps) {
           </Text>
           <Text style={{ fontSize: 12, color: colors.muted, marginTop: 8 }}>
             {reportData.length} job{reportData.length !== 1 ? 's' : ''}
+            {searchQuery.length > 0 && ` (filtered from ${filteredJobs.length})`}
           </Text>
         </View>
         <Pressable
@@ -132,7 +172,7 @@ export function ReportsView({ jobs, isLoading = false }: ReportsViewProps) {
           data={reportData}
           keyExtractor={(item, index) => `${item.customer}-${index}`}
           renderItem={({ item, index }) => (
-            <ReportRow job={item} reportType={activeReport} index={index} />
+            <ReportRow job={item} reportType={activeReport} index={index} searchQuery={searchQuery} />
           )}
           contentContainerStyle={{ paddingVertical: 8 }}
           scrollEnabled={true}
@@ -146,11 +186,17 @@ interface ReportRowProps {
   job: JobData;
   reportType: ReportType;
   index: number;
+  searchQuery?: string;
 }
 
-function ReportRow({ job, reportType, index }: ReportRowProps) {
+function ReportRow({ job, reportType, index, searchQuery }: ReportRowProps) {
   const colors = useColors();
   const isAlternate = index % 2 === 1;
+  const isSearchMatch = searchQuery && (
+    job.customer.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    job.projectSupervisor?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    job.jobNumber?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <View
@@ -159,22 +205,24 @@ function ReportRow({ job, reportType, index }: ReportRowProps) {
         paddingVertical: 12,
         borderBottomWidth: 1,
         borderBottomColor: colors.border,
-        backgroundColor: isAlternate ? colors.surface : colors.background,
+        backgroundColor: isSearchMatch ? colors.primary + '15' : (isAlternate ? colors.surface : colors.background),
+        borderLeftWidth: isSearchMatch ? 4 : 0,
+        borderLeftColor: isSearchMatch ? colors.primary : 'transparent',
       }}
     >
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <View style={{ flex: 1 }}>
           <Text style={{ fontWeight: 'bold', color: colors.foreground, fontSize: 14 }}>
-            {job.customer}
+            {highlightText(job.customer, searchQuery)}
           </Text>
           {job.projectSupervisor && (
             <Text style={{ fontSize: 12, color: colors.muted, marginTop: 4 }}>
-              Supervisor: {job.projectSupervisor}
+              Supervisor: {highlightText(job.projectSupervisor, searchQuery)}
             </Text>
           )}
           {job.jobNumber && (
             <Text style={{ fontSize: 12, color: colors.muted }}>
-              Job #: {job.jobNumber}
+              Job #: {highlightText(job.jobNumber, searchQuery)}
             </Text>
           )}
         </View>
@@ -328,6 +376,11 @@ function renderReportColumns(
 }
 
 // Helper functions
+function highlightText(text: string | undefined, query: string | undefined): string {
+  if (!text || !query) return text || '';
+  return text;
+}
+
 function getEarliestReadyMonth(job: JobData): string {
   const months = [
     job.struXure?.readyMonth,
