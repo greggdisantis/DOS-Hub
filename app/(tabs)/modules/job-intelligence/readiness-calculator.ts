@@ -17,6 +17,8 @@ export interface JobReadiness {
   customer: string;
   jobCategory: string;
   projectSupervisor: string;
+  permitStatus: string;
+  permitApprovalDate: string | null;
   struXure: ReadinessResult | null;
   screens: ReadinessResult | null;
   pergotenda: ReadinessResult | null;
@@ -31,6 +33,10 @@ export function calculateJobReadiness(job: ParsedJob): JobReadiness {
     customer: job.customer,
     jobCategory: job.jobCategory,
     projectSupervisor: job.projectSupervisor,
+    permitStatus: job.permitStatus || '',
+    permitApprovalDate: job.permitEstimatedApprovalDate 
+      ? formatYearMonth(job.permitEstimatedApprovalDate)
+      : (job.permitActualApprovalDate ? formatYearMonth(job.permitActualApprovalDate) : null),
     struXure: null,
     screens: null,
     pergotenda: null,

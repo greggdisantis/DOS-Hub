@@ -344,3 +344,111 @@ describe('Job Intelligence - Readiness Calculator', () => {
     });
   });
 });
+
+  describe('Permit Status Capture', () => {
+    it('should capture permit status from parsed job', () => {
+      const job: ParsedJob = {
+        jobStartDate: null,
+        status: 'OPEN',
+        jobCategory: '01: MASTER - StruXure Project',
+        customer: 'Test Customer',
+        serviceLocation: '123 Main St',
+        contractDate: new Date('2026-02-01'),
+        salesRep: 'John Doe',
+        projectSupervisor: 'Jane Doe',
+        isCombinationJob: false,
+        permitStatus: 'Permit Prep',
+        permitResponsibility: 'Permit by DOS',
+        permitEstimatedApprovalDate: null,
+        permitActualApprovalDate: null,
+        permitSubmissionDate: null,
+        struXureMaterialWaiver: false,
+        struXureSF: 500,
+        struXureNumberOfZones: 2,
+        struXureMaterialStatus: 'Not Yet Ordered',
+        struXureOrderDate: null,
+        struXureEstimatedMaterialReceiveDate: null,
+        struXureActualMaterialReceivedDate: null,
+        struXureEstimatedReadyMonth: '',
+        screensManufacturer: '',
+        screensQuantity: null,
+        screensMaterialStatus: '',
+        screensOrderDate: null,
+        screensEstimatedMaterialReceiveDate: null,
+        screensActualMaterialReceivedDate: null,
+        screensEstimatedReadyMonth: '',
+        pergotendaSF: null,
+        pergotendaMaterialStatus: '',
+        pergotendaOrderDate: null,
+        pergotendaEstimatedMaterialReceiveDate: null,
+        pergotendaActualMaterialReceivedDate: null,
+        pergotendaEstimatedReadyMonth: '',
+        awningMaterialStatus: '',
+        awningOrderDate: null,
+        awningActualMaterialReceivedDate: null,
+        awningEstimatedReadyMonth: '',
+        preConDate: null,
+        finalWalkThruStruXure: null,
+        finalWalkThruScreens: null,
+        finalWalkThruPergotenda: null,
+        finalWalkThruAwning: null,
+      };
+
+      const result = calculateJobReadiness(job);
+
+      expect(result.permitStatus).toBe('Permit Prep');
+    });
+
+    it('should capture permit approval date from estimated date', () => {
+      const job: ParsedJob = {
+        jobStartDate: null,
+        status: 'OPEN',
+        jobCategory: '01: MASTER - StruXure Project',
+        customer: 'Test Customer',
+        serviceLocation: '123 Main St',
+        contractDate: new Date('2026-02-01'),
+        salesRep: 'John Doe',
+        projectSupervisor: 'Jane Doe',
+        isCombinationJob: false,
+        permitStatus: 'Permit Submitted',
+        permitResponsibility: 'Permit by DOS',
+        permitEstimatedApprovalDate: new Date('2026-03-15'),
+        permitActualApprovalDate: null,
+        permitSubmissionDate: null,
+        struXureMaterialWaiver: false,
+        struXureSF: 500,
+        struXureNumberOfZones: 2,
+        struXureMaterialStatus: 'Not Yet Ordered',
+        struXureOrderDate: null,
+        struXureEstimatedMaterialReceiveDate: null,
+        struXureActualMaterialReceivedDate: null,
+        struXureEstimatedReadyMonth: '',
+        screensManufacturer: '',
+        screensQuantity: null,
+        screensMaterialStatus: '',
+        screensOrderDate: null,
+        screensEstimatedMaterialReceiveDate: null,
+        screensActualMaterialReceivedDate: null,
+        screensEstimatedReadyMonth: '',
+        pergotendaSF: null,
+        pergotendaMaterialStatus: '',
+        pergotendaOrderDate: null,
+        pergotendaEstimatedMaterialReceiveDate: null,
+        pergotendaActualMaterialReceivedDate: null,
+        pergotendaEstimatedReadyMonth: '',
+        awningMaterialStatus: '',
+        awningOrderDate: null,
+        awningActualMaterialReceivedDate: null,
+        awningEstimatedReadyMonth: '',
+        preConDate: null,
+        finalWalkThruStruXure: null,
+        finalWalkThruScreens: null,
+        finalWalkThruPergotenda: null,
+        finalWalkThruAwning: null,
+      };
+
+      const result = calculateJobReadiness(job);
+
+      expect(result.permitApprovalDate).toBe('2026-03');
+    });
+  });

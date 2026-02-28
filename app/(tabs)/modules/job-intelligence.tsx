@@ -48,8 +48,8 @@ export default function JobIntelligenceScreen() {
       customer: job.customer,
       projectSupervisor: job.projectSupervisor,
       jobNumber: undefined,
-      permitStatus: undefined,
-      permitApprovalDate: undefined,
+      permitStatus: job.permitStatus || undefined,
+      permitApprovalDate: job.permitApprovalDate || undefined,
       struXure: job.struXure
         ? {
             readyMonth: job.struXure.readyMonth || 'N/A',
