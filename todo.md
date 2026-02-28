@@ -142,3 +142,4 @@
 - [x] Redesign all reports with grouped layouts matching reference PDFs (month-grouped, supervisor-grouped, material status, permit status)
 - [x] Fix permit status report not producing data (permitStatus field not passing through pipeline)
 - [x] Add dropdown menu for report selection replacing horizontal tab navigation
+- [x] Fix PDF export filename format: Service Fusion _ Project Reporting _ [Report Name] _ MM-DD-YYYY

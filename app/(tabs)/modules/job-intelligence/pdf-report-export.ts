@@ -17,7 +17,12 @@ export async function exportReportToPDF(
     const html = generateReportHTML(reportTitle, jobs, reportType);
     const { uri } = await Print.printToFileAsync({ html });
 
-    const filename = `${reportTitle.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`;
+    const now = new Date();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const year = now.getFullYear();
+    const dateStr = `${month}-${day}-${year}`;
+    const filename = `Service Fusion _ Project Reporting _ ${reportTitle} _ ${dateStr}.pdf`;
     const destinationUri = `${FileSystem.documentDirectory}${filename}`;
 
     await FileSystem.copyAsync({
