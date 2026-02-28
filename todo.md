@@ -138,4 +138,7 @@
 - [x] Implement Exceptions report view (error/blocked jobs)
 - [x] Add PDF export button for each report
 - [x] Create professional PDF styling matching Excel exports
-- [ ] Test all reports with Service Fusion sample file
+- [x] Test all reports with Service Fusion sample file
+- [x] Redesign all reports with grouped layouts matching reference PDFs (month-grouped, supervisor-grouped, material status, permit status)
+- [x] Fix permit status report not producing data (permitStatus field not passing through pipeline)
+- [x] Add dropdown menu for report selection replacing horizontal tab navigation

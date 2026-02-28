@@ -7,6 +7,7 @@ export interface JobData {
   customer: string;
   projectSupervisor?: string;
   jobNumber?: string;
+  jobCategory?: string;
   permitStatus?: string;
   permitApprovalDate?: string;
   struXure?: ProductReadiness;
@@ -22,9 +23,13 @@ export interface ProductReadiness {
   readyMonth: string;
   confidence: 'HARD' | 'FORECAST' | 'BLOCKED';
   status: string;
+  sourceLabel?: string;
   materialStatus?: string;
   leadTime?: number;
   manufacturer?: string;
+  quantity?: number;
+  sf?: number;
+  zones?: number;
 }
 
 export type ReportType = 

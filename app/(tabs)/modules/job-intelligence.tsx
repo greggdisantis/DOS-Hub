@@ -43,18 +43,22 @@ export default function JobIntelligenceScreen() {
 
 
   if (viewMode === 'reports') {
-    console.log('Converting jobs to JobData format, count:', jobs.length);
     const jobsData: JobData[] = jobs.map((job) => ({
       customer: job.customer,
-      projectSupervisor: job.projectSupervisor,
+      projectSupervisor: job.projectSupervisor || undefined,
       jobNumber: undefined,
       permitStatus: job.permitStatus || undefined,
       permitApprovalDate: job.permitApprovalDate || undefined,
+      jobCategory: job.jobCategory,
       struXure: job.struXure
         ? {
             readyMonth: job.struXure.readyMonth || 'N/A',
             confidence: job.struXure.confidence as 'HARD' | 'FORECAST' | 'BLOCKED',
             status: job.struXure.status,
+            sourceLabel: job.struXure.sourceLabel,
+            sf: job.struXure.sf,
+            zones: job.struXure.zones,
+            materialStatus: job.struXure.materialStatus,
           }
         : undefined,
       screens: job.screens
@@ -62,6 +66,10 @@ export default function JobIntelligenceScreen() {
             readyMonth: job.screens.readyMonth || 'N/A',
             confidence: job.screens.confidence as 'HARD' | 'FORECAST' | 'BLOCKED',
             status: job.screens.status,
+            sourceLabel: job.screens.sourceLabel,
+            manufacturer: job.screens.manufacturer,
+            quantity: job.screens.quantity,
+            materialStatus: job.screens.materialStatus,
           }
         : undefined,
       pergotenda: job.pergotenda
@@ -69,6 +77,8 @@ export default function JobIntelligenceScreen() {
             readyMonth: job.pergotenda.readyMonth || 'N/A',
             confidence: job.pergotenda.confidence as 'HARD' | 'FORECAST' | 'BLOCKED',
             status: job.pergotenda.status,
+            sourceLabel: job.pergotenda.sourceLabel,
+            materialStatus: job.pergotenda.materialStatus,
           }
         : undefined,
       awning: job.awning
@@ -76,6 +86,8 @@ export default function JobIntelligenceScreen() {
             readyMonth: job.awning.readyMonth || 'N/A',
             confidence: job.awning.confidence as 'HARD' | 'FORECAST' | 'BLOCKED',
             status: job.awning.status,
+            sourceLabel: job.awning.sourceLabel,
+            materialStatus: job.awning.materialStatus,
           }
         : undefined,
     }));

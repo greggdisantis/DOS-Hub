@@ -11,6 +11,11 @@ export interface ReadinessResult {
   confidence: 'HARD' | 'FORECAST' | 'BLOCKED';
   status: string;
   sourceLabel: string;
+  manufacturer?: string;
+  quantity?: number;
+  sf?: number;
+  zones?: number;
+  materialStatus?: string;
 }
 
 export interface JobReadiness {
@@ -72,59 +77,35 @@ export function calculateJobReadiness(job: ParsedJob): JobReadiness {
  * Calculate StruXure readiness
  */
 function calculateStruXureReadiness(job: ParsedJob): ReadinessResult {
+  const base = {
+    sf: job.struXureSF ?? undefined,
+    zones: job.struXureNumberOfZones ?? undefined,
+    materialStatus: job.struXureMaterialStatus || undefined,
+  };
+
   // If manual override exists, use it
   if (job.struXureEstimatedReadyMonth) {
-    return {
-      product: 'StruXure',
-      readyMonth: job.struXureEstimatedReadyMonth,
-      confidence: 'HARD',
-      status: 'Manual Override',
-      sourceLabel: 'Manual Override',
-    };
+    return { product: 'StruXure', readyMonth: job.struXureEstimatedReadyMonth, confidence: 'HARD', status: 'Manual Override', sourceLabel: 'Manual Override', ...base };
   }
 
   // If material already received
   if (job.struXureMaterialStatus === 'Delivered to Site' || job.struXureMaterialStatus === 'Material Received') {
     const readyDate = job.struXureActualMaterialReceivedDate || job.struXureEstimatedMaterialReceiveDate;
-    return {
-      product: 'StruXure',
-      readyMonth: readyDate ? formatYearMonth(readyDate) : null,
-      confidence: 'HARD',
-      status: job.struXureMaterialStatus,
-      sourceLabel: `${job.struXureMaterialStatus}`,
-    };
+    return { product: 'StruXure', readyMonth: readyDate ? formatYearMonth(readyDate) : null, confidence: 'HARD', status: job.struXureMaterialStatus, sourceLabel: `${job.struXureMaterialStatus}`, ...base };
   }
 
   // Check permit status
   if (job.permitStatus === 'Permit Prep' || job.permitStatus === 'Permit Hold') {
-    return {
-      product: 'StruXure',
-      readyMonth: null,
-      confidence: 'BLOCKED',
-      status: 'Blocked - Permit Not Ready',
-      sourceLabel: `Blocked: ${job.permitStatus}`,
-    };
+    return { product: 'StruXure', readyMonth: null, confidence: 'BLOCKED', status: 'Blocked - Permit Not Ready', sourceLabel: `Blocked: ${job.permitStatus}`, ...base };
   }
 
   // If material waiver, use pre-con date
   if (job.struXureMaterialWaiver) {
     if (job.preConDate) {
       const readyDate = addWeeks(job.preConDate, 7);
-      return {
-        product: 'StruXure',
-        readyMonth: formatYearMonth(readyDate),
-        confidence: 'HARD',
-        status: 'Ready to Order (Waiver)',
-        sourceLabel: `Pre-Con +7w: ${formatYearMonth(readyDate)}`,
-      };
+      return { product: 'StruXure', readyMonth: formatYearMonth(readyDate), confidence: 'HARD', status: 'Ready to Order (Waiver)', sourceLabel: `Pre-Con +7w: ${formatYearMonth(readyDate)}`, ...base };
     } else {
-      return {
-        product: 'StruXure',
-        readyMonth: null,
-        confidence: 'BLOCKED',
-        status: 'Blocked - Waiver Requires Pre-Con',
-        sourceLabel: 'Blocked: Material Waiver without Pre-Con Date',
-      };
+      return { product: 'StruXure', readyMonth: null, confidence: 'BLOCKED', status: 'Blocked - Waiver Requires Pre-Con', sourceLabel: 'Blocked: Material Waiver without Pre-Con Date', ...base };
     }
   }
 
@@ -132,13 +113,7 @@ function calculateStruXureReadiness(job: ParsedJob): ReadinessResult {
   if (job.permitStatus === 'Permit Received' || job.permitStatus === 'Permit Approved, Pend. C') {
     if (job.permitActualApprovalDate) {
       const readyDate = addWeeks(job.permitActualApprovalDate, 7);
-      return {
-        product: 'StruXure',
-        readyMonth: formatYearMonth(readyDate),
-        confidence: 'HARD',
-        status: 'Permit Approved',
-        sourceLabel: `Permit Approved +7w: ${formatYearMonth(readyDate)}`,
-      };
+      return { product: 'StruXure', readyMonth: formatYearMonth(readyDate), confidence: 'HARD', status: 'Permit Approved', sourceLabel: `Permit Approved +7w: ${formatYearMonth(readyDate)}`, ...base };
     }
   }
 
@@ -147,88 +122,52 @@ function calculateStruXureReadiness(job: ParsedJob): ReadinessResult {
     if (job.permitSubmissionDate) {
       const approvalDate = addBusinessDays(job.permitSubmissionDate, 10);
       const readyDate = addWeeks(approvalDate, 7);
-      return {
-        product: 'StruXure',
-        readyMonth: formatYearMonth(readyDate),
-        confidence: 'FORECAST',
-        status: 'Permit Submitted',
-        sourceLabel: `Permit Submitted +10d +7w: ${formatYearMonth(readyDate)}`,
-      };
+      return { product: 'StruXure', readyMonth: formatYearMonth(readyDate), confidence: 'FORECAST', status: 'Permit Submitted', sourceLabel: `Permit Submitted +10d +7w: ${formatYearMonth(readyDate)}`, ...base };
     }
   }
 
   // Calculate from order date
   if (job.struXureOrderDate && (job.struXureMaterialStatus === 'Ordered' || job.struXureMaterialStatus === 'Ready to Order')) {
     const readyDate = addWeeks(job.struXureOrderDate, 7);
-    return {
-      product: 'StruXure',
-      readyMonth: formatYearMonth(readyDate),
-      confidence: 'HARD',
-      status: job.struXureMaterialStatus,
-      sourceLabel: `Ordered +7w: ${formatYearMonth(readyDate)}`,
-    };
+    return { product: 'StruXure', readyMonth: formatYearMonth(readyDate), confidence: 'HARD', status: job.struXureMaterialStatus, sourceLabel: `Ordered +7w: ${formatYearMonth(readyDate)}`, ...base };
   }
 
   // Not ready to order
-  return {
-    product: 'StruXure',
-    readyMonth: null,
-    confidence: 'BLOCKED',
-    status: 'Not Ready to Order',
-    sourceLabel: 'Blocked: Not ready to order',
-  };
+  return { product: 'StruXure', readyMonth: null, confidence: 'BLOCKED', status: 'Not Ready to Order', sourceLabel: 'Blocked: Not ready to order', ...base };
 }
 
 /**
  * Calculate Screens readiness
  */
 function calculateScreensReadiness(job: ParsedJob, struXureReadiness: ReadinessResult | null): ReadinessResult {
+  const base = {
+    manufacturer: job.screensManufacturer || undefined,
+    quantity: job.screensQuantity ?? undefined,
+    materialStatus: job.screensMaterialStatus || undefined,
+  };
+
   // If manual override exists, use it
   if (job.screensEstimatedReadyMonth) {
-    return {
-      product: 'Screens',
-      readyMonth: job.screensEstimatedReadyMonth,
-      confidence: 'HARD',
-      status: 'Manual Override',
-      sourceLabel: 'Manual Override',
-    };
+    return { product: 'Screens', readyMonth: job.screensEstimatedReadyMonth, confidence: 'HARD', status: 'Manual Override', sourceLabel: 'Manual Override', ...base };
   }
 
   // If material already received
   if (job.screensMaterialStatus === 'Delivered to Site' || job.screensMaterialStatus === 'Material Received') {
     const readyDate = job.screensActualMaterialReceivedDate || job.screensEstimatedMaterialReceiveDate;
-    return {
-      product: 'Screens',
-      readyMonth: readyDate ? formatYearMonth(readyDate) : null,
-      confidence: 'HARD',
-      status: job.screensMaterialStatus,
-      sourceLabel: `${job.screensMaterialStatus}`,
-    };
+    return { product: 'Screens', readyMonth: readyDate ? formatYearMonth(readyDate) : null, confidence: 'HARD', status: job.screensMaterialStatus, sourceLabel: `${job.screensMaterialStatus}`, ...base };
   }
 
   // For combination jobs, screens depend on structure
   if (job.isCombinationJob && struXureReadiness) {
     if (struXureReadiness.confidence === 'BLOCKED') {
-      return {
-        product: 'Screens',
-        readyMonth: null,
-        confidence: 'BLOCKED',
-        status: 'Blocked - Waiting for Structure',
-        sourceLabel: 'Blocked: Structure not ready',
-      };
+      return { product: 'Screens', readyMonth: null, confidence: 'BLOCKED', status: 'Blocked - Waiting for Structure', sourceLabel: 'Blocked: Structure not ready', ...base };
     }
 
     if (struXureReadiness.readyMonth) {
       const struXureDate = parseYearMonth(struXureReadiness.readyMonth);
       const leadWeeks = job.screensManufacturer === 'DOS Screens' ? 3 : 7;
       const readyDate = addWeeks(struXureDate, leadWeeks);
-      return {
-        product: 'Screens',
-        readyMonth: formatYearMonth(readyDate),
-        confidence: 'HARD',
-        status: 'Dependent on Structure',
-        sourceLabel: `Structure +${leadWeeks}w: ${formatYearMonth(readyDate)}`,
-      };
+      return { product: 'Screens', readyMonth: formatYearMonth(readyDate), confidence: 'HARD', status: 'Dependent on Structure', sourceLabel: `Structure +${leadWeeks}w`, ...base };
     }
   }
 
@@ -236,22 +175,10 @@ function calculateScreensReadiness(job: ParsedJob, struXureReadiness: ReadinessR
   if (job.contractDate) {
     const leadWeeks = job.screensManufacturer === 'DOS Screens' ? 3 : 7;
     const readyDate = addWeeks(job.contractDate, leadWeeks);
-    return {
-      product: 'Screens',
-      readyMonth: formatYearMonth(readyDate),
-      confidence: 'HARD',
-      status: 'Contract Signed',
-      sourceLabel: `Contract +${leadWeeks}w: ${formatYearMonth(readyDate)}`,
-    };
+    return { product: 'Screens', readyMonth: formatYearMonth(readyDate), confidence: 'HARD', status: 'Contract Signed', sourceLabel: `Contract +${leadWeeks}w`, ...base };
   }
 
-  return {
-    product: 'Screens',
-    readyMonth: null,
-    confidence: 'BLOCKED',
-    status: 'Not Ready',
-    sourceLabel: 'Blocked: No contract date',
-  };
+  return { product: 'Screens', readyMonth: null, confidence: 'BLOCKED', status: 'Not Ready', sourceLabel: 'Blocked: No contract date', ...base };
 }
 
 /**
