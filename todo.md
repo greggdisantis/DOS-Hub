@@ -120,17 +120,22 @@
 - [ ] Fix any calculation discrepancies vs Google AI Studio
 
 
-## Job Intelligence - Excel Export with Multiple Report Tabs
+## Job Intelligence - Report Views (In-App Display + PDF Export)
 
-- [x] Create professional multi-tab Excel workbook generator
-- [x] Add DOS Hub branding with professional header styling
-- [x] Implement Final Report tab (all jobs with readiness summary)
-- [x] Implement Blocked Report tab (jobs with blocked products)
-- [x] Implement Permit Date List tab (permit-related jobs with approval dates)
-- [x] Implement Permit Status tab (grouped by permit status)
-- [x] Implement Material Status tab (grouped by material status)
-- [x] Implement Supervisor Workload tab (jobs grouped by supervisor)
-- [x] Implement Product-specific tabs (StruXure, Screens, Pergotenda, Awnings)
-- [x] Add professional styling with clean borders, colors, and formatting
-- [ ] Test Excel generation with Service Fusion sample file
-- [ ] Verify all calculations match Google AI Studio version
+- [x] Design report data filtering and aggregation logic
+- [x] Create tab-based report navigation component
+- [x] Implement Final Report view with all jobs
+- [x] Implement Blocked Report view (jobs with blocked products)
+- [x] Implement Permit Date List view (permit-related jobs)
+- [x] Implement Permit Status view (grouped by permit status)
+- [x] Implement Material Status view (grouped by material status)
+- [x] Implement Supervisor Workload view (jobs by supervisor)
+- [x] Implement StruXure report view (product-specific)
+- [x] Implement Screens report view (product-specific)
+- [x] Implement Pergotenda report view (product-specific)
+- [x] Implement Awnings report view (product-specific)
+- [x] Implement DOS & MagnaTrack Installation view
+- [x] Implement Exceptions report view (error/blocked jobs)
+- [x] Add PDF export button for each report
+- [x] Create professional PDF styling matching Excel exports
+- [ ] Test all reports with Service Fusion sample file

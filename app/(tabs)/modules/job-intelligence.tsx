@@ -8,8 +8,10 @@ import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator } from 'rea
 import { ScreenContainer } from '@/components/screen-container';
 import { parseServiceFusionExcel, type ParsedJob } from './job-intelligence/excel-parser';
 import { calculateJobReadiness, type JobReadiness } from './job-intelligence/readiness-calculator';
+import { ReportsView } from './job-intelligence/reports-view';
+import { type JobData } from './job-intelligence/report-types';
 
-type ViewMode = 'upload' | 'results';
+type ViewMode = 'upload' | 'results' | 'reports';
 
 export default function JobIntelligenceScreen() {
   const [viewMode, setViewMode] = useState<ViewMode>('upload');
@@ -38,9 +40,66 @@ export default function JobIntelligenceScreen() {
     return <UploadView onFileUpload={handleFileUpload} isLoading={isLoading} error={error} />;
   }
 
+  if (viewMode === 'results') {
+    return (
+      <ResultsView
+        jobs={jobs}
+        onViewReports={() => setViewMode('reports')}
+        onBack={() => {
+          setViewMode('upload');
+          setJobs([]);
+          setError(null);
+        }}
+      />
+    );
+  }
+
+  if (viewMode === 'reports') {
+    const jobsData: JobData[] = jobs.map((job) => ({
+      customer: job.customer,
+      projectSupervisor: job.projectSupervisor,
+      jobNumber: undefined,
+      permitStatus: undefined,
+      permitApprovalDate: undefined,
+      struXure: job.struXure && job.struXure.readyMonth
+        ? {
+            readyMonth: job.struXure.readyMonth || '',
+            confidence: job.struXure.confidence as 'HARD' | 'FORECAST' | 'BLOCKED',
+            status: job.struXure.status,
+          }
+        : undefined,
+      screens: job.screens && job.screens.readyMonth
+        ? {
+            readyMonth: job.screens.readyMonth || '',
+            confidence: job.screens.confidence as 'HARD' | 'FORECAST' | 'BLOCKED',
+            status: job.screens.status,
+          }
+        : undefined,
+      pergotenda: job.pergotenda && job.pergotenda.readyMonth
+        ? {
+            readyMonth: job.pergotenda.readyMonth || '',
+            confidence: job.pergotenda.confidence as 'HARD' | 'FORECAST' | 'BLOCKED',
+            status: job.pergotenda.status,
+          }
+        : undefined,
+      awning: job.awning && job.awning.readyMonth
+        ? {
+            readyMonth: job.awning.readyMonth || '',
+            confidence: job.awning.confidence as 'HARD' | 'FORECAST' | 'BLOCKED',
+            status: job.awning.status,
+          }
+        : undefined,
+    }));
+
+    return (
+      <ReportsView jobs={jobsData} />
+    );
+  }
+
   return (
     <ResultsView
       jobs={jobs}
+      onViewReports={() => setViewMode('reports')}
       onBack={() => {
         setViewMode('upload');
         setJobs([]);
@@ -135,10 +194,11 @@ function UploadView({ onFileUpload, isLoading, error }: UploadViewProps) {
  */
 interface ResultsViewProps {
   jobs: JobReadiness[];
+  onViewReports: () => void;
   onBack: () => void;
 }
 
-function ResultsView({ jobs, onBack }: ResultsViewProps) {
+function ResultsView({ jobs, onViewReports, onBack }: ResultsViewProps) {
   const [filterCategory, setFilterCategory] = useState<string>('all');
 
   const filteredJobs =
@@ -174,11 +234,16 @@ function ResultsView({ jobs, onBack }: ResultsViewProps) {
     <ScreenContainer className="flex-1 bg-background">
       <ScrollView className="flex-1">
         <View className="p-4 gap-4">
-          <View className="flex-row items-center justify-between">
+          <View className="flex-row items-center justify-between gap-2">
             <Text className="text-2xl font-bold text-foreground">Results</Text>
-            <TouchableOpacity onPress={onBack} className="bg-primary rounded-lg px-4 py-2">
-              <Text className="text-background font-semibold">New File</Text>
-            </TouchableOpacity>
+            <View className="flex-row gap-2">
+              <TouchableOpacity onPress={onViewReports} className="bg-primary rounded-lg px-4 py-2">
+                <Text className="text-background font-semibold text-sm">View Reports</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={onBack} className="bg-muted rounded-lg px-4 py-2">
+                <Text className="text-background font-semibold text-sm">New File</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           <View className="bg-surface rounded-lg p-3 border border-border">
