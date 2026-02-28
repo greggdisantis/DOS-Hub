@@ -62,30 +62,30 @@ export default function JobIntelligenceScreen() {
       jobNumber: undefined,
       permitStatus: undefined,
       permitApprovalDate: undefined,
-      struXure: job.struXure && job.struXure.readyMonth
+      struXure: job.struXure
         ? {
-            readyMonth: job.struXure.readyMonth || '',
+            readyMonth: job.struXure.readyMonth || 'N/A',
             confidence: job.struXure.confidence as 'HARD' | 'FORECAST' | 'BLOCKED',
             status: job.struXure.status,
           }
         : undefined,
-      screens: job.screens && job.screens.readyMonth
+      screens: job.screens
         ? {
-            readyMonth: job.screens.readyMonth || '',
+            readyMonth: job.screens.readyMonth || 'N/A',
             confidence: job.screens.confidence as 'HARD' | 'FORECAST' | 'BLOCKED',
             status: job.screens.status,
           }
         : undefined,
-      pergotenda: job.pergotenda && job.pergotenda.readyMonth
+      pergotenda: job.pergotenda
         ? {
-            readyMonth: job.pergotenda.readyMonth || '',
+            readyMonth: job.pergotenda.readyMonth || 'N/A',
             confidence: job.pergotenda.confidence as 'HARD' | 'FORECAST' | 'BLOCKED',
             status: job.pergotenda.status,
           }
         : undefined,
-      awning: job.awning && job.awning.readyMonth
+      awning: job.awning
         ? {
-            readyMonth: job.awning.readyMonth || '',
+            readyMonth: job.awning.readyMonth || 'N/A',
             confidence: job.awning.confidence as 'HARD' | 'FORECAST' | 'BLOCKED',
             status: job.awning.status,
           }
