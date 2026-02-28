@@ -143,3 +143,4 @@
 - [x] Fix permit status report not producing data (permitStatus field not passing through pipeline)
 - [x] Add dropdown menu for report selection replacing horizontal tab navigation
 - [x] Fix PDF export filename format: Service Fusion _ Project Reporting _ [Report Name] _ MM-DD-YYYY
+- [x] Fix PDF export on web: auto-download to Downloads folder with correct filename instead of print dialog
