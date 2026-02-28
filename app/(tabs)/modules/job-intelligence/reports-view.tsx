@@ -1,6 +1,6 @@
 /**
  * Job Intelligence - Reports View
- * Displays all 12 report types with tab navigation and PDF export
+ * Displays all 12 report types with dropdown menu and PDF export
  */
 
 import React, { useState, useMemo } from 'react';
@@ -21,6 +21,7 @@ export function ReportsView({ jobs, isLoading = false }: ReportsViewProps) {
   const [activeReport, setActiveReport] = useState<ReportType>('final');
   const [exporting, setExporting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showReportMenu, setShowReportMenu] = useState(false);
 
   console.log('ReportsView - REPORT_CONFIGS:', REPORT_CONFIGS);
   console.log('ReportsView - jobs count:', jobs.length);
@@ -90,43 +91,70 @@ export function ReportsView({ jobs, isLoading = false }: ReportsViewProps) {
         )}
       </View>
 
-      {/* Report Tabs - Horizontal ScrollView */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={true}
-        scrollEventThrottle={16}
-        style={{
-          backgroundColor: colors.surface,
-          borderBottomWidth: 1,
-          borderBottomColor: colors.border,
-        }}
-      >
-        {REPORT_CONFIGS.map((report) => (
-          <Pressable
-            key={report.id}
-            onPress={() => setActiveReport(report.id)}
-            style={{
-              paddingHorizontal: 12,
-              paddingVertical: 12,
-              borderBottomWidth: 3,
-              borderBottomColor: activeReport === report.id ? colors.primary : 'transparent',
-              minWidth: 110,
-              alignItems: 'center',
-            }}
-          >
-            <Text
-              style={{
-                fontSize: 12,
-                fontWeight: '600',
-                color: activeReport === report.id ? colors.primary : colors.muted,
-              }}
-              numberOfLines={1}
-            >
-              {report.title}
-            </Text>
-          </Pressable>
-        ))}
-      </ScrollView>
+      {/* Report Dropdown Menu */}
+      <View style={{ paddingHorizontal: 16, paddingVertical: 12, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+        <Text style={{ fontSize: 12, fontWeight: '600', color: colors.muted, marginBottom: 8 }}>Select Report</Text>
+        <Pressable
+          onPress={() => setShowReportMenu(!showReportMenu)}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingHorizontal: 12,
+            paddingVertical: 10,
+            borderRadius: 8,
+            backgroundColor: colors.background,
+            borderWidth: 1,
+            borderColor: colors.border,
+          }}
+        >
+          <Text style={{ fontSize: 14, fontWeight: '600', color: colors.foreground, flex: 1 }}>
+            {currentReport?.title || 'Select a report'}
+          </Text>
+          <Text style={{ fontSize: 16, color: colors.muted }}>{showReportMenu ? '▲' : '▼'}</Text>
+        </Pressable>
+        
+        {showReportMenu && (
+          <View style={{
+            marginTop: 8,
+            backgroundColor: colors.background,
+            borderRadius: 8,
+            borderWidth: 1,
+            borderColor: colors.border,
+            maxHeight: 300,
+          }}>
+            <ScrollView scrollEnabled={REPORT_CONFIGS.length > 6} nestedScrollEnabled={true}>
+              {REPORT_CONFIGS.map((report, index) => (
+                <Pressable
+                  key={report.id}
+                  onPress={() => {
+                    setActiveReport(report.id);
+                    setShowReportMenu(false);
+                  }}
+                  style={{
+                    paddingHorizontal: 12,
+                    paddingVertical: 12,
+                    borderBottomWidth: index < REPORT_CONFIGS.length - 1 ? 1 : 0,
+                    borderBottomColor: colors.border,
+                    backgroundColor: activeReport === report.id ? colors.surface : 'transparent',
+                  }}
+                >
+                  <Text style={{
+                    fontSize: 14,
+                    fontWeight: activeReport === report.id ? '600' : '400',
+                    color: activeReport === report.id ? colors.primary : colors.foreground,
+                  }}>
+                    {report.title}
+                  </Text>
+                  <Text style={{ fontSize: 12, color: colors.muted, marginTop: 2 }}>
+                    {report.description}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+      </View>
 
       {/* Report Header with Export Button */}
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: colors.border }}>
@@ -299,64 +327,67 @@ function renderReportColumns(
             {getEarliestReadyMonth(job)}
           </Text>
           <Text style={{ fontSize: 12, color: colors.muted, marginTop: 4 }}>
-            {getOverallConfidence(job)}
+            {job.projectSupervisor || 'Unassigned'}
           </Text>
         </View>
       );
 
     case 'struXure':
-      return job.struXure ? (
+      return (
         <View style={{ marginLeft: 16, alignItems: 'flex-end' }}>
-          <Text style={{ fontSize: 12, fontWeight: '600', color: colors.foreground }}>
-            {job.struXure.readyMonth}
+          <Text style={{ fontSize: 12, fontWeight: '600', color: getConfidenceColor(job.struXure?.confidence, colors) }}>
+            {job.struXure?.readyMonth || 'N/A'}
           </Text>
           <Text style={{ fontSize: 12, color: colors.muted, marginTop: 4 }}>
-            {getConfidenceLabel(job.struXure.confidence)}
+            {job.struXure?.confidence || 'Unknown'}
           </Text>
         </View>
-      ) : null;
+      );
 
     case 'screens':
-      return job.screens ? (
+      return (
         <View style={{ marginLeft: 16, alignItems: 'flex-end' }}>
-          <Text style={{ fontSize: 12, fontWeight: '600', color: colors.foreground }}>
-            {job.screens.readyMonth}
+          <Text style={{ fontSize: 12, fontWeight: '600', color: getConfidenceColor(job.screens?.confidence, colors) }}>
+            {job.screens?.readyMonth || 'N/A'}
           </Text>
           <Text style={{ fontSize: 12, color: colors.muted, marginTop: 4 }}>
-            {getConfidenceLabel(job.screens.confidence)}
+            {job.screens?.confidence || 'Unknown'}
           </Text>
         </View>
-      ) : null;
+      );
 
     case 'pergotenda':
-      return job.pergotenda ? (
+      return (
         <View style={{ marginLeft: 16, alignItems: 'flex-end' }}>
-          <Text style={{ fontSize: 12, fontWeight: '600', color: colors.foreground }}>
-            {job.pergotenda.readyMonth}
+          <Text style={{ fontSize: 12, fontWeight: '600', color: getConfidenceColor(job.pergotenda?.confidence, colors) }}>
+            {job.pergotenda?.readyMonth || 'N/A'}
           </Text>
           <Text style={{ fontSize: 12, color: colors.muted, marginTop: 4 }}>
-            {getConfidenceLabel(job.pergotenda.confidence)}
+            {job.pergotenda?.confidence || 'Unknown'}
           </Text>
         </View>
-      ) : null;
+      );
 
     case 'awnings':
-      return job.awning ? (
+      return (
         <View style={{ marginLeft: 16, alignItems: 'flex-end' }}>
-          <Text style={{ fontSize: 12, fontWeight: '600', color: colors.foreground }}>
-            {job.awning.readyMonth}
+          <Text style={{ fontSize: 12, fontWeight: '600', color: getConfidenceColor(job.awning?.confidence, colors) }}>
+            {job.awning?.readyMonth || 'N/A'}
           </Text>
           <Text style={{ fontSize: 12, color: colors.muted, marginTop: 4 }}>
-            {getConfidenceLabel(job.awning.confidence)}
+            {job.awning?.confidence || 'Unknown'}
           </Text>
         </View>
-      ) : null;
+      );
 
     case 'dos-magnatrack':
       return (
         <View style={{ marginLeft: 16, alignItems: 'flex-end' }}>
-          <Text style={{ fontSize: 12, color: colors.muted }}>
-            {job.dosScreens ? 'DOS' : ''} {job.magnaTrackScreens ? 'MagnaTrack' : ''}
+          <Text style={{ fontSize: 12, fontWeight: '600', color: colors.foreground }}>
+            {job.dosScreens?.readyMonth || job.magnaTrackScreens?.readyMonth || 'N/A'}
+          </Text>
+          <Text style={{ fontSize: 12, color: colors.muted, marginTop: 4 }}>
+            {job.dosScreens?.manufacturer || job.magnaTrackScreens?.manufacturer || 'Unknown'}
           </Text>
         </View>
       );
@@ -365,7 +396,7 @@ function renderReportColumns(
       return (
         <View style={{ marginLeft: 16, alignItems: 'flex-end' }}>
           <Text style={{ fontSize: 12, fontWeight: '600', color: '#ef4444' }}>
-            {job.exceptions?.length || 0} exceptions
+            {job.exceptions?.length || 0} issue{(job.exceptions?.length || 0) !== 1 ? 's' : ''}
           </Text>
         </View>
       );
@@ -375,24 +406,16 @@ function renderReportColumns(
   }
 }
 
-// Helper functions
-function highlightText(text: string | undefined, query: string | undefined): string {
-  if (!text || !query) return text || '';
-  return text;
-}
-
 function getEarliestReadyMonth(job: JobData): string {
   const months = [
     job.struXure?.readyMonth,
     job.screens?.readyMonth,
     job.pergotenda?.readyMonth,
     job.awning?.readyMonth,
-    job.dosScreens?.readyMonth,
-    job.magnaTrackScreens?.readyMonth,
-  ].filter(Boolean) as string[];
-
+  ].filter(Boolean);
+  
   if (months.length === 0) return 'N/A';
-  return months.sort().reverse()[0];
+  return months.sort().pop() || 'N/A';
 }
 
 function getOverallConfidence(job: JobData): string {
@@ -401,26 +424,11 @@ function getOverallConfidence(job: JobData): string {
     job.screens?.confidence,
     job.pergotenda?.confidence,
     job.awning?.confidence,
-    job.dosScreens?.confidence,
-    job.magnaTrackScreens?.confidence,
   ].filter(Boolean);
-
-  if (confidences.includes('BLOCKED')) return 'Blocked';
-  if (confidences.includes('FORECAST')) return 'Estimated';
-  return 'Confirmed';
-}
-
-function getConfidenceLabel(confidence: string): string {
-  switch (confidence) {
-    case 'HARD':
-      return 'Confirmed';
-    case 'FORECAST':
-      return 'Estimated';
-    case 'BLOCKED':
-      return 'Blocked';
-    default:
-      return 'Unknown';
-  }
+  
+  if (confidences.includes('BLOCKED')) return 'BLOCKED';
+  if (confidences.includes('FORECAST')) return 'FORECAST';
+  return 'CONFIRMED';
 }
 
 function getBlockedProducts(job: JobData): string[] {
@@ -428,19 +436,35 @@ function getBlockedProducts(job: JobData): string[] {
   if (job.struXure?.confidence === 'BLOCKED') blocked.push('StruXure');
   if (job.screens?.confidence === 'BLOCKED') blocked.push('Screens');
   if (job.pergotenda?.confidence === 'BLOCKED') blocked.push('Pergotenda');
-  if (job.awning?.confidence === 'BLOCKED') blocked.push('Awning');
-  if (job.dosScreens?.confidence === 'BLOCKED') blocked.push('DOS');
-  if (job.magnaTrackScreens?.confidence === 'BLOCKED') blocked.push('MagnaTrack');
+  if (job.awning?.confidence === 'BLOCKED') blocked.push('Awnings');
   return blocked;
 }
 
 function getMaterialProducts(job: JobData): string[] {
   const products = [];
-  if (job.struXure) products.push('StruXure');
-  if (job.screens) products.push('Screens');
-  if (job.pergotenda) products.push('Pergotenda');
-  if (job.awning) products.push('Awning');
-  if (job.dosScreens) products.push('DOS');
-  if (job.magnaTrackScreens) products.push('MagnaTrack');
+  if (job.struXure?.materialStatus) products.push(`StruXure: ${job.struXure.materialStatus}`);
+  if (job.screens?.materialStatus) products.push(`Screens: ${job.screens.materialStatus}`);
+  if (job.pergotenda?.materialStatus) products.push(`Pergotenda: ${job.pergotenda.materialStatus}`);
+  if (job.awning?.materialStatus) products.push(`Awnings: ${job.awning.materialStatus}`);
   return products;
+}
+
+function getConfidenceColor(confidence: string | undefined, colors: any): string {
+  switch (confidence) {
+    case 'HARD':
+    case 'CONFIRMED':
+      return '#22c55e';
+    case 'FORECAST':
+      return '#f59e0b';
+    case 'BLOCKED':
+      return '#ef4444';
+    default:
+      return colors.foreground;
+  }
+}
+
+function highlightText(text: string, query?: string): string {
+  if (!query) return text;
+  // Simple implementation - in a real app, you might want to highlight the matching part
+  return text;
 }
