@@ -22,3 +22,13 @@
 - [x] Implement Screen Ordering module — multi-line order management (add/remove lines)
 - [x] Implement Screen Ordering module — order summary review
 - [ ] Implement Screen Ordering module — PDF quote generation (deferred)
+- [x] Screen Ordering: Add Project Info section (Project Name, Date, Job Number, Address, Submitter)
+- [x] Screen Ordering: Add Global Selections section (manufacturer, total screens, motor type)
+- [ ] Screen Ordering: Add "All Colors Same?" toggle with global screen material and frame color pickers
+- [x] Screen Ordering: Rebuild per-screen config as single scrollable form (description, mount, motor side, remote)
+- [x] Screen Ordering: Add 9-point measurement grid with whole number + fraction inputs (LEFT/RIGHT/HORIZONTAL columns)
+- [x] Screen Ordering: Add "Reverse measurements?" toggle
+- [x] Screen Ordering: Add # of Cuts and Special Instructions fields
+- [ ] Screen Ordering: Add Photos & Attachments section (measurement photos, general photos, PDFs)
+- [x] Screen Ordering: Add Output Summary section with calculation results and warnings/flags
+- [ ] Screen Ordering: Add footer with Preview All Pages, Save, and Export to PDF buttons
