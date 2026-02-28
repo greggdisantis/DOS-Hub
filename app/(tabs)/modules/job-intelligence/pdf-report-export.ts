@@ -41,146 +41,119 @@ async function exportWebPDF(
   reportType: ReportType,
   filename: string
 ): Promise<void> {
-  // Dynamic import so Metro doesn't bundle jsPDF for native
-  const { jsPDF } = await import('jspdf');
-  const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'letter' });
+  // Dynamic import so Metro doesn't bundle pdf-lib for native
+  const { PDFDocument, rgb, StandardFonts } = await import('pdf-lib');
 
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const pageHeight = doc.internal.pageSize.getHeight();
-  const margin = 40;
-  const contentWidth = pageWidth - margin * 2;
-  let y = margin;
+  const pdfDoc = await PDFDocument.create();
+  const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
-  // ── Header bar ──────────────────────────────────────────────────────────────
-  doc.setFillColor(10, 126, 164); // #0A7EA4
-  doc.rect(0, 0, pageWidth, 56, 'F');
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(18);
-  doc.setFont('helvetica', 'bold');
-  doc.text('DOS Hub', margin, 36);
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  doc.text('Service Fusion — Job Intelligence Report', margin, 50);
+  // Letter size: 612 x 792 pt
+  const PAGE_W = 612;
+  const PAGE_H = 792;
+  const MARGIN = 40;
+  const CONTENT_W = PAGE_W - MARGIN * 2;
+  const BRAND = rgb(10 / 255, 126 / 255, 164 / 255);
+  const WHITE = rgb(1, 1, 1);
+  const DARK = rgb(0.12, 0.12, 0.12);
+  const GRAY = rgb(0.63, 0.63, 0.63);
+  const LIGHT_BG = rgb(0.976, 0.976, 0.976);
+  const RED = rgb(0.937, 0.267, 0.267);
+  const GREEN = rgb(0.133, 0.773, 0.369);
+  const AMBER = rgb(0.961, 0.624, 0.043);
 
-  // Report title (right-aligned in header)
-  doc.setFontSize(10);
-  doc.text(reportTitle, pageWidth - margin, 36, { align: 'right' });
   const now = new Date();
-  doc.text(now.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }), pageWidth - margin, 50, { align: 'right' });
-
-  y = 80;
-
-  // ── Report title ────────────────────────────────────────────────────────────
-  doc.setTextColor(10, 126, 164);
-  doc.setFontSize(16);
-  doc.setFont('helvetica', 'bold');
-  doc.text(reportTitle, margin, y);
-  y += 18;
-
-  doc.setTextColor(120, 120, 120);
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'normal');
-  doc.text(`Generated: ${now.toLocaleString()} | Total Records: ${jobs.length}`, margin, y);
-  y += 20;
-
-  // ── Table ───────────────────────────────────────────────────────────────────
+  const dateStr = now.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
   const { headers, rows } = buildTableData(jobs, reportType);
 
+  const addPage = () => {
+    const page = pdfDoc.addPage([PAGE_W, PAGE_H]);
+    // Header bar
+    page.drawRectangle({ x: 0, y: PAGE_H - 56, width: PAGE_W, height: 56, color: BRAND });
+    page.drawText('DOS Hub', { x: MARGIN, y: PAGE_H - 24, font: helveticaBold, size: 16, color: WHITE });
+    page.drawText('Service Fusion — Job Intelligence Report', { x: MARGIN, y: PAGE_H - 42, font: helvetica, size: 9, color: rgb(0.9, 0.9, 0.9) });
+    page.drawText(reportTitle, { x: PAGE_W - MARGIN - helveticaBold.widthOfTextAtSize(reportTitle, 10), y: PAGE_H - 24, font: helveticaBold, size: 10, color: WHITE });
+    page.drawText(dateStr, { x: PAGE_W - MARGIN - helvetica.widthOfTextAtSize(dateStr, 9), y: PAGE_H - 42, font: helvetica, size: 9, color: rgb(0.9, 0.9, 0.9) });
+    return page;
+  };
+
+  let page = addPage();
+  let y = PAGE_H - 80;
+
+  // Report title
+  page.drawText(reportTitle, { x: MARGIN, y, font: helveticaBold, size: 15, color: BRAND });
+  y -= 16;
+  page.drawText(`Generated: ${now.toLocaleString()} | Total Records: ${jobs.length}`, { x: MARGIN, y, font: helvetica, size: 8, color: GRAY });
+  y -= 20;
+
   if (headers.length === 0 || rows.length === 0) {
-    doc.setTextColor(80, 80, 80);
-    doc.setFontSize(11);
-    doc.text('No data available for this report.', margin, y);
+    page.drawText('No data available for this report.', { x: MARGIN, y, font: helvetica, size: 11, color: DARK });
   } else {
     const colCount = headers.length;
-    const colWidth = contentWidth / colCount;
-    const rowHeight = 20;
-    const headerHeight = 24;
+    const colWidth = CONTENT_W / colCount;
+    const ROW_H = 18;
+    const HDR_H = 22;
 
-    // Header row
-    doc.setFillColor(10, 126, 164);
-    doc.rect(margin, y, contentWidth, headerHeight, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'bold');
-    headers.forEach((h, i) => {
-      doc.text(h, margin + i * colWidth + 6, y + 16);
-    });
-    y += headerHeight;
+    const drawHeader = (pg: ReturnType<typeof addPage>, startY: number) => {
+      pg.drawRectangle({ x: MARGIN, y: startY, width: CONTENT_W, height: HDR_H, color: BRAND });
+      headers.forEach((h, i) => {
+        pg.drawText(h.toUpperCase(), { x: MARGIN + i * colWidth + 5, y: startY + 7, font: helveticaBold, size: 7.5, color: WHITE });
+      });
+      return startY - HDR_H;
+    };
 
-    // Data rows
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8.5);
+    y = drawHeader(page, y);
+
     rows.forEach((row, rowIdx) => {
-      // Check for page overflow
-      if (y + rowHeight > pageHeight - margin) {
-        doc.addPage();
-        y = margin;
-        // Repeat header on new page
-        doc.setFillColor(10, 126, 164);
-        doc.rect(margin, y, contentWidth, headerHeight, 'F');
-        doc.setTextColor(255, 255, 255);
-        doc.setFontSize(9);
-        doc.setFont('helvetica', 'bold');
-        headers.forEach((h, i) => {
-          doc.text(h, margin + i * colWidth + 6, y + 16);
-        });
-        y += headerHeight;
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(8.5);
+      if (y - ROW_H < MARGIN + 20) {
+        // Footer on current page
+        page.drawLine({ start: { x: MARGIN, y: MARGIN + 16 }, end: { x: PAGE_W - MARGIN, y: MARGIN + 16 }, thickness: 0.5, color: rgb(0.85, 0.85, 0.85) });
+        page.drawText('© 2026 DOS Hub. Confidential.', { x: MARGIN, y: MARGIN + 4, font: helvetica, size: 7, color: GRAY });
+        page = addPage();
+        y = PAGE_H - 80;
+        y = drawHeader(page, y);
       }
 
-      // Alternating row background
+      // Alternating row bg
       if (rowIdx % 2 === 0) {
-        doc.setFillColor(249, 249, 249);
-        doc.rect(margin, y, contentWidth, rowHeight, 'F');
+        page.drawRectangle({ x: MARGIN, y: y - ROW_H, width: CONTENT_W, height: ROW_H, color: LIGHT_BG });
       }
-
       // Row border
-      doc.setDrawColor(220, 220, 220);
-      doc.rect(margin, y, contentWidth, rowHeight, 'S');
+      page.drawLine({ start: { x: MARGIN, y: y - ROW_H }, end: { x: MARGIN + CONTENT_W, y: y - ROW_H }, thickness: 0.3, color: rgb(0.87, 0.87, 0.87) });
 
-      // Cell text
       row.forEach((cell, colIdx) => {
         const cellText = String(cell ?? '—');
-        const maxChars = Math.floor(colWidth / 5.2);
+        const maxChars = Math.floor(colWidth / 4.8);
         const truncated = cellText.length > maxChars ? cellText.substring(0, maxChars - 1) + '…' : cellText;
-
-        // Color-code confidence/status values
-        if (cellText === 'BLOCKED' || cellText === 'Blocked') {
-          doc.setTextColor(239, 68, 68);
-        } else if (cellText === 'HARD' || cellText === 'Confirmed') {
-          doc.setTextColor(34, 197, 94);
-        } else if (cellText === 'FORECAST' || cellText === 'Estimated') {
-          doc.setTextColor(245, 158, 11);
-        } else {
-          doc.setTextColor(30, 30, 30);
-        }
-
-        doc.text(truncated, margin + colIdx * colWidth + 6, y + 13);
+        let cellColor = DARK;
+        if (cellText === 'Blocked' || cellText === 'BLOCKED') cellColor = RED;
+        else if (cellText === 'Confirmed' || cellText === 'HARD') cellColor = GREEN;
+        else if (cellText === 'Estimated' || cellText === 'FORECAST') cellColor = AMBER;
+        page.drawText(truncated, { x: MARGIN + colIdx * colWidth + 5, y: y - ROW_H + 5, font: helvetica, size: 7.5, color: cellColor });
       });
 
-      y += rowHeight;
+      y -= ROW_H;
     });
 
-    // Bottom border for table
-    doc.setDrawColor(200, 200, 200);
-    doc.line(margin, y, margin + contentWidth, y);
+    // Bottom border
+    page.drawLine({ start: { x: MARGIN, y }, end: { x: MARGIN + CONTENT_W, y }, thickness: 0.5, color: rgb(0.78, 0.78, 0.78) });
   }
 
-  // ── Footer ──────────────────────────────────────────────────────────────────
-  const totalPages = (doc.internal as any).getNumberOfPages();
-  for (let p = 1; p <= totalPages; p++) {
-    doc.setPage(p);
-    doc.setDrawColor(220, 220, 220);
-    doc.line(margin, pageHeight - 28, pageWidth - margin, pageHeight - 28);
-    doc.setTextColor(160, 160, 160);
-    doc.setFontSize(8);
-    doc.text('© 2026 DOS Hub. Confidential.', margin, pageHeight - 14);
-    doc.text(`Page ${p} of ${totalPages}`, pageWidth - margin, pageHeight - 14, { align: 'right' });
-  }
+  // Footer on last page
+  page.drawLine({ start: { x: MARGIN, y: MARGIN + 16 }, end: { x: PAGE_W - MARGIN, y: MARGIN + 16 }, thickness: 0.5, color: rgb(0.85, 0.85, 0.85) });
+  page.drawText('© 2026 DOS Hub. Confidential.', { x: MARGIN, y: MARGIN + 4, font: helvetica, size: 7, color: GRAY });
 
-  // ── Download ─────────────────────────────────────────────────────────────────
-  doc.save(filename);
+  // ── Download ──────────────────────────────────────────────────────────────────
+  const pdfBytes = await pdfDoc.save();
+  const blob = new Blob([pdfBytes.buffer as ArrayBuffer], { type: 'application/pdf' });
+  const blobUrl = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = blobUrl;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+  setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
 }
 
 // ─── Native export (expo-print + sharing) ────────────────────────────────────
