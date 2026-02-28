@@ -47,6 +47,14 @@ export default function ProfileScreen() {
       title: "Orders",
       items: [
         {
+          id: "dashboard",
+          icon: "chart.bar.fill",
+          label: "Dashboard",
+          subtitle: "Order status & team metrics",
+          onPress: () => router.push("/modules/dashboard" as any),
+          roles: ["admin", "manager"],
+        },
+        {
           id: "my-orders",
           icon: "folder.fill",
           label: "My Saved Orders",

@@ -75,3 +75,11 @@
 - [x] Orders: Manager can view and adjust any order + change status
 - [x] Orders: Audit trail — every update creates a revision record preserving the original
 - [x] Orders: View revision history for any order with PDF preview per revision
+- [x] Dashboard: Server-side analytics API — order counts by status, orders per technician, revision counts
+- [x] Dashboard: Manager Dashboard screen — summary stat cards (total orders, pending, approved, completed)
+- [x] Dashboard: Order status breakdown with visual bar chart
+- [x] Dashboard: Technician performance table (name, order count, screens, completion %, revisions)
+- [x] Dashboard: Recent activity feed (latest orders with status pills, tap to view detail)
+- [x] Dashboard: Access from Home tab quick actions + module card, and Profile settings for managers/admins
+- [x] Dashboard: Quick action buttons to View All Orders and Manage Users
+- [x] BUG: Admin panel Approve/Reject/Change Role buttons not responding — fixed with TouchableOpacity + Modal role picker (web-compatible)

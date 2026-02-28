@@ -199,6 +199,17 @@ export const appRouter = router({
         return { success: true };
       }),
   }),
+
+  // ─── DASHBOARD ANALYTICS ─────────────────────────────────────────────────────
+  dashboard: router({
+    /** Get dashboard stats (manager/admin only) */
+    stats: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user.role !== "admin" && ctx.user.role !== "manager") {
+        throw new Error("Unauthorized: manager or admin role required");
+      }
+      return db.getDashboardStats();
+    }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

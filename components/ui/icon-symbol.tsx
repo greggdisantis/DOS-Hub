@@ -53,6 +53,11 @@ const MAPPING = {
   "exclamationmark.triangle.fill": "warning",
   "xmark": "close",
   "photo.on.rectangle": "add-photo-alternate",
+  "clock.fill": "schedule",
+  "person.3.fill": "groups",
+  "arrow.clockwise": "refresh",
+  "tray.full.fill": "inbox",
+  "checkmark.seal.fill": "verified",
 } as IconMapping;
 
 /**

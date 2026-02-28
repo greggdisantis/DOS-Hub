@@ -227,6 +227,88 @@ export async function getOrderRevisions(orderId: number) {
     .orderBy(desc(orderRevisions.revisionNumber));
 }
 
+// ─── DASHBOARD ANALYTICS ────────────────────────────────────────────────────
+
+export async function getDashboardStats() {
+  const db = await getDb();
+  if (!db) return { totalOrders: 0, byStatus: {}, recentOrders: [], techPerformance: [] };
+
+  // Get all orders with user info
+  const allOrders = await db.select().from(screenOrders).orderBy(desc(screenOrders.updatedAt));
+  const allUsers = await db.select().from(users);
+  const allRevisions = await db.select().from(orderRevisions);
+
+  // Status counts
+  const byStatus: Record<string, number> = { draft: 0, submitted: 0, approved: 0, rejected: 0, completed: 0 };
+  for (const o of allOrders) {
+    byStatus[o.status] = (byStatus[o.status] || 0) + 1;
+  }
+
+  // Total screens across all orders
+  const totalScreens = allOrders.reduce((sum, o) => sum + (o.screenCount || 0), 0);
+
+  // Recent orders (last 20) with user name
+  const userMap = new Map(allUsers.map((u) => [u.id, u.name || u.email || "Unknown"]));
+  const recentOrders = allOrders.slice(0, 20).map((o) => ({
+    id: o.id,
+    title: o.title,
+    status: o.status,
+    screenCount: o.screenCount,
+    manufacturer: o.manufacturer,
+    userName: userMap.get(o.userId) || "Unknown",
+    userId: o.userId,
+    createdAt: o.createdAt,
+    updatedAt: o.updatedAt,
+  }));
+
+  // Technician performance
+  const techOrders = new Map<number, { name: string; total: number; byStatus: Record<string, number>; totalScreens: number; revisionCount: number }>();
+  for (const o of allOrders) {
+    if (!techOrders.has(o.userId)) {
+      techOrders.set(o.userId, {
+        name: userMap.get(o.userId) || "Unknown",
+        total: 0,
+        byStatus: { draft: 0, submitted: 0, approved: 0, rejected: 0, completed: 0 },
+        totalScreens: 0,
+        revisionCount: 0,
+      });
+    }
+    const tech = techOrders.get(o.userId)!;
+    tech.total += 1;
+    tech.byStatus[o.status] = (tech.byStatus[o.status] || 0) + 1;
+    tech.totalScreens += o.screenCount || 0;
+  }
+
+  // Count revisions per technician (revisions > 1 means edits were made)
+  for (const rev of allRevisions) {
+    const order = allOrders.find((o) => o.id === rev.orderId);
+    if (order && techOrders.has(order.userId)) {
+      techOrders.get(order.userId)!.revisionCount += 1;
+    }
+  }
+
+  const techPerformance = Array.from(techOrders.entries()).map(([userId, data]) => ({
+    userId,
+    name: data.name,
+    totalOrders: data.total,
+    totalScreens: data.totalScreens,
+    completedOrders: data.byStatus.completed || 0,
+    approvedOrders: data.byStatus.approved || 0,
+    pendingOrders: (data.byStatus.draft || 0) + (data.byStatus.submitted || 0),
+    rejectedOrders: data.byStatus.rejected || 0,
+    revisionCount: data.revisionCount,
+    completionRate: data.total > 0 ? Math.round(((data.byStatus.completed || 0) / data.total) * 100) : 0,
+  })).sort((a, b) => b.totalOrders - a.totalOrders);
+
+  return {
+    totalOrders: allOrders.length,
+    totalScreens,
+    byStatus,
+    recentOrders,
+    techPerformance,
+  };
+}
+
 export async function deleteScreenOrder(orderId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");

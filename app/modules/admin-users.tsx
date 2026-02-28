@@ -1,13 +1,14 @@
 import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
-  Pressable,
+  Platform,
   RefreshControl,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
+  Modal,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
@@ -34,6 +35,20 @@ const ROLE_COLORS: Record<string, string> = {
   admin: "#EF4444",
   user: "#687076",
 };
+
+/** Cross-platform confirm dialog */
+function crossConfirm(title: string, message: string): Promise<boolean> {
+  if (Platform.OS === "web") {
+    return Promise.resolve(window.confirm(`${title}\n\n${message}`));
+  }
+  const { Alert } = require("react-native");
+  return new Promise((resolve) => {
+    Alert.alert(title, message, [
+      { text: "Cancel", style: "cancel", onPress: () => resolve(false) },
+      { text: "OK", onPress: () => resolve(true) },
+    ]);
+  });
+}
 
 function AdminUsersContent() {
   const colors = useColors();
@@ -64,6 +79,14 @@ function AdminUsersContent() {
   });
 
   const [refreshing, setRefreshing] = useState(false);
+  // Role picker modal state
+  const [roleModal, setRoleModal] = useState<{
+    visible: boolean;
+    userId: number;
+    userName: string;
+    mode: "approve" | "change";
+    currentRole?: string;
+  }>({ visible: false, userId: 0, userName: "", mode: "approve" });
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -72,47 +95,41 @@ function AdminUsersContent() {
   }, [refetch]);
 
   const handleApprove = (userId: number, userName: string | null) => {
-    Alert.alert(
-      "Approve User",
-      `Approve ${userName || "this user"} and assign a role:`,
-      [
-        { text: "Cancel", style: "cancel" },
-        ...ROLE_OPTIONS.map((role) => ({
-          text: ROLE_LABELS[role],
-          onPress: () => approveMutation.mutate({ userId, role }),
-        })),
-      ],
-    );
+    setRoleModal({
+      visible: true,
+      userId,
+      userName: userName || "this user",
+      mode: "approve",
+    });
   };
 
-  const handleReject = (userId: number, userName: string | null) => {
-    Alert.alert(
+  const handleReject = async (userId: number, userName: string | null) => {
+    const confirmed = await crossConfirm(
       "Reject User",
       `Are you sure you want to reject ${userName || "this user"}? Their account will be deleted.`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Reject",
-          style: "destructive",
-          onPress: () => rejectMutation.mutate({ userId }),
-        },
-      ],
     );
+    if (confirmed) {
+      rejectMutation.mutate({ userId });
+    }
   };
 
   const handleChangeRole = (userId: number, userName: string | null, currentRole: string) => {
-    const options = ["pending", ...ROLE_OPTIONS].filter((r) => r !== currentRole);
-    Alert.alert(
-      "Change Role",
-      `Change role for ${userName || "this user"}:`,
-      [
-        { text: "Cancel", style: "cancel" },
-        ...options.map((role) => ({
-          text: ROLE_LABELS[role],
-          onPress: () => updateRoleMutation.mutate({ userId, role: role as any }),
-        })),
-      ],
-    );
+    setRoleModal({
+      visible: true,
+      userId,
+      userName: userName || "this user",
+      mode: "change",
+      currentRole,
+    });
+  };
+
+  const handleSelectRole = (role: string) => {
+    if (roleModal.mode === "approve") {
+      approveMutation.mutate({ userId: roleModal.userId, role: role as RoleOption });
+    } else {
+      updateRoleMutation.mutate({ userId: roleModal.userId, role: role as any });
+    }
+    setRoleModal((prev) => ({ ...prev, visible: false }));
   };
 
   const pendingCount = pendingUsers?.length ?? 0;
@@ -130,8 +147,8 @@ function AdminUsersContent() {
             </Text>
           </View>
           <View style={styles.userInfo}>
-            <Text className="text-base font-semibold text-foreground">{item.name || "Unknown"}</Text>
-            <Text className="text-xs text-muted">{item.email || "No email"}</Text>
+            <Text style={{ fontSize: 15, fontWeight: "600", color: colors.foreground }}>{item.name || "Unknown"}</Text>
+            <Text style={{ fontSize: 12, color: colors.muted }}>{item.email || "No email"}</Text>
           </View>
           <View style={[styles.roleBadge, { backgroundColor: roleColor + "20" }]}>
             <Text style={{ fontSize: 11, fontWeight: "600", color: roleColor }}>
@@ -142,50 +159,41 @@ function AdminUsersContent() {
 
         {isPending ? (
           <View style={styles.actionRow}>
-            <Pressable
+            <TouchableOpacity
               onPress={() => handleApprove(item.id, item.name)}
-              style={({ pressed }) => [
-                styles.actionButton,
-                { backgroundColor: colors.success },
-                pressed && { opacity: 0.8 },
-              ]}
+              activeOpacity={0.7}
+              style={[styles.actionButton, { backgroundColor: colors.success }]}
             >
               <IconSymbol name="checkmark.circle.fill" size={16} color="#FFFFFF" />
               <Text style={styles.actionButtonText}>Approve</Text>
-            </Pressable>
-            <Pressable
+            </TouchableOpacity>
+            <TouchableOpacity
               onPress={() => handleReject(item.id, item.name)}
-              style={({ pressed }) => [
-                styles.actionButton,
-                { backgroundColor: colors.error },
-                pressed && { opacity: 0.8 },
-              ]}
+              activeOpacity={0.7}
+              style={[styles.actionButton, { backgroundColor: colors.error }]}
             >
               <IconSymbol name="xmark.circle.fill" size={16} color="#FFFFFF" />
               <Text style={styles.actionButtonText}>Reject</Text>
-            </Pressable>
+            </TouchableOpacity>
           </View>
         ) : (
           <View style={styles.actionRow}>
-            <Pressable
+            <TouchableOpacity
               onPress={() => handleChangeRole(item.id, item.name, item.role)}
-              style={({ pressed }) => [
-                styles.actionButton,
-                { backgroundColor: colors.primary },
-                pressed && { opacity: 0.8 },
-              ]}
+              activeOpacity={0.7}
+              style={[styles.actionButton, { backgroundColor: colors.primary }]}
             >
               <IconSymbol name="pencil" size={14} color="#FFFFFF" />
               <Text style={styles.actionButtonText}>Change Role</Text>
-            </Pressable>
+            </TouchableOpacity>
           </View>
         )}
 
         <View style={[styles.metaRow, { borderTopColor: colors.border }]}>
-          <Text className="text-xs text-muted">
+          <Text style={{ fontSize: 11, color: colors.muted }}>
             Joined: {new Date(item.createdAt).toLocaleDateString()}
           </Text>
-          <Text className="text-xs text-muted">
+          <Text style={{ fontSize: 11, color: colors.muted }}>
             Last active: {new Date(item.lastSignedIn).toLocaleDateString()}
           </Text>
         </View>
@@ -203,17 +211,22 @@ function AdminUsersContent() {
     );
   }
 
+  // Determine available roles for the modal
+  const availableRoles =
+    roleModal.mode === "approve"
+      ? [...ROLE_OPTIONS]
+      : ["pending", ...ROLE_OPTIONS].filter((r) => r !== roleModal.currentRole);
+
   return (
     <ScreenContainer>
       {/* Header */}
       <View style={styles.header}>
-        <Pressable
-          onPress={() => router.back()}
-          style={({ pressed }) => [pressed && { opacity: 0.6 }]}
-        >
+        <TouchableOpacity onPress={() => router.back()} activeOpacity={0.6}>
           <IconSymbol name="chevron.right" size={24} color={colors.foreground} style={{ transform: [{ rotate: "180deg" }] }} />
-        </Pressable>
-        <Text className="text-2xl font-bold text-foreground ml-2 flex-1">User Management</Text>
+        </TouchableOpacity>
+        <Text style={{ fontSize: 22, fontWeight: "700", color: colors.foreground, marginLeft: 8, flex: 1 }}>
+          User Management
+        </Text>
         {pendingCount > 0 && (
           <View style={[styles.pendingBadge, { backgroundColor: colors.warning }]}>
             <Text style={{ fontSize: 12, fontWeight: "700", color: "#FFFFFF" }}>{pendingCount}</Text>
@@ -221,7 +234,7 @@ function AdminUsersContent() {
         )}
       </View>
 
-      {/* Pending Section */}
+      {/* Pending Banner */}
       {pendingCount > 0 && (
         <View style={[styles.pendingBanner, { backgroundColor: colors.warning + "15", borderColor: colors.warning + "40" }]}>
           <IconSymbol name="exclamationmark.triangle.fill" size={18} color={colors.warning} />
@@ -242,10 +255,62 @@ function AdminUsersContent() {
         }
         ListEmptyComponent={
           <View style={styles.center}>
-            <Text className="text-muted">No users found.</Text>
+            <Text style={{ color: colors.muted }}>No users found.</Text>
           </View>
         }
       />
+
+      {/* Role Picker Modal */}
+      <Modal
+        visible={roleModal.visible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setRoleModal((prev) => ({ ...prev, visible: false }))}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          onPress={() => setRoleModal((prev) => ({ ...prev, visible: false }))}
+          style={styles.modalOverlay}
+        >
+          <View
+            style={[styles.modalContent, { backgroundColor: colors.surface, borderColor: colors.border }]}
+            onStartShouldSetResponder={() => true}
+          >
+            <Text style={{ fontSize: 18, fontWeight: "700", color: colors.foreground, marginBottom: 4 }}>
+              {roleModal.mode === "approve" ? "Approve & Assign Role" : "Change Role"}
+            </Text>
+            <Text style={{ fontSize: 14, color: colors.muted, marginBottom: 20 }}>
+              Select a role for {roleModal.userName}:
+            </Text>
+
+            {availableRoles.map((role) => {
+              const roleColor = ROLE_COLORS[role] || colors.muted;
+              return (
+                <TouchableOpacity
+                  key={role}
+                  onPress={() => handleSelectRole(role)}
+                  activeOpacity={0.7}
+                  style={[styles.roleOption, { borderColor: colors.border }]}
+                >
+                  <View style={[styles.roleOptionDot, { backgroundColor: roleColor }]} />
+                  <Text style={{ fontSize: 16, fontWeight: "600", color: colors.foreground, flex: 1 }}>
+                    {ROLE_LABELS[role]}
+                  </Text>
+                  <IconSymbol name="chevron.right" size={18} color={colors.muted} />
+                </TouchableOpacity>
+              );
+            })}
+
+            <TouchableOpacity
+              onPress={() => setRoleModal((prev) => ({ ...prev, visible: false }))}
+              activeOpacity={0.7}
+              style={[styles.cancelButton, { borderColor: colors.border }]}
+            >
+              <Text style={{ fontSize: 15, fontWeight: "600", color: colors.muted }}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </ScreenContainer>
   );
 }
@@ -337,6 +402,41 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     paddingHorizontal: 14,
     paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  modalContent: {
+    width: "100%",
+    maxWidth: 360,
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 24,
+  },
+  roleOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    gap: 12,
+  },
+  roleOptionDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  cancelButton: {
+    marginTop: 16,
+    alignItems: "center",
+    paddingVertical: 12,
     borderRadius: 10,
     borderWidth: 1,
   },

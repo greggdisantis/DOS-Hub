@@ -62,12 +62,21 @@ const MODULES: ModuleCard[] = [
     route: "/modules/training",
     color: "#8B5CF6",
   },
+  {
+    id: "dashboard",
+    title: "Dashboard",
+    description: "Order status & team metrics",
+    icon: "chart.bar.fill",
+    route: "/modules/dashboard",
+    color: "#0EA5E9",
+  },
 ];
 
 const QUICK_ACTIONS = [
   { id: "new-receipt", label: "New Receipt", icon: "camera.fill", route: "/modules/receipt-capture" },
   { id: "zoning", label: "Zoning", icon: "magnifyingglass", route: "/modules/zoning-lookup" },
   { id: "new-order", label: "New Order", icon: "doc.text.fill", route: "/modules/screen-ordering" },
+  { id: "dashboard", label: "Dashboard", icon: "chart.bar.fill", route: "/modules/dashboard" },
 ];
 
 export default function HomeScreen() {
