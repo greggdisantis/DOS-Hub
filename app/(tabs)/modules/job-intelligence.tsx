@@ -1,89 +1,129 @@
 /**
  * Job Intelligence Module
- * Analyzes open jobs and calculates material readiness timelines
+ * Upload Service Fusion Excel file and analyze job readiness
  */
 
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { ScreenContainer } from '@/components/screen-container';
-import { useAuth } from '@/hooks/use-auth';
-import { JobForm } from './job-intelligence/job-form';
-import type { ProcessedJob } from './job-intelligence/types';
+import { parseServiceFusionExcel, type ParsedJob } from './job-intelligence/excel-parser';
+import { calculateJobReadiness, type JobReadiness } from './job-intelligence/readiness-calculator';
+
+type ViewMode = 'upload' | 'results';
 
 export default function JobIntelligenceScreen() {
-  const { user } = useAuth();
-  const [mode, setMode] = useState<'form' | 'list'>('form');
-  const [jobs, setJobs] = useState<ProcessedJob[]>([]);
-  const [selectedJobIndex, setSelectedJobIndex] = useState<number | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>('upload');
+  const [isLoading, setIsLoading] = useState(false);
+  const [jobs, setJobs] = useState<JobReadiness[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [filterCategory, setFilterCategory] = useState<string>('all');
 
-  const handleSaveJob = (job: ProcessedJob) => {
-    if (selectedJobIndex !== null) {
-      const updated = [...jobs];
-      updated[selectedJobIndex] = job;
-      setJobs(updated);
-      setSelectedJobIndex(null);
-    } else {
-      setJobs([...jobs, job]);
+  const handleFileUpload = async (file: File) => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const parsedJobs = await parseServiceFusionExcel(file);
+      const readinessJobs = parsedJobs.map(calculateJobReadiness);
+      setJobs(readinessJobs);
+      setViewMode('results');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to parse file');
+    } finally {
+      setIsLoading(false);
     }
-    setMode('list');
   };
 
-  const handleEditJob = (index: number) => {
-    setSelectedJobIndex(index);
-    setMode('form');
-  };
-
-  const handleDeleteJob = (index: number) => {
-    setJobs(jobs.filter((_, i) => i !== index));
-  };
-
-  const handleNewJob = () => {
-    setSelectedJobIndex(null);
-    setMode('form');
-  };
-
-  if (mode === 'form') {
-    return (
-      <JobForm
-        initialJob={selectedJobIndex !== null ? jobs[selectedJobIndex].canonical : undefined}
-        onSave={handleSaveJob}
-      />
-    );
+  if (viewMode === 'upload') {
+    return <UploadView onFileUpload={handleFileUpload} isLoading={isLoading} error={error} />;
   }
+
+  return (
+    <ResultsView
+      jobs={jobs}
+      onBack={() => {
+        setViewMode('upload');
+        setJobs([]);
+        setError(null);
+      }}
+    />
+  );
+}
+
+/**
+ * Upload View Component
+ */
+interface UploadViewProps {
+  onFileUpload: (file: File) => void;
+  isLoading: boolean;
+  error: string | null;
+}
+
+function UploadView({ onFileUpload, isLoading, error }: UploadViewProps) {
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      onFileUpload(file);
+    }
+  };
 
   return (
     <ScreenContainer className="flex-1 bg-background">
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} className="flex-1">
-        <View className="p-4 gap-4">
-          <View className="flex-row items-center justify-between">
-            <Text className="text-2xl font-bold text-foreground">Job Intelligence</Text>
-            <TouchableOpacity
-              onPress={handleNewJob}
-              className="bg-primary rounded-lg px-4 py-2"
-            >
-              <Text className="text-background font-semibold">+ New Job</Text>
-            </TouchableOpacity>
+        <View className="flex-1 p-6 gap-6 justify-center">
+          <View className="gap-2">
+            <Text className="text-3xl font-bold text-foreground">Job Intelligence</Text>
+            <Text className="text-base text-muted">
+              Upload your Service Fusion Sales Revenue Report to analyze material readiness
+            </Text>
           </View>
 
-          {jobs.length === 0 ? (
-            <View className="flex-1 items-center justify-center gap-4 py-12">
-              <Text className="text-lg font-semibold text-foreground">No Jobs Yet</Text>
-              <Text className="text-sm text-muted text-center">
-                Create a new job to analyze material readiness timelines
-              </Text>
+          <View className="bg-surface rounded-lg p-6 gap-4 border border-border">
+            <Text className="text-lg font-semibold text-foreground">Upload Excel File</Text>
+            <Text className="text-sm text-muted">
+              Select a Service Fusion Sales Revenue Report (XLSX format) to begin analysis
+            </Text>
+
+            <View className="bg-primary/10 rounded-lg p-4 border border-primary/20">
+              <input
+                type="file"
+                accept=".xlsx,.xls"
+                onChange={handleFileInputChange}
+                disabled={isLoading}
+                style={{
+                  width: '100%',
+                  padding: 12,
+                  borderRadius: 8,
+                  border: '2px dashed #0a7ea4',
+                  cursor: isLoading ? 'not-allowed' : 'pointer',
+                  opacity: isLoading ? 0.5 : 1,
+                }}
+              />
             </View>
-          ) : (
-            <View className="gap-3">
-              {jobs.map((job, index) => (
-                <JobCard
-                  key={index}
-                  job={job}
-                  onEdit={() => handleEditJob(index)}
-                  onDelete={() => handleDeleteJob(index)}
-                />
-              ))}
+
+            {isLoading && (
+              <View className="flex-row items-center gap-3">
+                <ActivityIndicator color="#0a7ea4" />
+                <Text className="text-sm text-foreground">Processing file...</Text>
+              </View>
+            )}
+
+            {error && (
+              <View className="bg-error/10 rounded-lg p-3 border border-error/20">
+                <Text className="text-sm text-error">{error}</Text>
+              </View>
+            )}
+          </View>
+
+          <View className="gap-3">
+            <Text className="text-sm font-semibold text-foreground">What this tool does:</Text>
+            <View className="gap-2">
+              <Text className="text-sm text-muted">• Parses all jobs from your Service Fusion export</Text>
+              <Text className="text-sm text-muted">• Calculates material readiness for each product</Text>
+              <Text className="text-sm text-muted">• Shows permit and material status</Text>
+              <Text className="text-sm text-muted">• Identifies blocking issues</Text>
             </View>
-          )}
+          </View>
         </View>
       </ScrollView>
     </ScreenContainer>
@@ -91,16 +131,20 @@ export default function JobIntelligenceScreen() {
 }
 
 /**
- * Job Card Component
+ * Results View Component
  */
-interface JobCardProps {
-  job: ProcessedJob;
-  onEdit: () => void;
-  onDelete: () => void;
+interface ResultsViewProps {
+  jobs: JobReadiness[];
+  onBack: () => void;
 }
 
-function JobCard({ job, onEdit, onDelete }: JobCardProps) {
-  const getReadinessColor = (confidence: string) => {
+function ResultsView({ jobs, onBack }: ResultsViewProps) {
+  const [filterCategory, setFilterCategory] = useState<string>('all');
+
+  const filteredJobs =
+    filterCategory === 'all' ? jobs : jobs.filter((job) => job.jobCategory.includes(filterCategory));
+
+  const getConfidenceColor = (confidence: string) => {
     switch (confidence) {
       case 'HARD':
         return '#22C55E';
@@ -113,7 +157,7 @@ function JobCard({ job, onEdit, onDelete }: JobCardProps) {
     }
   };
 
-  const getReadinessLabel = (confidence: string) => {
+  const getConfidenceLabel = (confidence: string) => {
     switch (confidence) {
       case 'HARD':
         return 'Confirmed';
@@ -127,58 +171,122 @@ function JobCard({ job, onEdit, onDelete }: JobCardProps) {
   };
 
   return (
-    <View className="bg-surface rounded-lg p-4 gap-3 border border-border">
-      <View className="flex-row items-center justify-between">
-        <View className="flex-1">
-          <Text className="text-lg font-semibold text-foreground">
-            {job.canonical.Customer}
-          </Text>
-          {job.canonical.ProjectSupervisor && (
+    <ScreenContainer className="flex-1 bg-background">
+      <ScrollView className="flex-1">
+        <View className="p-4 gap-4">
+          <View className="flex-row items-center justify-between">
+            <Text className="text-2xl font-bold text-foreground">Results</Text>
+            <TouchableOpacity onPress={onBack} className="bg-primary rounded-lg px-4 py-2">
+              <Text className="text-background font-semibold">New File</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View className="bg-surface rounded-lg p-3 border border-border">
             <Text className="text-sm text-muted">
-              {job.canonical.ProjectSupervisor}
+              Processed {jobs.length} jobs from Service Fusion export
             </Text>
+          </View>
+
+          {filteredJobs.length === 0 ? (
+            <View className="items-center justify-center py-12">
+              <Text className="text-lg font-semibold text-foreground">No jobs found</Text>
+            </View>
+          ) : (
+            <View className="gap-3">
+              {filteredJobs.map((job, index) => (
+                <JobCard key={index} job={job} getConfidenceColor={getConfidenceColor} getConfidenceLabel={getConfidenceLabel} />
+              ))}
+            </View>
           )}
         </View>
-        <View className="flex-row gap-2">
-          <TouchableOpacity
-            onPress={onEdit}
-            className="bg-primary rounded-lg px-3 py-2"
-          >
-            <Text className="text-background text-sm font-semibold">Edit</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={onDelete}
-            className="bg-error rounded-lg px-3 py-2"
-          >
-            <Text className="text-background text-sm font-semibold">Delete</Text>
-          </TouchableOpacity>
-        </View>
+      </ScrollView>
+    </ScreenContainer>
+  );
+}
+
+/**
+ * Job Card Component
+ */
+interface JobCardProps {
+  job: JobReadiness;
+  getConfidenceColor: (confidence: string) => string;
+  getConfidenceLabel: (confidence: string) => string;
+}
+
+function JobCard({ job, getConfidenceColor, getConfidenceLabel }: JobCardProps) {
+  return (
+    <View className="bg-surface rounded-lg p-4 gap-3 border border-border">
+      <View>
+        <Text className="text-lg font-semibold text-foreground">{job.customer}</Text>
+        {job.projectSupervisor && (
+          <Text className="text-sm text-muted">{job.projectSupervisor}</Text>
+        )}
       </View>
 
       <View className="gap-2">
-        {Object.entries(job.readiness).map(([product, result]) => {
-          if (!result) return null;
-          return (
-            <View key={product} className="flex-row items-center justify-between">
-              <Text className="text-sm text-foreground">{product}</Text>
-              <View className="flex-row items-center gap-2">
-                {result.readyMonth && (
-                  <Text className="text-sm font-semibold text-foreground">
-                    {result.readyMonth}
-                  </Text>
-                )}
-                <View
-                  style={{ backgroundColor: getReadinessColor(result.confidence) }}
-                  className="px-2 py-1 rounded"
-                >
-                  <Text className="text-xs font-semibold text-white">
-                    {getReadinessLabel(result.confidence)}
-                  </Text>
-                </View>
-              </View>
-            </View>
-          );
-        })}
+        {job.struXure && (
+          <ProductRow
+            product="StruXure"
+            result={job.struXure}
+            getConfidenceColor={getConfidenceColor}
+            getConfidenceLabel={getConfidenceLabel}
+          />
+        )}
+        {job.screens && (
+          <ProductRow
+            product="Screens"
+            result={job.screens}
+            getConfidenceColor={getConfidenceColor}
+            getConfidenceLabel={getConfidenceLabel}
+          />
+        )}
+        {job.pergotenda && (
+          <ProductRow
+            product="Pergotenda"
+            result={job.pergotenda}
+            getConfidenceColor={getConfidenceColor}
+            getConfidenceLabel={getConfidenceLabel}
+          />
+        )}
+        {job.awning && (
+          <ProductRow
+            product="Awning"
+            result={job.awning}
+            getConfidenceColor={getConfidenceColor}
+            getConfidenceLabel={getConfidenceLabel}
+          />
+        )}
+      </View>
+    </View>
+  );
+}
+
+/**
+ * Product Row Component
+ */
+interface ProductRowProps {
+  product: string;
+  result: any;
+  getConfidenceColor: (confidence: string) => string;
+  getConfidenceLabel: (confidence: string) => string;
+}
+
+function ProductRow({ product, result, getConfidenceColor, getConfidenceLabel }: ProductRowProps) {
+  return (
+    <View className="flex-row items-center justify-between p-2 bg-background rounded">
+      <Text className="text-sm font-medium text-foreground">{product}</Text>
+      <View className="flex-row items-center gap-2">
+        {result.readyMonth && (
+          <Text className="text-sm font-semibold text-foreground">{result.readyMonth}</Text>
+        )}
+        <View
+          style={{ backgroundColor: getConfidenceColor(result.confidence) }}
+          className="px-2 py-1 rounded"
+        >
+          <Text className="text-xs font-semibold text-white">
+            {getConfidenceLabel(result.confidence)}
+          </Text>
+        </View>
       </View>
     </View>
   );

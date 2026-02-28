@@ -103,3 +103,18 @@
 - [ ] Add job filtering and search capabilities
 - [ ] Create revision history tracking for job modifications
 - [ ] Add push notifications for job readiness milestones
+
+
+## Job Intelligence Module - REBUILD (File Upload Version)
+
+- [x] Analyze Service Fusion Excel format and column mappings
+- [x] Build Excel file upload component with file picker
+- [x] Implement Excel parser to extract job data from Service Fusion exports
+- [x] Create batch job processing engine (process all jobs in file)
+- [x] Implement readiness calculations for each job
+- [x] Create results table with job data and readiness status
+- [ ] Add filtering by job category, status, readiness level
+- [ ] Add sorting by customer, ready date, status
+- [x] Create CSV export for full report with all jobs
+- [ ] Test with Service Fusion sample file
+- [ ] Fix any calculation discrepancies vs Google AI Studio
