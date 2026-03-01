@@ -257,8 +257,8 @@ function ModulePicker({
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
-      style={{ paddingHorizontal: 12, marginBottom: 4 }}
-      contentContainerStyle={{ gap: 8, paddingVertical: 8 }}
+      style={{ paddingHorizontal: 12, marginBottom: 4, flexGrow: 0, flexShrink: 0, maxHeight: 52 }}
+      contentContainerStyle={{ gap: 8, paddingVertical: 8, alignItems: 'center' }}
     >
       {DASHBOARD_MODULES.map((m) => (
         <Pressable
@@ -351,9 +351,15 @@ function DashboardContent() {
   if (activeModule === 'sales-pipeline') {
     return (
       <ScreenContainer edges={['top', 'left', 'right']}>
-        {header}
-        <ModulePicker active={activeModule} onChange={setActiveModule} />
-        <SalesPipelineContent />
+        <View style={{ flex: 1 }}>
+          {header}
+          <View style={{ flexShrink: 0 }}>
+            <ModulePicker active={activeModule} onChange={setActiveModule} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <SalesPipelineContent />
+          </View>
+        </View>
       </ScreenContainer>
     );
   }

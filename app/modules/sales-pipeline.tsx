@@ -11,6 +11,7 @@ import {
   View, Text, FlatList, Pressable, StyleSheet, Alert, TextInput,
   ScrollView, ActivityIndicator, Modal,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { ScreenContainer } from '@/components/screen-container';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useColors } from '@/hooks/use-colors';
@@ -207,9 +208,10 @@ interface PipelineRowProps {
   onMarkSold: () => void;
   onMarkLost: () => void;
   onReopen: () => void;
+  onEdit: () => void;
 }
 
-function PipelineRow({ report, onUpdate, onMarkSold, onMarkLost, onReopen }: PipelineRowProps) {
+function PipelineRow({ report, onUpdate, onMarkSold, onMarkLost, onReopen, onEdit }: PipelineRowProps) {
   const colors = useColors();
   const [editingValue, setEditingValue] = useState(false);
   const [valueText, setValueText] = useState(
@@ -251,6 +253,18 @@ function PipelineRow({ report, onUpdate, onMarkSold, onMarkLost, onReopen }: Pip
               : ''}
           </Text>
         </View>
+        {/* Edit button */}
+        <Pressable
+          onPress={onEdit}
+          style={({ pressed }) => ([
+            styles.editBtn,
+            { borderColor: colors.border, backgroundColor: colors.surface },
+            pressed && { opacity: 0.7 },
+          ])}
+        >
+          <IconSymbol name="pencil" size={13} color={colors.primary} />
+          <Text style={[styles.editBtnText, { color: colors.primary }]}>Edit</Text>
+        </Pressable>
         <View
           style={[
             styles.outcomePill,
@@ -515,6 +529,8 @@ export function SalesPipelineContent() {
     [updateReport]
   );
 
+  const router = useRouter();
+
   const filteredReports = reports.filter((r) => {
     const matchesFilter = filter === 'all' || r.outcome === filter;
     const q = search.toLowerCase();
@@ -610,6 +626,7 @@ export function SalesPipelineContent() {
               onMarkSold={() => handleMarkSold(item)}
               onMarkLost={() => handleMarkLost(item)}
               onReopen={() => handleReopen(item)}
+              onEdit={() => router.push({ pathname: '/modules/client-meeting-report', params: { editReportId: item.id } } as any)}
             />
           )}
           ListEmptyComponent={
@@ -742,6 +759,16 @@ const styles = StyleSheet.create({
     minWidth: 60,
   },
 
+  editBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  editBtnText: { fontSize: 12, fontWeight: '600' },
   actionRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   actionBtn: {
     flex: 1,

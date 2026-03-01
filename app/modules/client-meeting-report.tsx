@@ -9,6 +9,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, FlatList, Pressable, StyleSheet, Alert, ActivityIndicator, ScrollView,
 } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
 import { ScreenContainer } from '@/components/screen-container';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useColors } from '@/hooks/use-colors';
@@ -217,18 +218,26 @@ export default function ClientMeetingReportScreen() {
   const { user } = useAuth();
   const [reports, setReports] = useState<ClientMeetingReport[]>([]);
   const [loading, setLoading] = useState(true);
+   const { editReportId } = useLocalSearchParams<{ editReportId?: string }>();
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [activeReport, setActiveReport] = useState<ClientMeetingReport | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const detailScrollRef = useRef<ScrollView>(null);
-
-  // Load reports on mount
+  // Load reports on mount; if editReportId param is present, auto-open that report for editing
   useEffect(() => {
     loadAllReports().then((all) => {
       setReports(all);
       setLoading(false);
+      if (editReportId) {
+        const target = all.find((r) => r.id === editReportId);
+        if (target) {
+          setActiveReport({ ...target });
+          setViewMode('form');
+        }
+      }
     });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const refreshReports = useCallback(async () => {

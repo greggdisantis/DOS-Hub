@@ -198,3 +198,9 @@
 - [x] User Management: add permissions panel per user (module-level access toggles)
 - [x] User Management: store roles and permissions in database (server-side)
 - [x] Fix PDF export in Client Meeting Report (direct download, not print dialog)
+
+## Dashboard & Pipeline Fixes (Round 2)
+
+- [x] Fix Dashboard module picker: tabs still oversized (ScrollView flex expanding to full height)
+- [x] Fix User Management: new multi-role/permissions UI not rendering (still shows old Change Role button)
+- [x] Add Edit button to each Sales Pipeline row (navigate to Client Meeting Report form for that report)
