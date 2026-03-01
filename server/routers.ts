@@ -382,11 +382,17 @@ export const appRouter = router({
         return receipt;
       }),
 
-    /** Delete a receipt (admin only) */
+    /** Delete a receipt — admins/managers can delete any; members can delete their own */
     delete: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {
-        if (ctx.user.role !== "admin") throw new Error("Unauthorized: admin role required");
+        const isAdmin = ctx.user.role === "admin" || ctx.user.role === "manager";
+        if (!isAdmin) {
+          // Members can only delete their own receipts
+          const receipt = await db.getReceipt(input.id);
+          if (!receipt) throw new Error("Receipt not found");
+          if (receipt.userId !== ctx.user.id) throw new Error("Unauthorized: you can only delete your own receipts");
+        }
         await db.deleteReceipt(input.id);
         return { success: true };
       }),

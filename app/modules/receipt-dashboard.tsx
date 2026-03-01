@@ -521,8 +521,9 @@ export function ReceiptDashboardContent() {
               await deleteReceiptMutation.mutateAsync({ id: receipt.id });
               await utils.receipts.list.invalidate();
               setSelectedReceipt(null);
-            } catch {
-              Alert.alert("Error", "Failed to delete receipt.");
+            } catch (e: any) {
+              const msg = e?.message ?? "Failed to delete receipt.";
+              Alert.alert("Delete Failed", msg);
             }
           },
         },

@@ -337,3 +337,7 @@
 - [x] CMR Reports (save) — database is now primary write target; AsyncStorage is fallback cache
 - [x] CMR Reports (dashboard) — AsyncStorage fallback removed; reads only from database
 - [x] CMR module list view — now loads from database via trpc.cmr.list; Sync button removed (auto-sync on every save)
+
+## Receipt Capture Bug Fix
+
+- [x] Fix delete button in Receipt Capture — root cause was receipts.delete endpoint requiring admin role only; now allows admins/managers to delete any receipt and members to delete their own
