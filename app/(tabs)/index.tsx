@@ -15,12 +15,20 @@ type ModuleCard = {
 
 const MODULES: ModuleCard[] = [
   {
+    id: "client-meeting-report",
+    title: "Client Meeting Report",
+    description: "Post-meeting reports & deal tracking",
+    icon: "doc.text.fill",
+    route: "/modules/client-meeting-report",
+    color: "#10B981",
+  },
+  {
     id: "receipt-capture",
     title: "Receipt Capture",
     description: "Scan and track expenses",
     icon: "receipt",
     route: "/modules/receipt-capture",
-    color: "#10B981",
+    color: "#F59E0B",
   },
   {
     id: "zoning-lookup",
@@ -75,7 +83,7 @@ const MODULES: ModuleCard[] = [
 const QUICK_ACTIONS = [
   { id: "new-receipt", label: "New Receipt", icon: "camera.fill", route: "/modules/receipt-capture" },
   { id: "zoning", label: "Zoning", icon: "magnifyingglass", route: "/modules/zoning-lookup" },
-  { id: "new-order", label: "New Order", icon: "doc.text.fill", route: "/modules/screen-ordering" },
+  { id: "new-order", label: "Screen Ordering", icon: "rectangle.grid.2x2.fill", route: "/modules/screen-ordering" },
   { id: "dashboard", label: "Dashboard", icon: "chart.bar.fill", route: "/modules/dashboard" },
 ];
 

@@ -246,3 +246,9 @@
 ## Name Screen Fix
 
 - [x] Fix name collection screen: Continue button does nothing when tapped (root cause: buildUserResponse missing firstName/lastName + native cache not updated on success)
+
+## Home Screen & Navigation Updates
+
+- [x] Add Client Meeting Report to home screen modules grid
+- [x] Rename "New Order" quick action to "Screen Ordering"
+- [x] Remove unused "Projects" tab from bottom tab bar
