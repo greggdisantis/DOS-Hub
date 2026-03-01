@@ -242,3 +242,7 @@
 - [x] Auto-fill submitter name in Screen Ordering from user profile
 - [ ] Auto-fill submitter name in Receipt Capture from user profile
 - [ ] Auto-fill user name in any other module that asks for a name
+
+## Name Screen Fix
+
+- [x] Fix name collection screen: Continue button does nothing when tapped (root cause: buildUserResponse missing firstName/lastName + native cache not updated on success)

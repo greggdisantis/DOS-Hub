@@ -60,6 +60,9 @@ function buildUserResponse(
     role: (user as any)?.role ?? "pending",
     approved: (user as any)?.approved ?? false,
     lastSignedIn: (user?.lastSignedIn ?? new Date()).toISOString(),
+    firstName: (user as any)?.firstName ?? null,
+    lastName: (user as any)?.lastName ?? null,
+    dosRoles: (user as any)?.dosRoles ?? null,
   };
 }
 

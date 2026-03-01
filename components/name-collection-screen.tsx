@@ -12,6 +12,7 @@ import {
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
+import * as Auth from "@/lib/_core/auth";
 
 /**
  * Shown after first login when the user has not yet set their first/last name.
@@ -24,7 +25,22 @@ export function NameCollectionScreen({ onComplete }: { onComplete: () => void })
   const [error, setError] = useState<string | null>(null);
 
   const updateName = trpc.users.updateName.useMutation({
-    onSuccess: () => {
+    onSuccess: async () => {
+      // On native, the cached user info has firstName: null — clear it so
+      // the next fetchUser call re-fetches from the server with the updated name.
+      try {
+        const cached = await Auth.getUserInfo();
+        if (cached) {
+          await Auth.setUserInfo({
+            ...cached,
+            firstName: firstName.trim(),
+            lastName: lastName.trim(),
+          });
+        }
+      } catch {
+        // If cache update fails, clear it so fetchUser re-fetches from server
+        await Auth.clearUserInfo();
+      }
       onComplete();
     },
     onError: (err) => {
