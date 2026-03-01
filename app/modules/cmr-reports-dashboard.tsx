@@ -90,8 +90,8 @@ const DEFAULT_FILTERS: Filters = {
 };
 
 // ── Date Picker Button ────────────────────────────────────────────────────────
-// Web: plain text input (YYYY-MM-DD). Native: same text input (DateTimePicker
-// not available in Expo Go without a native build, so text input is universal).
+// On web: renders a native HTML <input type="date"> which shows the browser
+// calendar picker. On native: styled TextInput with YYYY-MM-DD format.
 
 function DatePickerButton({
   label,
@@ -105,19 +105,59 @@ function DatePickerButton({
   maximumDate?: Date;
 }) {
   const colors = useColors();
-  // Keep a local string so the user can type freely before we parse
-  const [text, setText] = useState(value ? value.toISOString().slice(0, 10) : '');
+  const dateStr = value ? value.toISOString().slice(0, 10) : '';
 
-  // Sync external value changes (e.g. Clear button)
-  useEffect(() => {
-    setText(value ? value.toISOString().slice(0, 10) : '');
-  }, [value]);
+  if (Platform.OS === 'web') {
+    // Use native HTML date input for proper calendar picker on web
+    return (
+      <View style={{ flex: 1 }}>
+        <Text style={[styles.inputLabel, { color: colors.muted }]}>{label}</Text>
+        <View style={[styles.dateBtn, { borderColor: value ? colors.primary : colors.border, backgroundColor: colors.background }]}>
+          {/* @ts-ignore - web-only input element */}
+          <input
+            type="date"
+            value={dateStr}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+              const v = e.target.value;
+              if (!v) { onChange(null); return; }
+              const d = new Date(v + 'T00:00:00');
+              if (!isNaN(d.getTime())) onChange(d);
+            }}
+            style={{
+              flex: 1,
+              border: 'none',
+              outline: 'none',
+              background: 'transparent',
+              color: value ? colors.foreground : colors.muted,
+              fontSize: 13,
+              fontFamily: 'inherit',
+              cursor: 'pointer',
+              width: '100%',
+              padding: 0,
+            }}
+          />
+          {value && (
+            <Pressable
+              onPress={() => onChange(null)}
+              style={({ pressed }) => [pressed && { opacity: 0.6 }]}
+            >
+              <IconSymbol name="xmark.circle.fill" size={13} color={colors.muted} />
+            </Pressable>
+          )}
+        </View>
+      </View>
+    );
+  }
+
+  // Native: styled TextInput
+  const [text, setText] = useState(dateStr);
+  useEffect(() => { setText(dateStr); }, [dateStr]);
 
   const handleBlur = () => {
     if (!text.trim()) { onChange(null); return; }
-    const d = new Date(text);
+    const d = new Date(text + 'T00:00:00');
     if (!isNaN(d.getTime())) onChange(d);
-    else setText(value ? value.toISOString().slice(0, 10) : '');
+    else setText(dateStr);
   };
 
   return (
@@ -560,14 +600,14 @@ export function CMRReportsDashboard() {
   // Convert DB rows to ClientMeetingReport shape
   const dbReports = useMemo(() => rawReports.map(toClientMeetingReport), [rawReports]);
 
-  // Merge DB reports with local AsyncStorage reports (local fills gaps for current user)
+  // Merge DB reports with local AsyncStorage reports.
+  // Always include local reports not yet synced to DB — this ensures the
+  // dashboard shows data even when the DB is empty (before backfill runs).
   const allReports = useMemo(() => {
-    // Build a set of localIds already in the DB
     const dbLocalIds = new Set(dbReports.map((r) => r.id));
-    // For non-admin: include local reports not yet in DB
-    const localOnly = isAdmin ? [] : localReports.filter((r) => !dbLocalIds.has(r.id));
+    const localOnly = localReports.filter((r) => !dbLocalIds.has(r.id));
     return [...dbReports, ...localOnly];
-  }, [dbReports, localReports, isAdmin]);
+  }, [dbReports, localReports]);
 
   // Apply filters
   const filtered = useMemo(() => {

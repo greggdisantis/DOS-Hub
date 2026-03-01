@@ -310,3 +310,7 @@
 - [x] Fix date picker in CMR filter modal: use web-compatible HTML date input on web, native picker on mobile
 - [x] Fix Est. Value range inputs: make them editable text inputs (not read-only)
 - [x] CMR dashboard: merge AsyncStorage reports with DB reports so data shows immediately without needing to open CMR module first
+
+## CMR Dashboard Data Source & Date Picker (Round 5)
+- [x] Investigate how Sales Pipeline gets its data and make CMR Reports use the same source
+- [x] Replace date text inputs with HTML native date picker on web
