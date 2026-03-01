@@ -305,3 +305,8 @@
 - [x] Diagnose why CMR dashboard shows empty even after new saves
 - [x] Add backfill: sync existing AsyncStorage CMR reports to database on first load
 - [x] Ensure CMR dashboard refreshes immediately after a new report is saved
+
+## CMR Dashboard Filter & Fallback Fixes (Round 4)
+- [x] Fix date picker in CMR filter modal: use web-compatible HTML date input on web, native picker on mobile
+- [x] Fix Est. Value range inputs: make them editable text inputs (not read-only)
+- [x] CMR dashboard: merge AsyncStorage reports with DB reports so data shows immediately without needing to open CMR module first

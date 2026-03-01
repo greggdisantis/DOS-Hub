@@ -9,18 +9,18 @@
  * Each row has a PDF export button.
  */
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   View, Text, FlatList, Pressable, StyleSheet, Alert,
-  ActivityIndicator, ScrollView, Modal, Platform,
+  ActivityIndicator, ScrollView, Modal, Platform, TextInput,
 } from 'react-native';
-import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { useColors } from '@/hooks/use-colors';
 import { useAuth } from '@/hooks/use-auth';
 import { trpc } from '@/lib/trpc';
 import { exportMeetingReportPDF } from './client-meeting-report/pdf-export';
 import { ClientMeetingReport, DEAL_STATUS_LABELS } from './client-meeting-report/types';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { loadAllReports } from './client-meeting-report/storage';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -90,13 +90,13 @@ const DEFAULT_FILTERS: Filters = {
 };
 
 // ── Date Picker Button ────────────────────────────────────────────────────────
+// Web: plain text input (YYYY-MM-DD). Native: same text input (DateTimePicker
+// not available in Expo Go without a native build, so text input is universal).
 
 function DatePickerButton({
   label,
   value,
   onChange,
-  minimumDate,
-  maximumDate,
 }: {
   label: string;
   value: Date | null;
@@ -105,76 +105,46 @@ function DatePickerButton({
   maximumDate?: Date;
 }) {
   const colors = useColors();
-  const [show, setShow] = useState(false);
+  // Keep a local string so the user can type freely before we parse
+  const [text, setText] = useState(value ? value.toISOString().slice(0, 10) : '');
 
-  const displayDate = value
-    ? value.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-    : 'Any';
+  // Sync external value changes (e.g. Clear button)
+  useEffect(() => {
+    setText(value ? value.toISOString().slice(0, 10) : '');
+  }, [value]);
 
-  const handleChange = (_event: DateTimePickerEvent, selected?: Date) => {
-    if (Platform.OS === 'android') setShow(false);
-    if (selected) onChange(selected);
+  const handleBlur = () => {
+    if (!text.trim()) { onChange(null); return; }
+    const d = new Date(text);
+    if (!isNaN(d.getTime())) onChange(d);
+    else setText(value ? value.toISOString().slice(0, 10) : '');
   };
 
   return (
     <View style={{ flex: 1 }}>
-      <Text style={[styles.inputLabel, { color: colors.muted }]}>{label}</Text>
-      <Pressable
-        onPress={() => setShow(true)}
-        style={({ pressed }) => [
-          styles.dateBtn,
-          { borderColor: value ? colors.primary : colors.border, backgroundColor: colors.background },
-          pressed && { opacity: 0.7 },
-        ]}
-      >
+      <Text style={[styles.inputLabel, { color: colors.muted }]}>{label} (YYYY-MM-DD)</Text>
+      <View style={[styles.dateBtn, { borderColor: value ? colors.primary : colors.border, backgroundColor: colors.background }]}>
         <IconSymbol name="calendar" size={13} color={value ? colors.primary : colors.muted} />
-        <Text style={[styles.dateBtnText, { color: value ? colors.primary : colors.muted }]}>
-          {displayDate}
-        </Text>
+        <TextInput
+          value={text}
+          onChangeText={setText}
+          onBlur={handleBlur}
+          placeholder="Any"
+          placeholderTextColor={colors.muted}
+          style={[styles.dateBtnText, { color: value ? colors.foreground : colors.muted, flex: 1, padding: 0 }]}
+          keyboardType="numbers-and-punctuation"
+          returnKeyType="done"
+          maxLength={10}
+        />
         {value && (
           <Pressable
-            onPress={(e) => { e.stopPropagation(); onChange(null); }}
+            onPress={() => { onChange(null); setText(''); }}
             style={({ pressed }) => [pressed && { opacity: 0.6 }]}
           >
             <IconSymbol name="xmark.circle.fill" size={13} color={colors.muted} />
           </Pressable>
         )}
-      </Pressable>
-
-      {show && (
-        Platform.OS === 'ios' ? (
-          <Modal transparent animationType="fade" onRequestClose={() => setShow(false)}>
-            <Pressable style={styles.iosPickerOverlay} onPress={() => setShow(false)}>
-              <View style={[styles.iosPickerCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                <DateTimePicker
-                  value={value ?? new Date()}
-                  mode="date"
-                  display="inline"
-                  minimumDate={minimumDate}
-                  maximumDate={maximumDate}
-                  onChange={handleChange}
-                  themeVariant="dark"
-                />
-                <Pressable
-                  onPress={() => setShow(false)}
-                  style={[styles.iosPickerDone, { backgroundColor: colors.primary }]}
-                >
-                  <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>Done</Text>
-                </Pressable>
-              </View>
-            </Pressable>
-          </Modal>
-        ) : (
-          <DateTimePicker
-            value={value ?? new Date()}
-            mode="date"
-            display="default"
-            minimumDate={minimumDate}
-            maximumDate={maximumDate}
-            onChange={handleChange}
-          />
-        )
-      )}
+      </View>
     </View>
   );
 }
@@ -417,23 +387,27 @@ function FilterModal({
               <View style={styles.inputRow}>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.inputLabel, { color: colors.muted }]}>Min</Text>
-                  <Pressable
-                    style={[styles.input, { borderColor: colors.border, backgroundColor: colors.background, justifyContent: 'center' }]}
-                  >
-                    <Text style={{ color: local.minValue ? colors.foreground : colors.muted, fontSize: 13 }}>
-                      {local.minValue || '0'}
-                    </Text>
-                  </Pressable>
+                  <TextInput
+                    value={local.minValue}
+                    onChangeText={(t) => set('minValue', t.replace(/[^0-9.]/g, ''))}
+                    placeholder="0"
+                    placeholderTextColor={colors.muted}
+                    keyboardType="numeric"
+                    returnKeyType="done"
+                    style={[styles.input, { borderColor: colors.border, backgroundColor: colors.background, color: colors.foreground }]}
+                  />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.inputLabel, { color: colors.muted }]}>Max</Text>
-                  <Pressable
-                    style={[styles.input, { borderColor: colors.border, backgroundColor: colors.background, justifyContent: 'center' }]}
-                  >
-                    <Text style={{ color: local.maxValue ? colors.foreground : colors.muted, fontSize: 13 }}>
-                      {local.maxValue || 'Any'}
-                    </Text>
-                  </Pressable>
+                  <TextInput
+                    value={local.maxValue}
+                    onChangeText={(t) => set('maxValue', t.replace(/[^0-9.]/g, ''))}
+                    placeholder="Any"
+                    placeholderTextColor={colors.muted}
+                    keyboardType="numeric"
+                    returnKeyType="done"
+                    style={[styles.input, { borderColor: colors.border, backgroundColor: colors.background, color: colors.foreground }]}
+                  />
                 </View>
               </View>
             </View>
@@ -576,8 +550,24 @@ export function CMRReportsDashboard() {
     enabled: isAdmin,
   });
 
+  // Fallback: load own reports from AsyncStorage for the current user
+  // This ensures reports appear even before the backfill runs.
+  const [localReports, setLocalReports] = useState<ClientMeetingReport[]>([]);
+  useEffect(() => {
+    loadAllReports().then(setLocalReports).catch(() => {});
+  }, []);
+
   // Convert DB rows to ClientMeetingReport shape
-  const allReports = useMemo(() => rawReports.map(toClientMeetingReport), [rawReports]);
+  const dbReports = useMemo(() => rawReports.map(toClientMeetingReport), [rawReports]);
+
+  // Merge DB reports with local AsyncStorage reports (local fills gaps for current user)
+  const allReports = useMemo(() => {
+    // Build a set of localIds already in the DB
+    const dbLocalIds = new Set(dbReports.map((r) => r.id));
+    // For non-admin: include local reports not yet in DB
+    const localOnly = isAdmin ? [] : localReports.filter((r) => !dbLocalIds.has(r.id));
+    return [...dbReports, ...localOnly];
+  }, [dbReports, localReports, isAdmin]);
 
   // Apply filters
   const filtered = useMemo(() => {
