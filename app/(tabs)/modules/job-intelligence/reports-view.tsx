@@ -372,15 +372,17 @@ function TableHeader({ columns }: { columns: { label: string; flex?: number; ali
       style={{
         flexDirection: 'row',
         paddingHorizontal: 16,
-        paddingVertical: 6,
+        paddingVertical: 8,
         backgroundColor: colors.surface,
         borderBottomWidth: StyleSheet.hairlineWidth,
         borderBottomColor: colors.border,
+        gap: 10,
       }}
     >
       {columns.map((col, i) => (
         <Text
           key={i}
+          numberOfLines={1}
           style={{
             flex: col.flex ?? 1,
             fontSize: 10,
@@ -388,6 +390,7 @@ function TableHeader({ columns }: { columns: { label: string; flex?: number; ali
             color: colors.muted,
             letterSpacing: 0.6,
             textAlign: col.align ?? 'left',
+            lineHeight: 14,
           }}
         >
           {col.label.toUpperCase()}
@@ -412,7 +415,7 @@ function TableRow({
       style={{
         flexDirection: 'row',
         paddingHorizontal: 16,
-        paddingVertical: 10,
+        paddingVertical: 12,
         borderBottomWidth: StyleSheet.hairlineWidth,
         borderBottomColor: colors.border,
         backgroundColor: isHighlighted
@@ -422,6 +425,9 @@ function TableRow({
           : colors.background,
         borderLeftWidth: isHighlighted ? 3 : 0,
         borderLeftColor: isHighlighted ? colors.primary : 'transparent',
+        gap: 10,
+        minHeight: 44,
+        alignItems: 'center',
       }}
     >
       {columns.map((col, i) =>
@@ -431,6 +437,7 @@ function TableRow({
             style={{
               flex: col.flex ?? 1,
               fontSize: 13,
+              lineHeight: 18,
               color: colors.foreground,
               fontWeight: col.bold ? '600' : '400',
               textAlign: col.align ?? 'left',
@@ -851,11 +858,12 @@ function TwoColumnList({ items, searchQuery }: { items: string[]; searchQuery?: 
   return (
     <View style={{ paddingHorizontal: 16, paddingBottom: 4 }}>
       {rows.map(([left, right], idx) => (
-        <View key={idx} style={{ flexDirection: 'row', paddingVertical: 4 }}>
+        <View key={idx} style={{ flexDirection: 'row', paddingVertical: 5, gap: 12 }}>
           <Text
             style={{
               flex: 1,
               fontSize: 13,
+              lineHeight: 18,
               color: colors.foreground,
               fontWeight: searchQuery && left.toLowerCase().includes(searchQuery.toLowerCase()) ? '600' : '400',
             }}
@@ -867,6 +875,7 @@ function TwoColumnList({ items, searchQuery }: { items: string[]; searchQuery?: 
               style={{
                 flex: 1,
                 fontSize: 13,
+                lineHeight: 18,
                 color: colors.foreground,
                 fontWeight: searchQuery && right.toLowerCase().includes(searchQuery.toLowerCase()) ? '600' : '400',
               }}

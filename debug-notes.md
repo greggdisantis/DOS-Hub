@@ -1,21 +1,30 @@
-# PDF Debug Notes
+# PDF Formatting Issues Found
 
-## Problem
-html2pdf.js produces a single blank white page. The container div has HTML content but html2canvas captures nothing.
+## StruXure Report
+1. **ZONESSUPERVISOR** — "ZONES" and "SUPERVISOR" column headers are merged with no space
+2. **Text cut off** — Customer names are being cut off/blurred at the bottom of each row
+3. Row height too small, causing text to be clipped vertically
 
-## Root Cause Analysis
-The issue is that `html2pdf.js` uses `html2canvas` which renders elements by reading their **computed styles**. When `opacity: 0` is set on the container, html2canvas respects that and renders everything as invisible.
+## Screens Report
+1. **QTYMANUFACTURER** — "QTY" and "MANUFACTURER" column headers merged with no space
+2. Same text cut-off issue
 
-## Solution Options
-1. **Use an iframe** — Create a hidden iframe, write the HTML into it, then capture from the iframe's document. html2canvas can capture from iframe content.
-2. **Use the Google approach exactly** — The Google version adds `pdf-export` class to the ACTUAL visible report element (not a hidden copy). It captures the real on-screen element.
-3. **Open a new window** — Write HTML to a new window, capture from there.
-4. **Use jsPDF directly** — Generate PDF programmatically without html2canvas.
-5. **Temporarily make visible** — Set opacity to 1 just before capture, then back to 0 after.
+## All Product Reports (StruXure, Screens, Pergotenda, Awnings, Final)
+- Column headers running together
+- Text in rows being cut off/clipped at bottom
+- Row height needs increase
+- Column widths need proper spacing/gaps
 
-## Best approach: Option 5 or use an iframe
-Option 5 is simplest — briefly flash the container visible (opacity:1) during capture. The container is behind everything (z-index:-9999) so user won't see it. But html2canvas will.
+## Root Cause
+The on-screen layout uses React Native View/Text with styles that:
+1. Don't have enough gap/margin between adjacent columns
+2. Have insufficient row height (lineHeight too small or row padding too tight)
+3. Columns use flex without enough gap spacing
 
-Actually, the REAL Google approach (option 2) captures the actual visible DOM element. But in our React Native app, the report is rendered as RN Views, not HTML divs. So we can't do that.
-
-Best: Use an iframe approach. Write HTML into iframe, capture from iframe body.
+## Fix needed in reports-view.tsx
+- Add proper gap/spacing between column headers
+- Increase row height / padding
+- Ensure text doesn't overflow/clip (numberOfLines + ellipsis)
+- Separate ZONES and SUPERVISOR into distinct columns with gap
+- Separate QTY and MANUFACTURER into distinct columns with gap
+- Increase lineHeight on all text elements

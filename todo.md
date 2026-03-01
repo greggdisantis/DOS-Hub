@@ -148,3 +148,5 @@
 - [x] Fix PDF export to actually save/download (study Google AI Studio working implementation)
 - [x] Fix PDF export producing empty file (html2canvas cannot capture off-screen div at -9999px)
 - [x] Fix PDF export still blank — now captures actual visible report DOM element (same as Google AI Studio approach)
+- [x] Fix column headers running together (ZONESSUPERVISOR, QTYMANUFACTURER) — added gap:10 between columns
+- [x] Fix text being cut off in all product reports — increased lineHeight, minHeight, paddingVertical
