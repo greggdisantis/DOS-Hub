@@ -36,7 +36,8 @@ describe('EMPTY_REPORT', () => {
 
   it('sets weekOf to a Monday (ISO date)', () => {
     const r = EMPTY_REPORT();
-    const d = new Date(r.weekOf);
+    // Parse as local date (append T00:00 to avoid UTC offset shifting the day)
+    const d = new Date(r.weekOf + 'T00:00:00');
     // Monday = day 1 in getDay()
     expect(d.getDay()).toBe(1);
   });

@@ -1,52 +1,76 @@
 /**
  * CMR Reports Dashboard
  *
- * Admin / Manager: see ALL reports, grouped by user then month.
+ * Admin / Manager: see ALL reports from the database, grouped by user then month.
  * Guest / Member:  see ONLY their own reports.
  *
- * Filters: user (admin/manager only), date range, outcome, min/max value, min/max PC%.
+ * Filters: consultant (from users table), date range (native date picker),
+ *          outcome, min/max value, min/max PC%.
  * Each row has a PDF export button.
  */
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View, Text, FlatList, Pressable, StyleSheet, Alert,
-  ActivityIndicator, ScrollView, Modal, TextInput,
+  ActivityIndicator, ScrollView, Modal, Platform,
 } from 'react-native';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { useColors } from '@/hooks/use-colors';
 import { useAuth } from '@/hooks/use-auth';
-import { loadAllReports } from './client-meeting-report/storage';
+import { trpc } from '@/lib/trpc';
 import { exportMeetingReportPDF } from './client-meeting-report/pdf-export';
 import { ClientMeetingReport, DEAL_STATUS_LABELS } from './client-meeting-report/types';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function fmtDate(d?: string): string {
+function fmtDate(d?: string | null): string {
   if (!d) return '—';
   try {
     return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   } catch { return d; }
 }
 
-function monthKey(d?: string): string {
+function monthKey(d?: string | null): string {
   if (!d) return 'Unknown';
   try {
     return new Date(d).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
   } catch { return 'Unknown'; }
 }
 
-function fmt$(n?: number): string {
-  if (n === undefined || n === null) return '—';
-  return `$${n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+function fmt$(n?: number | string | null): string {
+  const num = typeof n === 'string' ? parseFloat(n) : n;
+  if (num === undefined || num === null || isNaN(num as number)) return '—';
+  return `$${(num as number).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+}
+
+function toClientMeetingReport(row: any): ClientMeetingReport {
+  const data = row.reportData as ClientMeetingReport;
+  return {
+    ...data,
+    id: row.localId ?? data?.id ?? String(row.id),
+    consultantName: row.consultantName ?? data?.consultantName ?? '',
+    consultantUserId: row.consultantUserId ?? data?.consultantUserId ?? '',
+    clientName: row.clientName ?? data?.clientName ?? '',
+    appointmentDate: row.appointmentDate ?? data?.appointmentDate ?? '',
+    weekOf: row.weekOf ?? data?.weekOf ?? '',
+    dealStatus: row.dealStatus ?? data?.dealStatus ?? '',
+    outcome: (row.outcome ?? data?.outcome ?? 'open') as 'open' | 'sold' | 'lost',
+    purchaseConfidencePct: row.purchaseConfidencePct ?? data?.purchaseConfidencePct ?? 0,
+    originalPcPct: row.originalPcPct ?? data?.originalPcPct,
+    estimatedContractValue: row.estimatedContractValue != null
+      ? parseFloat(String(row.estimatedContractValue))
+      : data?.estimatedContractValue,
+    soldAt: row.soldAt ?? data?.soldAt,
+  };
 }
 
 // ── Filter state ──────────────────────────────────────────────────────────────
 
 interface Filters {
-  userId: string;       // '' = all
-  startDate: string;    // YYYY-MM-DD or ''
-  endDate: string;
+  consultantId: number | null;  // null = all
+  startDate: Date | null;
+  endDate: Date | null;
   outcome: 'all' | 'open' | 'sold' | 'lost';
   minValue: string;
   maxValue: string;
@@ -55,15 +79,105 @@ interface Filters {
 }
 
 const DEFAULT_FILTERS: Filters = {
-  userId: '',
-  startDate: '',
-  endDate: '',
+  consultantId: null,
+  startDate: null,
+  endDate: null,
   outcome: 'all',
   minValue: '',
   maxValue: '',
   minPc: '',
   maxPc: '',
 };
+
+// ── Date Picker Button ────────────────────────────────────────────────────────
+
+function DatePickerButton({
+  label,
+  value,
+  onChange,
+  minimumDate,
+  maximumDate,
+}: {
+  label: string;
+  value: Date | null;
+  onChange: (date: Date | null) => void;
+  minimumDate?: Date;
+  maximumDate?: Date;
+}) {
+  const colors = useColors();
+  const [show, setShow] = useState(false);
+
+  const displayDate = value
+    ? value.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    : 'Any';
+
+  const handleChange = (_event: DateTimePickerEvent, selected?: Date) => {
+    if (Platform.OS === 'android') setShow(false);
+    if (selected) onChange(selected);
+  };
+
+  return (
+    <View style={{ flex: 1 }}>
+      <Text style={[styles.inputLabel, { color: colors.muted }]}>{label}</Text>
+      <Pressable
+        onPress={() => setShow(true)}
+        style={({ pressed }) => [
+          styles.dateBtn,
+          { borderColor: value ? colors.primary : colors.border, backgroundColor: colors.background },
+          pressed && { opacity: 0.7 },
+        ]}
+      >
+        <IconSymbol name="calendar" size={13} color={value ? colors.primary : colors.muted} />
+        <Text style={[styles.dateBtnText, { color: value ? colors.primary : colors.muted }]}>
+          {displayDate}
+        </Text>
+        {value && (
+          <Pressable
+            onPress={(e) => { e.stopPropagation(); onChange(null); }}
+            style={({ pressed }) => [pressed && { opacity: 0.6 }]}
+          >
+            <IconSymbol name="xmark.circle.fill" size={13} color={colors.muted} />
+          </Pressable>
+        )}
+      </Pressable>
+
+      {show && (
+        Platform.OS === 'ios' ? (
+          <Modal transparent animationType="fade" onRequestClose={() => setShow(false)}>
+            <Pressable style={styles.iosPickerOverlay} onPress={() => setShow(false)}>
+              <View style={[styles.iosPickerCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                <DateTimePicker
+                  value={value ?? new Date()}
+                  mode="date"
+                  display="inline"
+                  minimumDate={minimumDate}
+                  maximumDate={maximumDate}
+                  onChange={handleChange}
+                  themeVariant="dark"
+                />
+                <Pressable
+                  onPress={() => setShow(false)}
+                  style={[styles.iosPickerDone, { backgroundColor: colors.primary }]}
+                >
+                  <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>Done</Text>
+                </Pressable>
+              </View>
+            </Pressable>
+          </Modal>
+        ) : (
+          <DateTimePicker
+            value={value ?? new Date()}
+            mode="date"
+            display="default"
+            minimumDate={minimumDate}
+            maximumDate={maximumDate}
+            onChange={handleChange}
+          />
+        )
+      )}
+    </View>
+  );
+}
 
 // ── Report Row ────────────────────────────────────────────────────────────────
 
@@ -102,7 +216,6 @@ function ReportRow({
 
   return (
     <View style={[styles.row, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-      {/* Top row: client name + outcome pill + PDF */}
       <View style={styles.rowTop}>
         <View style={{ flex: 1 }}>
           <Text style={[styles.clientName, { color: colors.foreground }]} numberOfLines={1}>
@@ -118,19 +231,16 @@ function ReportRow({
           </Text>
         </View>
 
-        {/* PC% badge */}
         <View style={[styles.pcBadge, { backgroundColor: pcColor + '22' }]}>
           <Text style={[styles.pcBadgeText, { color: pcColor }]}>
             {report.purchaseConfidencePct}%
           </Text>
         </View>
 
-        {/* Outcome pill */}
         <View style={[styles.outcomePill, { backgroundColor: outcomeColor + '18' }]}>
           <Text style={[styles.outcomePillText, { color: outcomeColor }]}>{outcomeLabel}</Text>
         </View>
 
-        {/* PDF button */}
         <Pressable
           onPress={onExportPDF}
           disabled={isExporting}
@@ -147,7 +257,6 @@ function ReportRow({
         </Pressable>
       </View>
 
-      {/* Bottom row: value + deal status */}
       <View style={styles.rowBottom}>
         <View style={styles.metaChip}>
           <Text style={[styles.metaLabel, { color: colors.muted }]}>Est. Value</Text>
@@ -173,15 +282,7 @@ function ReportRow({
 
 // ── Section Header ────────────────────────────────────────────────────────────
 
-function SectionHeader({
-  title,
-  count,
-  totalValue,
-}: {
-  title: string;
-  count: number;
-  totalValue: number;
-}) {
+function SectionHeader({ title, count, totalValue }: { title: string; count: number; totalValue: number }) {
   const colors = useColors();
   return (
     <View style={[styles.sectionHeader, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
@@ -198,14 +299,14 @@ function SectionHeader({
 function FilterModal({
   visible,
   filters,
-  users,
+  consultants,
   isAdmin,
   onApply,
   onClose,
 }: {
   visible: boolean;
   filters: Filters;
-  users: string[];
+  consultants: Array<{ id: number; name: string }>;
   isAdmin: boolean;
   onApply: (f: Filters) => void;
   onClose: () => void;
@@ -213,11 +314,11 @@ function FilterModal({
   const colors = useColors();
   const [local, setLocal] = useState<Filters>(filters);
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (visible) setLocal(filters);
   }, [visible, filters]);
 
-  const set = (key: keyof Filters, val: string) =>
+  const set = <K extends keyof Filters>(key: K, val: Filters[K]) =>
     setLocal((prev) => ({ ...prev, [key]: val }));
 
   const OUTCOMES: { key: Filters['outcome']; label: string }[] = [
@@ -238,27 +339,27 @@ function FilterModal({
             </Pressable>
           </View>
 
-          <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 480 }}>
-            {/* User filter (admin/manager only) */}
+          <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 520 }}>
+            {/* Consultant filter (admin/manager only) */}
             {isAdmin && (
               <View style={styles.filterGroup}>
                 <Text style={[styles.filterLabel, { color: colors.muted }]}>Consultant</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 6 }}>
-                  {['', ...users].map((u) => (
+                  {[{ id: null as number | null, name: 'All' }, ...consultants].map((c) => (
                     <Pressable
-                      key={u || '__all__'}
-                      onPress={() => set('userId', u)}
+                      key={c.id ?? '__all__'}
+                      onPress={() => set('consultantId', c.id)}
                       style={({ pressed }) => ([
                         styles.chip,
                         {
-                          borderColor: local.userId === u ? colors.primary : colors.border,
-                          backgroundColor: local.userId === u ? colors.primary + '18' : colors.background,
+                          borderColor: local.consultantId === c.id ? colors.primary : colors.border,
+                          backgroundColor: local.consultantId === c.id ? colors.primary + '18' : colors.background,
                         },
                         pressed && { opacity: 0.7 },
                       ])}
                     >
-                      <Text style={[styles.chipText, { color: local.userId === u ? colors.primary : colors.muted }]}>
-                        {u || 'All'}
+                      <Text style={[styles.chipText, { color: local.consultantId === c.id ? colors.primary : colors.muted }]}>
+                        {c.name}
                       </Text>
                     </Pressable>
                   ))}
@@ -291,32 +392,22 @@ function FilterModal({
               </View>
             </View>
 
-            {/* Date range */}
+            {/* Date range — native date pickers */}
             <View style={styles.filterGroup}>
               <Text style={[styles.filterLabel, { color: colors.muted }]}>Date Range</Text>
               <View style={styles.inputRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.inputLabel, { color: colors.muted }]}>From (YYYY-MM-DD)</Text>
-                  <TextInput
-                    value={local.startDate}
-                    onChangeText={(v) => set('startDate', v)}
-                    placeholder="2026-01-01"
-                    placeholderTextColor={colors.muted}
-                    style={[styles.input, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.background }]}
-                    returnKeyType="done"
-                  />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.inputLabel, { color: colors.muted }]}>To (YYYY-MM-DD)</Text>
-                  <TextInput
-                    value={local.endDate}
-                    onChangeText={(v) => set('endDate', v)}
-                    placeholder="2026-12-31"
-                    placeholderTextColor={colors.muted}
-                    style={[styles.input, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.background }]}
-                    returnKeyType="done"
-                  />
-                </View>
+                <DatePickerButton
+                  label="From"
+                  value={local.startDate}
+                  onChange={(d) => set('startDate', d)}
+                  maximumDate={local.endDate ?? undefined}
+                />
+                <DatePickerButton
+                  label="To"
+                  value={local.endDate}
+                  onChange={(d) => set('endDate', d)}
+                  minimumDate={local.startDate ?? undefined}
+                />
               </View>
             </View>
 
@@ -326,27 +417,23 @@ function FilterModal({
               <View style={styles.inputRow}>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.inputLabel, { color: colors.muted }]}>Min</Text>
-                  <TextInput
-                    value={local.minValue}
-                    onChangeText={(v) => set('minValue', v)}
-                    placeholder="0"
-                    placeholderTextColor={colors.muted}
-                    keyboardType="numeric"
-                    style={[styles.input, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.background }]}
-                    returnKeyType="done"
-                  />
+                  <Pressable
+                    style={[styles.input, { borderColor: colors.border, backgroundColor: colors.background, justifyContent: 'center' }]}
+                  >
+                    <Text style={{ color: local.minValue ? colors.foreground : colors.muted, fontSize: 13 }}>
+                      {local.minValue || '0'}
+                    </Text>
+                  </Pressable>
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.inputLabel, { color: colors.muted }]}>Max</Text>
-                  <TextInput
-                    value={local.maxValue}
-                    onChangeText={(v) => set('maxValue', v)}
-                    placeholder="500000"
-                    placeholderTextColor={colors.muted}
-                    keyboardType="numeric"
-                    style={[styles.input, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.background }]}
-                    returnKeyType="done"
-                  />
+                  <Pressable
+                    style={[styles.input, { borderColor: colors.border, backgroundColor: colors.background, justifyContent: 'center' }]}
+                  >
+                    <Text style={{ color: local.maxValue ? colors.foreground : colors.muted, fontSize: 13 }}>
+                      {local.maxValue || 'Any'}
+                    </Text>
+                  </Pressable>
                 </View>
               </View>
             </View>
@@ -354,36 +441,57 @@ function FilterModal({
             {/* PC% range */}
             <View style={styles.filterGroup}>
               <Text style={[styles.filterLabel, { color: colors.muted }]}>PC% Range</Text>
-              <View style={styles.inputRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.inputLabel, { color: colors.muted }]}>Min %</Text>
-                  <TextInput
-                    value={local.minPc}
-                    onChangeText={(v) => set('minPc', v)}
-                    placeholder="0"
-                    placeholderTextColor={colors.muted}
-                    keyboardType="numeric"
-                    style={[styles.input, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.background }]}
-                    returnKeyType="done"
-                  />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.inputLabel, { color: colors.muted }]}>Max %</Text>
-                  <TextInput
-                    value={local.maxPc}
-                    onChangeText={(v) => set('maxPc', v)}
-                    placeholder="100"
-                    placeholderTextColor={colors.muted}
-                    keyboardType="numeric"
-                    style={[styles.input, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.background }]}
-                    returnKeyType="done"
-                  />
-                </View>
+              <View style={styles.chipRow}>
+                {[10, 20, 30, 40, 50, 60, 70, 80, 90].map((pct) => {
+                  const minPct = parseInt(local.minPc || '0');
+                  const maxPct = parseInt(local.maxPc || '100');
+                  const isInRange = pct >= minPct && pct <= maxPct;
+                  return (
+                    <Pressable
+                      key={pct}
+                      onPress={() => {
+                        // Toggle: if tapping the current min, reset; otherwise set new range
+                        if (local.minPc === String(pct) && local.maxPc === String(pct)) {
+                          set('minPc', '');
+                          set('maxPc', '');
+                        } else if (!local.minPc || pct < parseInt(local.minPc)) {
+                          set('minPc', String(pct));
+                        } else {
+                          set('maxPc', String(pct));
+                        }
+                      }}
+                      style={({ pressed }) => ([
+                        styles.chip,
+                        {
+                          borderColor: isInRange && (local.minPc || local.maxPc) ? colors.primary : colors.border,
+                          backgroundColor: isInRange && (local.minPc || local.maxPc) ? colors.primary + '18' : colors.background,
+                        },
+                        pressed && { opacity: 0.7 },
+                      ])}
+                    >
+                      <Text style={[styles.chipText, { color: isInRange && (local.minPc || local.maxPc) ? colors.primary : colors.muted }]}>
+                        {pct}%
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+                {(local.minPc || local.maxPc) && (
+                  <Pressable
+                    onPress={() => { set('minPc', ''); set('maxPc', ''); }}
+                    style={({ pressed }) => ([styles.chip, { borderColor: colors.error, backgroundColor: colors.error + '10' }, pressed && { opacity: 0.7 }])}
+                  >
+                    <Text style={[styles.chipText, { color: colors.error }]}>Clear</Text>
+                  </Pressable>
+                )}
               </View>
+              {(local.minPc || local.maxPc) && (
+                <Text style={[styles.pcRangeLabel, { color: colors.muted }]}>
+                  Range: {local.minPc || '0'}% – {local.maxPc || '100'}%
+                </Text>
+              )}
             </View>
           </ScrollView>
 
-          {/* Buttons */}
           <View style={styles.modalBtns}>
             <Pressable
               onPress={() => { setLocal(DEFAULT_FILTERS); onApply(DEFAULT_FILTERS); onClose(); }}
@@ -413,7 +521,7 @@ function SummaryBar({ reports }: { reports: ClientMeetingReport[] }) {
   const totalValue = reports.reduce((s, r) => s + (r.estimatedContractValue ?? 0), 0);
   const avgPc =
     reports.length > 0
-      ? Math.round(reports.reduce((s, r) => s + r.purchaseConfidencePct, 0) / reports.length)
+      ? Math.round(reports.reduce((s, r) => s + (r.purchaseConfidencePct ?? 0), 0) / reports.length)
       : 0;
 
   const cells = [
@@ -454,52 +562,43 @@ export function CMRReportsDashboard() {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin' || user?.role === 'manager';
 
-  const [allReports, setAllReports] = useState<ClientMeetingReport[]>([]);
-  const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [showFilters, setShowFilters] = useState(false);
   const [exportingId, setExportingId] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const all = await loadAllReports();
-      // Non-admins see only their own reports
-      if (!isAdmin) {
-        const myId = user?.id ? String(user.id) : '';
-        const myName = user?.name ?? '';
-        setAllReports(all.filter((r) =>
-          r.consultantUserId === myId ||
-          (myName && r.consultantName.toLowerCase() === myName.toLowerCase())
-        ));
-      } else {
-        setAllReports(all);
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [isAdmin, user]);
+  // Fetch reports from database
+  const { data: rawReports = [], isLoading, refetch } = trpc.cmr.list.useQuery(undefined, {
+    refetchOnWindowFocus: true,
+  });
 
-  useEffect(() => { load(); }, [load]);
+  // Fetch consultants list (admin/manager only)
+  const { data: consultants = [] } = trpc.users.listConsultants.useQuery(undefined, {
+    enabled: isAdmin,
+  });
 
-  // Unique consultant names for filter dropdown
-  const consultantNames = useMemo(() => {
-    const names = new Set(allReports.map((r) => r.consultantName).filter(Boolean));
-    return Array.from(names).sort();
-  }, [allReports]);
+  // Convert DB rows to ClientMeetingReport shape
+  const allReports = useMemo(() => rawReports.map(toClientMeetingReport), [rawReports]);
 
   // Apply filters
   const filtered = useMemo(() => {
     return allReports.filter((r) => {
-      if (filters.userId && r.consultantName !== filters.userId) return false;
+      // Consultant filter — match by userId stored in consultantUserId
+      if (filters.consultantId !== null) {
+        const matchById = r.consultantUserId === String(filters.consultantId);
+        const consultant = consultants.find((c) => c.id === filters.consultantId);
+        const matchByName = consultant && r.consultantName === consultant.name;
+        if (!matchById && !matchByName) return false;
+      }
       if (filters.outcome !== 'all' && r.outcome !== filters.outcome) return false;
       if (filters.startDate) {
         const d = new Date(r.appointmentDate);
-        if (isNaN(d.getTime()) || d < new Date(filters.startDate)) return false;
+        if (isNaN(d.getTime()) || d < filters.startDate) return false;
       }
       if (filters.endDate) {
         const d = new Date(r.appointmentDate);
-        if (isNaN(d.getTime()) || d > new Date(filters.endDate + 'T23:59:59')) return false;
+        const endOfDay = new Date(filters.endDate);
+        endOfDay.setHours(23, 59, 59, 999);
+        if (isNaN(d.getTime()) || d > endOfDay) return false;
       }
       if (filters.minValue) {
         const min = parseFloat(filters.minValue);
@@ -511,22 +610,21 @@ export function CMRReportsDashboard() {
       }
       if (filters.minPc) {
         const min = parseFloat(filters.minPc);
-        if (!isNaN(min) && r.purchaseConfidencePct < min) return false;
+        if (!isNaN(min) && (r.purchaseConfidencePct ?? 0) < min) return false;
       }
       if (filters.maxPc) {
         const max = parseFloat(filters.maxPc);
-        if (!isNaN(max) && r.purchaseConfidencePct > max) return false;
+        if (!isNaN(max) && (r.purchaseConfidencePct ?? 0) > max) return false;
       }
       return true;
     });
-  }, [allReports, filters]);
+  }, [allReports, filters, consultants]);
 
   // Build flat list items
   const flatItems = useMemo((): FlatItem[] => {
     const items: FlatItem[] = [];
 
     if (isAdmin) {
-      // Group by user, then by month within each user
       const byUser = new Map<string, ClientMeetingReport[]>();
       for (const r of filtered) {
         const key = r.consultantName || 'Unknown';
@@ -534,7 +632,6 @@ export function CMRReportsDashboard() {
         byUser.get(key)!.push(r);
       }
 
-      // Sort users alphabetically
       const sortedUsers = Array.from(byUser.keys()).sort();
 
       for (const userName of sortedUsers) {
@@ -542,7 +639,6 @@ export function CMRReportsDashboard() {
         const userTotal = userReports.reduce((s, r) => s + (r.estimatedContractValue ?? 0), 0);
         items.push({ type: 'userHeader', userId: userName, name: userName, count: userReports.length, totalValue: userTotal });
 
-        // Group by month
         const byMonth = new Map<string, ClientMeetingReport[]>();
         for (const r of userReports) {
           const mk = monthKey(r.appointmentDate);
@@ -550,7 +646,6 @@ export function CMRReportsDashboard() {
           byMonth.get(mk)!.push(r);
         }
 
-        // Sort months descending
         const sortedMonths = Array.from(byMonth.keys()).sort((a, b) => {
           return new Date(b).getTime() - new Date(a).getTime();
         });
@@ -567,7 +662,6 @@ export function CMRReportsDashboard() {
         }
       }
     } else {
-      // Non-admin: just group by month
       const byMonth = new Map<string, ClientMeetingReport[]>();
       for (const r of filtered) {
         const mk = monthKey(r.appointmentDate);
@@ -596,10 +690,10 @@ export function CMRReportsDashboard() {
 
   const hasActiveFilters = useMemo(() => {
     return (
-      filters.userId !== '' ||
+      filters.consultantId !== null ||
       filters.outcome !== 'all' ||
-      filters.startDate !== '' ||
-      filters.endDate !== '' ||
+      filters.startDate !== null ||
+      filters.endDate !== null ||
       filters.minValue !== '' ||
       filters.maxValue !== '' ||
       filters.minPc !== '' ||
@@ -619,7 +713,7 @@ export function CMRReportsDashboard() {
     }
   }, [exportingId]);
 
-  if (loading) {
+  if (isLoading) {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -635,6 +729,12 @@ export function CMRReportsDashboard() {
         <Text style={[styles.toolbarTitle, { color: colors.foreground }]}>
           {isAdmin ? 'All CMR Reports' : 'My Reports'}
         </Text>
+        <Pressable
+          onPress={() => refetch()}
+          style={({ pressed }) => ([styles.refreshBtn, pressed && { opacity: 0.7 }])}
+        >
+          <IconSymbol name="arrow.clockwise" size={16} color={colors.muted} />
+        </Pressable>
         <Pressable
           onPress={() => setShowFilters(true)}
           style={({ pressed }) => ([
@@ -655,7 +755,7 @@ export function CMRReportsDashboard() {
 
       <FlatList
         data={flatItems}
-        keyExtractor={(item, idx) => {
+        keyExtractor={(item) => {
           if (item.type === 'userHeader') return `uh-${item.userId}`;
           if (item.type === 'monthHeader') return `mh-${item.key}`;
           return `r-${item.report.id}`;
@@ -700,7 +800,7 @@ export function CMRReportsDashboard() {
             <View style={{ paddingHorizontal: 12, paddingTop: 6 }}>
               <ReportRow
                 report={item.report}
-                showUser={!isAdmin || filters.userId !== ''}
+                showUser={isAdmin && filters.consultantId === null}
                 onExportPDF={() => handleExportPDF(item.report)}
                 isExporting={exportingId === item.report.id}
               />
@@ -712,7 +812,7 @@ export function CMRReportsDashboard() {
       <FilterModal
         visible={showFilters}
         filters={filters}
-        users={consultantNames}
+        consultants={consultants}
         isAdmin={isAdmin}
         onApply={setFilters}
         onClose={() => setShowFilters(false)}
@@ -735,7 +835,8 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderBottomWidth: 1,
   },
-  toolbarTitle: { fontSize: 16, fontWeight: '700' },
+  toolbarTitle: { fontSize: 16, fontWeight: '700', flex: 1 },
+  refreshBtn: { padding: 6, marginRight: 4 },
   filterBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -850,6 +951,42 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
   },
+
+  // Date picker button
+  dateBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  dateBtnText: { fontSize: 13, flex: 1 },
+
+  // iOS date picker modal
+  iosPickerOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  iosPickerCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 16,
+    width: '90%',
+    maxWidth: 380,
+  },
+  iosPickerDone: {
+    marginTop: 12,
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+
+  pcRangeLabel: { fontSize: 11, marginTop: 6 },
+
   modalBtns: { flexDirection: 'row', gap: 10, marginTop: 20 },
   clearBtn: {
     flex: 1,

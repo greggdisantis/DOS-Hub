@@ -285,13 +285,18 @@
 
 ## CMR Reports Dashboard Fixes
 
-- [ ] Add cmr_reports table to DB schema (sync from AsyncStorage)
-- [ ] Add server tRPC procedures: cmr.save, cmr.listAll (admin), cmr.listMine
-- [ ] Sync CMR saves to server DB (write-through when user saves a report)
-- [ ] CMR Reports dashboard: load from server so admin sees all users' reports
-- [ ] CMR Reports dashboard: pull consultant list from users table (not derived from reports)
-- [ ] CMR Reports dashboard: replace date text inputs with native calendar date picker
+- [x] Add cmr_reports table to DB schema (sync from AsyncStorage)
+- [x] Add server tRPC procedures: cmr.save, cmr.listAll (admin), cmr.listMine
+- [x] Sync CMR saves to server DB (write-through when user saves a report)
+- [x] CMR Reports dashboard: load from server so admin sees all users' reports
+- [x] CMR Reports dashboard: pull consultant list from users table (not derived from reports)
+- [x] CMR Reports dashboard: replace date text inputs with native calendar date picker
 
 ## UI Visibility & Layout Fixes
 - [x] Fix white-on-white input fields: apply theme foreground text color and surface/border backgrounds across all modules
 - [x] Fix Screen Ordering measurement grid: reformat 3-column table to avoid horizontal overflow on mobile
+
+## CMR Dashboard Fixes (Round 2)
+- [x] Save CMR reports to database (not just AsyncStorage) so Admin/Manager can see all users' reports
+- [x] Replace date text input boxes in CMR dashboard filters with native date picker
+- [x] Pull consultant/user list from users table for CMR dashboard filter (not derived from reports)

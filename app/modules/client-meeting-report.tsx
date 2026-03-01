@@ -17,6 +17,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { ClientMeetingFormWizard } from './client-meeting-report/form';
 import { exportMeetingReportPDF } from './client-meeting-report/pdf-export';
 import { loadAllReports, saveReport, deleteReport, generateId } from './client-meeting-report/storage';
+import { trpc } from '@/lib/trpc';
 import {
   ClientMeetingReport, EMPTY_REPORT, DEAL_STATUS_LABELS,
 } from './client-meeting-report/types';
@@ -271,6 +272,8 @@ export default function ClientMeetingReportScreen() {
     setActiveReport((prev) => prev ? { ...prev, ...partial } : prev);
   }, []);
 
+  const cmrUpsert = trpc.cmr.upsert.useMutation();
+
   const handleSave = useCallback(async () => {
     if (!activeReport) return;
     setIsSaving(true);
@@ -280,16 +283,38 @@ export default function ClientMeetingReportScreen() {
         ...activeReport,
         originalPcPct: activeReport.originalPcPct ?? activeReport.purchaseConfidencePct,
       };
+      // Save locally first (always works even offline)
       await saveReport(reportToSave);
+      // Also sync to database so admin/manager can see it in the dashboard
+      try {
+        await cmrUpsert.mutateAsync({
+          localId: reportToSave.id,
+          consultantName: reportToSave.consultantName,
+          consultantUserId: reportToSave.consultantUserId,
+          clientName: reportToSave.clientName,
+          appointmentDate: reportToSave.appointmentDate,
+          weekOf: reportToSave.weekOf,
+          dealStatus: reportToSave.dealStatus,
+          outcome: reportToSave.outcome ?? 'open',
+          purchaseConfidencePct: reportToSave.purchaseConfidencePct,
+          originalPcPct: reportToSave.originalPcPct,
+          estimatedContractValue: reportToSave.estimatedContractValue,
+          soldAt: reportToSave.soldAt,
+          reportData: reportToSave,
+        });
+      } catch (syncErr) {
+        // Non-fatal: local save succeeded, DB sync failed (e.g. offline)
+        console.warn('[CMR] DB sync failed (non-fatal):', syncErr);
+      }
       await refreshReports();
       setViewMode('list');
-      setActiveReport(null); // reportToSave is persisted; activeReport state cleared
+      setActiveReport(null);
     } catch (e) {
       Alert.alert('Error', 'Failed to save report. Please try again.');
     } finally {
       setIsSaving(false);
     }
-  }, [activeReport, refreshReports]);
+  }, [activeReport, refreshReports, cmrUpsert]);
 
   const handleDelete = useCallback((id: string) => {
     Alert.alert('Delete Report', 'Are you sure you want to delete this report?', [

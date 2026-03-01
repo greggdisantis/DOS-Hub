@@ -100,6 +100,22 @@ export const appRouter = router({
         return { success: true };
       }),
 
+    /** List approved users (for consultant picker in CMR filters) */
+    listConsultants: protectedProcedure.query(async ({ ctx }) => {
+      const isAdmin = ctx.user.role === 'admin' || ctx.user.role === 'manager';
+      if (!isAdmin) throw new Error('Unauthorized: manager or admin role required');
+      const all = await db.getAllUsers();
+      return all
+        .filter((u) => u.approved && u.firstName)
+        .map((u) => ({
+          id: u.id,
+          name: u.name || `${u.firstName ?? ''} ${u.lastName ?? ''}`.trim() || u.email || 'Unknown',
+          firstName: u.firstName,
+          lastName: u.lastName,
+          email: u.email,
+        }));
+    }),
+
     /** Update a user's legacy per-user module permissions */
     updatePermissions: protectedProcedure
       .input(z.object({ userId: z.number(), permissions: z.record(z.string(), z.boolean()) }))
@@ -432,6 +448,79 @@ export const appRouter = router({
       }
       return db.getReceiptAnalytics();
     }),
+  }),
+
+  // ─── CMR REPORTS ──────────────────────────────────────────────────────────────
+  cmr: router({
+    /** Upsert a CMR report (create or update by localId) */
+    upsert: protectedProcedure
+      .input(z.object({
+        localId: z.string(),
+        consultantName: z.string().optional(),
+        consultantUserId: z.string().optional(),
+        clientName: z.string().optional(),
+        appointmentDate: z.string().optional(),
+        weekOf: z.string().optional(),
+        dealStatus: z.string().optional(),
+        outcome: z.string().optional(),
+        purchaseConfidencePct: z.number().optional(),
+        originalPcPct: z.number().optional(),
+        estimatedContractValue: z.number().optional(),
+        soldAt: z.string().optional(),
+        reportData: z.any(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        await db.upsertCmrReport({
+          localId: input.localId,
+          userId: ctx.user.id,
+          companyId: ctx.user.companyId,
+          consultantName: input.consultantName,
+          consultantUserId: input.consultantUserId,
+          clientName: input.clientName,
+          appointmentDate: input.appointmentDate,
+          weekOf: input.weekOf,
+          dealStatus: input.dealStatus,
+          outcome: input.outcome ?? 'open',
+          purchaseConfidencePct: input.purchaseConfidencePct,
+          originalPcPct: input.originalPcPct,
+          estimatedContractValue: input.estimatedContractValue?.toString(),
+          soldAt: input.soldAt,
+          reportData: input.reportData,
+        });
+        return { success: true };
+      }),
+
+    /** List CMR reports — members see own, managers/admins see all */
+    list: protectedProcedure
+      .input(z.object({
+        userId: z.number().optional(),
+        startDate: z.string().optional(),
+        endDate: z.string().optional(),
+        outcome: z.string().optional(),
+        minValue: z.number().optional(),
+        maxValue: z.number().optional(),
+        minPc: z.number().optional(),
+        maxPc: z.number().optional(),
+      }).optional())
+      .query(async ({ ctx, input }) => {
+        const isAdmin = ctx.user.role === 'admin' || ctx.user.role === 'manager';
+        if (!isAdmin) {
+          return db.getUserCmrReports(ctx.user.id);
+        }
+        if (input && Object.values(input).some((v) => v !== undefined)) {
+          return db.getCmrReportsWithFilters(input);
+        }
+        return db.getAllCmrReports();
+      }),
+
+    /** Delete a CMR report (admin only) */
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== 'admin') throw new Error('Unauthorized: admin role required');
+        await db.deleteCmrReport(input.id);
+        return { success: true };
+      }),
   }),
 
   // ─── DASHBOARD ANALYTICS ─────────────────────────────────────────────────────
