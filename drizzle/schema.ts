@@ -164,6 +164,33 @@ export const receipts = mysqlTable("receipts", {
 });
 
 /**
+ * Client Meeting Reports table — synced from device AsyncStorage to allow
+ * admin/manager cross-user reporting in the CMR Reports dashboard.
+ */
+export const cmrReports = mysqlTable("cmr_reports", {
+  id: int("id").autoincrement().primaryKey(),
+  /** The local AsyncStorage ID (cmr_TIMESTAMP_RANDOM) */
+  localId: varchar("localId", { length: 64 }).notNull().unique(),
+  userId: int("userId").notNull(),
+  companyId: int("companyId"),
+  consultantName: varchar("consultantName", { length: 255 }),
+  consultantUserId: varchar("consultantUserId", { length: 64 }),
+  clientName: varchar("clientName", { length: 255 }),
+  appointmentDate: varchar("appointmentDate", { length: 10 }),
+  weekOf: varchar("weekOf", { length: 10 }),
+  dealStatus: varchar("dealStatus", { length: 64 }),
+  outcome: varchar("outcome", { length: 16 }).default("open"),
+  purchaseConfidencePct: int("purchaseConfidencePct"),
+  originalPcPct: int("originalPcPct"),
+  estimatedContractValue: decimal("estimatedContractValue", { precision: 12, scale: 2 }),
+  soldAt: varchar("soldAt", { length: 32 }),
+  /** Full report JSON blob */
+  reportData: json("reportData").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+/**
  * Zoning lookups table for property research history.
  */
 export const zoningLookups = mysqlTable("zoning_lookups", {
@@ -196,6 +223,8 @@ export type OrderRevision = typeof orderRevisions.$inferSelect;
 export type InsertOrderRevision = typeof orderRevisions.$inferInsert;
 export type Receipt = typeof receipts.$inferSelect;
 export type InsertReceipt = typeof receipts.$inferInsert;
+export type CmrReport = typeof cmrReports.$inferSelect;
+export type InsertCmrReport = typeof cmrReports.$inferInsert;
 export type ZoningLookup = typeof zoningLookups.$inferSelect;
 export type InsertZoningLookup = typeof zoningLookups.$inferInsert;
 export type ModulePermission = typeof modulePermissions.$inferSelect;

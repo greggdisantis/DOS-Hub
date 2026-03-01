@@ -1,0 +1,22 @@
+CREATE TABLE `cmr_reports` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`localId` varchar(64) NOT NULL,
+	`userId` int NOT NULL,
+	`companyId` int,
+	`consultantName` varchar(255),
+	`consultantUserId` varchar(64),
+	`clientName` varchar(255),
+	`appointmentDate` varchar(10),
+	`weekOf` varchar(10),
+	`dealStatus` varchar(64),
+	`outcome` varchar(16) DEFAULT 'open',
+	`purchaseConfidencePct` int,
+	`originalPcPct` int,
+	`estimatedContractValue` decimal(12,2),
+	`soldAt` varchar(32),
+	`reportData` json NOT NULL,
+	`createdAt` timestamp NOT NULL DEFAULT (now()),
+	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+	CONSTRAINT `cmr_reports_id` PRIMARY KEY(`id`),
+	CONSTRAINT `cmr_reports_localId_unique` UNIQUE(`localId`)
+);

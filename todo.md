@@ -282,3 +282,16 @@
 - [x] Reports tab: filters by user, date range, est. value range, PC%, outcome status
 - [x] Reports tab: Guest/Member sees only their own reports with same filters
 - [x] Reports tab: each row shows client name, consultant, date, PC%, est. value, status, PDF button
+
+## CMR Reports Dashboard Fixes
+
+- [ ] Add cmr_reports table to DB schema (sync from AsyncStorage)
+- [ ] Add server tRPC procedures: cmr.save, cmr.listAll (admin), cmr.listMine
+- [ ] Sync CMR saves to server DB (write-through when user saves a report)
+- [ ] CMR Reports dashboard: load from server so admin sees all users' reports
+- [ ] CMR Reports dashboard: pull consultant list from users table (not derived from reports)
+- [ ] CMR Reports dashboard: replace date text inputs with native calendar date picker
+
+## UI Visibility & Layout Fixes
+- [x] Fix white-on-white input fields: apply theme foreground text color and surface/border backgrounds across all modules
+- [x] Fix Screen Ordering measurement grid: reformat 3-column table to avoid horizontal overflow on mobile

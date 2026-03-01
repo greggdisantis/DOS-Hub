@@ -486,67 +486,73 @@ export default function ScreenOrderingScreen() {
               )}
             </View>
 
-            {/* 3-column measurement grid */}
+            {/* Measurement grid: Left + Right side by side, Horizontal full-width below */}
             <View style={styles.measureGrid}>
-              {/* LEFT SIDE column */}
-              <View style={[styles.measureCol, { backgroundColor: colors.background, borderColor: colors.border }]}>
-                <Text style={[styles.measureColHeader, { color: colors.foreground }]}>LEFT SIDE</Text>
-                {(["upperLeft", "lowerLeft", "overallLeft"] as MeasurementPoint[]).map((pt) => (
-                  <MeasurementInput
-                    key={pt}
-                    label={MEASUREMENT_LABELS[pt]}
-                    shortLabel={MEASUREMENT_SHORT_LABELS[pt]}
-                    value={screen.measurements[pt]}
-                    onChange={(v) => order.updateMeasurement(activeScreenIndex, pt, v)}
-                    required={pt === "upperLeft" || pt === "overallLeft"}
-                  />
-                ))}
-                {leftSideMismatch && (
-                  <View style={[styles.inlineWarning, { backgroundColor: "#FFF3CD", borderColor: "#FFCC02" }]}>
-                    <Text style={styles.inlineWarningIcon}>⚠️</Text>
-                    <Text style={[styles.inlineWarningText, { color: "#856404" }]}>
-                      Left side check: Upper Left (UL) + Lower Left (LL) must equal Overall Left (OL) within 1/8". Please verify.
-                    </Text>
-                  </View>
-                )}
+              {/* Top row: LEFT SIDE + RIGHT SIDE */}
+              <View style={styles.measureTopRow}>
+                {/* LEFT SIDE */}
+                <View style={[styles.measureCol, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                  <Text style={[styles.measureColHeader, { color: colors.foreground }]}>LEFT SIDE</Text>
+                  {(["upperLeft", "lowerLeft", "overallLeft"] as MeasurementPoint[]).map((pt) => (
+                    <MeasurementInput
+                      key={pt}
+                      label={MEASUREMENT_LABELS[pt]}
+                      shortLabel={MEASUREMENT_SHORT_LABELS[pt]}
+                      value={screen.measurements[pt]}
+                      onChange={(v) => order.updateMeasurement(activeScreenIndex, pt, v)}
+                      required={pt === "upperLeft" || pt === "overallLeft"}
+                    />
+                  ))}
+                  {leftSideMismatch && (
+                    <View style={[styles.inlineWarning, { backgroundColor: "#FFF3CD", borderColor: "#FFCC02" }]}>
+                      <Text style={styles.inlineWarningIcon}>⚠️</Text>
+                      <Text style={[styles.inlineWarningText, { color: "#856404" }]}>
+                        UL + LL must equal OL within 1/8".
+                      </Text>
+                    </View>
+                  )}
+                </View>
+
+                {/* RIGHT SIDE */}
+                <View style={[styles.measureCol, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                  <Text style={[styles.measureColHeader, { color: colors.foreground }]}>RIGHT SIDE</Text>
+                  {(["upperRight", "lowerRight", "overallRight"] as MeasurementPoint[]).map((pt) => (
+                    <MeasurementInput
+                      key={pt}
+                      label={MEASUREMENT_LABELS[pt]}
+                      shortLabel={MEASUREMENT_SHORT_LABELS[pt]}
+                      value={screen.measurements[pt]}
+                      onChange={(v) => order.updateMeasurement(activeScreenIndex, pt, v)}
+                      required={pt === "upperRight" || pt === "overallRight"}
+                    />
+                  ))}
+                  {rightSideMismatch && (
+                    <View style={[styles.inlineWarning, { backgroundColor: "#FFF3CD", borderColor: "#FFCC02" }]}>
+                      <Text style={styles.inlineWarningIcon}>⚠️</Text>
+                      <Text style={[styles.inlineWarningText, { color: "#856404" }]}>
+                        UR + LR must equal OR within 1/8".
+                      </Text>
+                    </View>
+                  )}
+                </View>
               </View>
 
-              {/* RIGHT SIDE column */}
-              <View style={[styles.measureCol, { backgroundColor: colors.background, borderColor: colors.border }]}>
-                <Text style={[styles.measureColHeader, { color: colors.foreground }]}>RIGHT SIDE</Text>
-                {(["upperRight", "lowerRight", "overallRight"] as MeasurementPoint[]).map((pt) => (
-                  <MeasurementInput
-                    key={pt}
-                    label={MEASUREMENT_LABELS[pt]}
-                    shortLabel={MEASUREMENT_SHORT_LABELS[pt]}
-                    value={screen.measurements[pt]}
-                    onChange={(v) => order.updateMeasurement(activeScreenIndex, pt, v)}
-                    required={pt === "upperRight" || pt === "overallRight"}
-                  />
-                ))}
-                {rightSideMismatch && (
-                  <View style={[styles.inlineWarning, { backgroundColor: "#FFF3CD", borderColor: "#FFCC02" }]}>
-                    <Text style={styles.inlineWarningIcon}>⚠️</Text>
-                    <Text style={[styles.inlineWarningText, { color: "#856404" }]}>
-                      Right side check: Upper Right (UR) + Lower Right (LR) must equal Overall Right (OR) within 1/8". Please verify.
-                    </Text>
-                  </View>
-                )}
-              </View>
-
-              {/* HORIZONTAL column */}
-              <View style={[styles.measureCol, { backgroundColor: colors.background, borderColor: colors.border }]}>
+              {/* Bottom row: HORIZONTAL full-width */}
+              <View style={[styles.measureHorizRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                 <Text style={[styles.measureColHeader, { color: colors.foreground }]}>HORIZONTAL</Text>
-                {(["top", "middle", "bottom"] as MeasurementPoint[]).map((pt) => (
-                  <MeasurementInput
-                    key={pt}
-                    label={MEASUREMENT_LABELS[pt]}
-                    shortLabel={MEASUREMENT_SHORT_LABELS[pt]}
-                    value={screen.measurements[pt]}
-                    onChange={(v) => order.updateMeasurement(activeScreenIndex, pt, v)}
-                    required={pt === "top" || pt === "bottom"}
-                  />
-                ))}
+                <View style={styles.horizInputs}>
+                  {(["top", "middle", "bottom"] as MeasurementPoint[]).map((pt) => (
+                    <View key={pt} style={styles.horizInputCol}>
+                      <MeasurementInput
+                        label={MEASUREMENT_LABELS[pt]}
+                        shortLabel={MEASUREMENT_SHORT_LABELS[pt]}
+                        value={screen.measurements[pt]}
+                        onChange={(v) => order.updateMeasurement(activeScreenIndex, pt, v)}
+                        required={pt === "top" || pt === "bottom"}
+                      />
+                    </View>
+                  ))}
+                </View>
               </View>
             </View>
 
@@ -852,7 +858,7 @@ function FormInput({
         keyboardType={keyboardType as any}
         style={[
           styles.formInput,
-          { backgroundColor: "#EEF0F8", borderColor: colors.border, color: colors.foreground },
+          { backgroundColor: colors.surface, borderColor: colors.border, color: colors.foreground },
           multiline && { minHeight: 60, textAlignVertical: "top" },
         ]}
         returnKeyType={multiline ? "default" : "done"}
@@ -930,10 +936,16 @@ const styles = StyleSheet.create({
   reverseLabel: { fontSize: 14, fontWeight: "600" },
   reverseHint: { fontSize: 12, fontStyle: "italic", width: "100%" },
 
-  measureGrid: { flexDirection: "row", gap: 8, marginBottom: 16 },
+  measureGrid: { flexDirection: "column", gap: 8, marginBottom: 16 },
+  measureTopRow: { flexDirection: "row", gap: 8 },
   measureCol: {
     flex: 1, borderRadius: 10, borderWidth: 1, padding: 10,
   },
+  measureHorizRow: {
+    borderRadius: 10, borderWidth: 1, padding: 10,
+  },
+  horizInputs: { flexDirection: "row", gap: 8 },
+  horizInputCol: { flex: 1 },
   measureColHeader: {
     fontSize: 12, fontWeight: "800", textAlign: "center", marginBottom: 10,
     textTransform: "uppercase", letterSpacing: 0.8,

@@ -85,7 +85,7 @@ export function MeasurementInput({ label, shortLabel, value, onChange, required 
           style={[
             styles.wholeInput,
             {
-              backgroundColor: "#EEF0F8",
+              backgroundColor: colors.surface,
               borderColor: colors.border,
               color: colors.foreground,
             },
@@ -97,7 +97,7 @@ export function MeasurementInput({ label, shortLabel, value, onChange, required 
           style={[
             styles.fracButton,
             {
-              backgroundColor: "#EEF0F8",
+              backgroundColor: colors.surface,
               borderColor: colors.border,
             },
           ]}

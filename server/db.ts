@@ -5,12 +5,14 @@ import {
   InsertScreenOrder,
   InsertOrderRevision,
   InsertReceipt,
+  InsertCmrReport,
   SystemRole,
   users,
   screenOrders,
   orderRevisions,
   modulePermissions,
   receipts,
+  cmrReports,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
@@ -427,6 +429,71 @@ export async function deleteReceipt(id: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.delete(receipts).where(eq(receipts.id, id));
+}
+
+// ─── CMR REPORTS ────────────────────────────────────────────────────────────
+
+export async function upsertCmrReport(data: InsertCmrReport): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(cmrReports).values(data).onDuplicateKeyUpdate({
+    set: {
+      consultantName: data.consultantName,
+      clientName: data.clientName,
+      appointmentDate: data.appointmentDate,
+      weekOf: data.weekOf,
+      dealStatus: data.dealStatus,
+      outcome: data.outcome,
+      purchaseConfidencePct: data.purchaseConfidencePct,
+      originalPcPct: data.originalPcPct,
+      estimatedContractValue: data.estimatedContractValue,
+      soldAt: data.soldAt,
+      reportData: data.reportData,
+    },
+  });
+}
+
+export async function getAllCmrReports() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(cmrReports).orderBy(desc(cmrReports.appointmentDate));
+}
+
+export async function getUserCmrReports(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(cmrReports).where(eq(cmrReports.userId, userId)).orderBy(desc(cmrReports.appointmentDate));
+}
+
+export async function getCmrReportsWithFilters(filters: {
+  userId?: number;
+  startDate?: string;
+  endDate?: string;
+  outcome?: string;
+  minValue?: number;
+  maxValue?: number;
+  minPc?: number;
+  maxPc?: number;
+}) {
+  const db = await getDb();
+  if (!db) return [];
+  const conditions = [];
+  if (filters.userId) conditions.push(eq(cmrReports.userId, filters.userId));
+  if (filters.startDate) conditions.push(gte(cmrReports.appointmentDate, filters.startDate));
+  if (filters.endDate) conditions.push(lte(cmrReports.appointmentDate, filters.endDate));
+  if (filters.outcome) conditions.push(eq(cmrReports.outcome, filters.outcome));
+  if (filters.minValue != null) conditions.push(gte(cmrReports.estimatedContractValue, filters.minValue.toString()));
+  if (filters.maxValue != null) conditions.push(lte(cmrReports.estimatedContractValue, filters.maxValue.toString()));
+  if (filters.minPc != null) conditions.push(gte(cmrReports.purchaseConfidencePct, filters.minPc));
+  if (filters.maxPc != null) conditions.push(lte(cmrReports.purchaseConfidencePct, filters.maxPc));
+  const q = db.select().from(cmrReports).orderBy(desc(cmrReports.appointmentDate));
+  return conditions.length > 0 ? q.where(and(...conditions)) : q;
+}
+
+export async function deleteCmrReport(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(cmrReports).where(eq(cmrReports.id, id));
 }
 
 export async function getReceiptAnalytics() {
