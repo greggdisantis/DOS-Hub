@@ -163,3 +163,20 @@
 - [x] Persist reports locally with AsyncStorage
 - [x] Add HubSpot CRM integration placeholder (client picker stub for future)
 - [x] Add PDF export for completed meeting reports
+
+## Sales Pipeline & PC% Accuracy Tracking
+
+- [x] Add estimatedContractValue field to ClientMeetingReport data model
+- [x] Add originalPcPct field (locked on first submission, never editable)
+- [x] Add currentPcPct field (editable in dashboard)
+- [x] Add soldAt timestamp and soldBy fields for Mark as Sold
+- [x] Add outcome field: 'open' | 'sold' | 'lost'
+- [x] Add Estimated Contract Value input to form PC% section
+- [x] Lock originalPcPct on first save (copy from purchaseConfidencePct)
+- [x] Build Sales Pipeline dashboard screen (list: client, consultant, est. value, original PC%, current PC%, status)
+- [x] Inline editing of currentPcPct and estimatedContractValue in pipeline dashboard
+- [x] Mark as Sold button per client in pipeline dashboard (records outcome + soldAt)
+- [x] Mark as Lost button per client in pipeline dashboard
+- [x] Add PC% accuracy analytics section: original vs final vs outcome per consultant
+- [x] Add pipeline summary stats: total pipeline value, weighted value (value × PC%), sold count, conversion rate
+- [x] Wire Sales Pipeline to Tools tab and/or Home quick actions

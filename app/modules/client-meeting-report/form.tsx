@@ -292,6 +292,17 @@ function StepPurchaseConfidence({ report, update }: { report: ClientMeetingRepor
       <FieldLabel required>PC % (Purchase Confidence)</FieldLabel>
       <PCSlider value={report.purchaseConfidencePct} onChange={(v) => update({ purchaseConfidencePct: v })} />
 
+      <FieldLabel required>Estimated Contract Value ($)</FieldLabel>
+      <StyledInput
+        value={report.estimatedContractValue !== undefined ? String(report.estimatedContractValue) : ''}
+        onChangeText={(v) => {
+          const num = parseFloat(v.replace(/[^0-9.]/g, ''));
+          update({ estimatedContractValue: isNaN(num) ? undefined : num });
+        }}
+        placeholder="e.g., 25000"
+        keyboardType="numeric"
+      />
+
       <FieldLabel required>Who are the decision makers?</FieldLabel>
       <StyledInput value={report.decisionMakers} onChangeText={(v) => update({ decisionMakers: v })} placeholder="e.g., Husband and wife both present" />
 

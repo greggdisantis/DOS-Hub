@@ -64,7 +64,11 @@ export interface ClientMeetingReport {
   lastConversationSummary: string;
 
   // ── Section 3: Purchase Confidence ───────────────────────────────────────
-  purchaseConfidencePct: number;   // 0–100
+  purchaseConfidencePct: number;   // 0–100 (current, editable)
+  /** Locked on first submission — never changes after initial save */
+  originalPcPct?: number;
+  /** Estimated contract value in USD (set at first meeting, editable in pipeline) */
+  estimatedContractValue?: number;
   decisionMakers: string;
   mainMotivation: string;
   mainHesitation: string;
@@ -78,6 +82,12 @@ export interface ClientMeetingReport {
   objections: string[];            // multi-select: 'price', 'timing', etc.
   objectionOther?: string;
   objectionNotes: string;
+
+  // ── Pipeline Tracking ─────────────────────────────────────────────────────
+  /** 'open' = active, 'sold' = marked as sold, 'lost' = marked as lost */
+  outcome: 'open' | 'sold' | 'lost';
+  soldAt?: string;    // ISO date when marked as sold/lost
+  soldBy?: string;    // consultantUserId who marked it
 
   // ── Section 5: Next Steps & Marketing ────────────────────────────────────
   nextActions: NextAction[];
@@ -111,6 +121,9 @@ export const EMPTY_REPORT = (): ClientMeetingReport => ({
   closeTimeline: '',
   lastConversationSummary: '',
   purchaseConfidencePct: 50,
+  estimatedContractValue: undefined,
+  originalPcPct: undefined,
+  outcome: 'open',
   decisionMakers: '',
   mainMotivation: '',
   mainHesitation: '',

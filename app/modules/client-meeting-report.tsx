@@ -263,10 +263,15 @@ export default function ClientMeetingReportScreen() {
     if (!activeReport) return;
     setIsSaving(true);
     try {
-      await saveReport(activeReport);
+      // Lock originalPcPct on first save — never overwrite once set
+      const reportToSave: ClientMeetingReport = {
+        ...activeReport,
+        originalPcPct: activeReport.originalPcPct ?? activeReport.purchaseConfidencePct,
+      };
+      await saveReport(reportToSave);
       await refreshReports();
       setViewMode('list');
-      setActiveReport(null);
+      setActiveReport(null); // reportToSave is persisted; activeReport state cleared
     } catch (e) {
       Alert.alert('Error', 'Failed to save report. Please try again.');
     } finally {

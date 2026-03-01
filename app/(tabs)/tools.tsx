@@ -62,6 +62,15 @@ const ALL_TOOLS: ToolItem[] = [
     category: "Sales",
   },
   {
+    id: "sales-pipeline",
+    title: "Sales Pipeline",
+    description: "Track estimated contract values, purchase confidence, and close outcomes for all active clients.",
+    icon: "chart.bar.fill",
+    route: "/modules/sales-pipeline",
+    color: "#059669",
+    category: "Sales",
+  },
+  {
     id: "hubspot",
     title: "HubSpot CRM",
     description: "Search deals, attach documents, and manage customer records.",
