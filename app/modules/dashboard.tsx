@@ -18,6 +18,7 @@ import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import SalesPipelineScreen, { SalesPipelineContent } from "./sales-pipeline";
 import { ReceiptDashboardContent } from "./receipt-dashboard";
+import { CMRReportsDashboard } from "./cmr-reports-dashboard";
 
 // ─── Status config ──────────────────────────────────────────────────────────
 
@@ -239,12 +240,13 @@ function RecentActivity({ orders, onTapOrder }: { orders: any[]; onTapOrder: (id
 
 // ─── Module Picker ──────────────────────────────────────────────────────────
 
-type DashboardModule = 'screen-ordering' | 'sales-pipeline' | 'receipts';
+type DashboardModule = 'screen-ordering' | 'sales-pipeline' | 'receipts' | 'cmr-reports';
 
 const DASHBOARD_MODULES: { key: DashboardModule; label: string; icon: any }[] = [
   { key: 'screen-ordering', label: 'Screen Ordering', icon: 'rectangle.grid.2x2.fill' },
   { key: 'sales-pipeline', label: 'Sales Pipeline', icon: 'chart.bar.fill' },
   { key: 'receipts', label: 'Receipts', icon: 'receipt' },
+  { key: 'cmr-reports', label: 'CMR Reports', icon: 'doc.text.fill' },
 ];
 
 function ModulePicker({
@@ -348,6 +350,23 @@ function DashboardContent() {
       )}
     </View>
   );
+
+  // ── CMR Reports module ───────────────────────────────────────────────────────────
+  if (activeModule === 'cmr-reports') {
+    return (
+      <ScreenContainer edges={['top', 'left', 'right']}>
+        <View style={{ flex: 1 }}>
+          {header}
+          <View style={{ flexShrink: 0 }}>
+            <ModulePicker active={activeModule} onChange={setActiveModule} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <CMRReportsDashboard />
+          </View>
+        </View>
+      </ScreenContainer>
+    );
+  }
 
   // ── Receipts Finance module ──────────────────────────────────────────────────────
   if (activeModule === 'receipts') {

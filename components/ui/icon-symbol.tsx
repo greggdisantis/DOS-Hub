@@ -79,6 +79,7 @@ const MAPPING = {
   "eye.fill": "visibility",
   "safari.fill": "open-in-browser",
   "arrow.down": "download",
+  "arrow.down.doc.fill": "picture-as-pdf",
   "folder.badge.plus": "create-new-folder",
 } as unknown as IconMapping;
 

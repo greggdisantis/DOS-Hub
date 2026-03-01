@@ -18,6 +18,7 @@ import { useColors } from '@/hooks/use-colors';
 import { useAuth } from '@/hooks/use-auth';
 import { loadAllReports, saveReport } from './client-meeting-report/storage';
 import { ClientMeetingReport, DEAL_STATUS_LABELS } from './client-meeting-report/types';
+import { exportMeetingReportPDF } from './client-meeting-report/pdf-export';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -209,9 +210,11 @@ interface PipelineRowProps {
   onMarkLost: () => void;
   onReopen: () => void;
   onEdit: () => void;
+  onExportPDF: () => void;
+  isExportingPDF: boolean;
 }
 
-function PipelineRow({ report, onUpdate, onMarkSold, onMarkLost, onReopen, onEdit }: PipelineRowProps) {
+function PipelineRow({ report, onUpdate, onMarkSold, onMarkLost, onReopen, onEdit, onExportPDF, isExportingPDF }: PipelineRowProps) {
   const colors = useColors();
   const [editingValue, setEditingValue] = useState(false);
   const [valueText, setValueText] = useState(
@@ -264,6 +267,21 @@ function PipelineRow({ report, onUpdate, onMarkSold, onMarkLost, onReopen, onEdi
         >
           <IconSymbol name="pencil" size={13} color={colors.primary} />
           <Text style={[styles.editBtnText, { color: colors.primary }]}>Edit</Text>
+        </Pressable>
+        {/* PDF export button */}
+        <Pressable
+          onPress={onExportPDF}
+          disabled={isExportingPDF}
+          style={({ pressed }) => ([
+            styles.pdfBtn,
+            { borderColor: colors.error + '60', backgroundColor: colors.error + '10' },
+            pressed && { opacity: 0.7 },
+          ])}
+        >
+          {isExportingPDF
+            ? <ActivityIndicator size={10} color={colors.error} />
+            : <IconSymbol name="arrow.down.doc.fill" size={12} color={colors.error} />}
+          <Text style={[styles.pdfBtnText, { color: colors.error }]}>PDF</Text>
         </Pressable>
         <View
           style={[
@@ -432,6 +450,19 @@ export function SalesPipelineContent() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterTab>('open');
   const [search, setSearch] = useState('');
+  const [exportingId, setExportingId] = useState<string | null>(null);
+
+  const handleExportPDF = useCallback(async (report: ClientMeetingReport) => {
+    if (exportingId) return;
+    setExportingId(report.id);
+    try {
+      await exportMeetingReportPDF(report);
+    } catch (e: any) {
+      Alert.alert('Export Failed', e?.message ?? 'Could not generate PDF.');
+    } finally {
+      setExportingId(null);
+    }
+  }, [exportingId]);
 
   const sortReports = (all: ClientMeetingReport[]) =>
     [...all].sort((a, b) => {
@@ -627,6 +658,8 @@ export function SalesPipelineContent() {
               onMarkLost={() => handleMarkLost(item)}
               onReopen={() => handleReopen(item)}
               onEdit={() => router.push({ pathname: '/modules/client-meeting-report', params: { editReportId: item.id } } as any)}
+              onExportPDF={() => handleExportPDF(item)}
+              isExportingPDF={exportingId === item.id}
             />
           )}
           ListEmptyComponent={
@@ -769,6 +802,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   editBtnText: { fontSize: 12, fontWeight: '600' },
+  pdfBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  pdfBtnText: { fontSize: 12, fontWeight: '600' },
   actionRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   actionBtn: {
     flex: 1,

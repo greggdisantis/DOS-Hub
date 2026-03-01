@@ -273,3 +273,12 @@
 - [x] Dashboard rows: vendor, user, amount, date, PDF export button
 - [x] Dashboard filters: by user, date range, vendor name
 - [x] Dashboard analytics: total spend by user, by vendor, by category, monthly trend, top vendors
+
+## Sales Pipeline PDF & CMR Reports View
+
+- [x] Add server-side PDF generation for Client Meeting Reports (pdfkit, matching DOS format)
+- [x] Add PDF export button to each Sales Pipeline card (same style as Receipts PDF button)
+- [x] Add "CMR Reports" tab to Dashboard: Admin/Manager sees ALL CMRs organized by user/month
+- [x] Reports tab: filters by user, date range, est. value range, PC%, outcome status
+- [x] Reports tab: Guest/Member sees only their own reports with same filters
+- [x] Reports tab: each row shows client name, consultant, date, PC%, est. value, status, PDF button
