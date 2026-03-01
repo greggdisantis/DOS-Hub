@@ -17,6 +17,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useColors } from '@/hooks/use-colors';
 import { useAuth } from '@/hooks/use-auth';
 import { loadAllReports, saveReport } from './client-meeting-report/storage';
+import { trpc } from '@/lib/trpc';
 import { ClientMeetingReport, DEAL_STATUS_LABELS } from './client-meeting-report/types';
 import { exportMeetingReportPDF } from './client-meeting-report/pdf-export';
 
@@ -442,6 +443,27 @@ function PipelineRow({ report, onUpdate, onMarkSold, onMarkLost, onReopen, onEdi
 
 type FilterTab = 'open' | 'sold' | 'lost' | 'all';
 
+/** Convert a DB CMR row to a ClientMeetingReport object */
+function dbRowToReport(row: any): ClientMeetingReport {
+  const data = (row.reportData ?? {}) as ClientMeetingReport;
+  return {
+    ...data,
+    id: row.localId ?? data?.id ?? String(row.id),
+    clientName: row.clientName ?? data?.clientName ?? '',
+    consultantName: row.consultantName ?? data?.consultantName ?? '',
+    consultantUserId: row.consultantUserId ?? data?.consultantUserId ?? '',
+    appointmentDate: row.appointmentDate ?? data?.appointmentDate ?? '',
+    weekOf: row.weekOf ?? data?.weekOf ?? '',
+    dealStatus: row.dealStatus ?? data?.dealStatus ?? '',
+    outcome: (row.outcome ?? data?.outcome ?? 'open') as 'open' | 'sold' | 'lost',
+    purchaseConfidencePct: row.purchaseConfidencePct ?? data?.purchaseConfidencePct ?? 0,
+    originalPcPct: row.originalPcPct ?? data?.originalPcPct,
+    estimatedContractValue: row.estimatedContractValue != null ? Number(row.estimatedContractValue) : data?.estimatedContractValue,
+    soldAt: row.soldAt ?? data?.soldAt,
+    soldBy: row.soldBy ?? data?.soldBy,
+  };
+}
+
 /** Embeddable content — no ScreenContainer, no header. Use inside Dashboard. */
 export function SalesPipelineContent() {
   const colors = useColors();
@@ -471,19 +493,39 @@ export function SalesPipelineContent() {
       return new Date(b.appointmentDate).getTime() - new Date(a.appointmentDate).getTime();
     });
 
-  const loadReports = useCallback(async () => {
-    setLoading(true);
-    try {
-      const all = await loadAllReports();
-      setReports(sortReports(all));
-    } finally {
+  const utils = trpc.useUtils();
+  const cmrUpsert = trpc.cmr.upsert.useMutation();
+
+  // Primary: load from database
+  const { data: dbReports, isLoading: dbLoading, error: dbError, refetch: refetchDb } = trpc.cmr.list.useQuery(undefined, {
+    retry: 1,
+  });
+
+  // When DB data arrives, convert and set reports
+  useEffect(() => {
+    if (dbReports !== undefined) {
+      setReports(sortReports(dbReports.map(dbRowToReport)));
       setLoading(false);
     }
-  }, []);
+  }, [dbReports]);
+
+  // Fallback to AsyncStorage if DB fails (offline mode)
+  useEffect(() => {
+    if (dbError) {
+      loadAllReports().then((all) => {
+        setReports(sortReports(all));
+        setLoading(false);
+      }).catch(() => setLoading(false));
+    }
+  }, [dbError]);
 
   useEffect(() => {
-    loadReports();
-  }, [loadReports]);
+    setLoading(dbLoading);
+  }, [dbLoading]);
+
+  const loadReports = useCallback(() => {
+    refetchDb();
+  }, [refetchDb]);
 
   const updateReport = useCallback(
     async (id: string, updates: Partial<ClientMeetingReport>) => {
@@ -492,9 +534,31 @@ export function SalesPipelineContent() {
       const updated: ClientMeetingReport = { ...report, ...updates, updatedAt: new Date().toISOString() };
       // Optimistic update for instant UI feedback
       setReports((prev) => sortReports(prev.map((r) => (r.id === id ? updated : r))));
-      await saveReport(updated);
+      // Write-through to AsyncStorage for offline cache
+      await saveReport(updated).catch(() => {});
+      // Save to database (primary source of truth)
+      try {
+        await cmrUpsert.mutateAsync({
+          localId: updated.id,
+          consultantName: updated.consultantName,
+          consultantUserId: updated.consultantUserId,
+          clientName: updated.clientName,
+          appointmentDate: updated.appointmentDate,
+          weekOf: updated.weekOf,
+          dealStatus: updated.dealStatus,
+          outcome: updated.outcome ?? 'open',
+          purchaseConfidencePct: updated.purchaseConfidencePct,
+          originalPcPct: updated.originalPcPct,
+          estimatedContractValue: updated.estimatedContractValue,
+          soldAt: updated.soldAt,
+          reportData: updated,
+        });
+        utils.cmr.list.invalidate();
+      } catch (e) {
+        console.warn('[SalesPipeline] DB sync failed:', e);
+      }
     },
-    [reports]
+    [reports, cmrUpsert, utils]
   );
 
   const handleMarkSold = useCallback(

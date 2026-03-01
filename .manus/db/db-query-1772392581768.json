@@ -1,0 +1,35 @@
+{
+  "query": "SELECT id, name, role FROM users LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user rUcyWo8oc4HgvHh.root --database kseAyHgdHCF3tNKxdCJFMX --execute SELECT id, name, role FROM users LIMIT 5;",
+  "rows": [
+    {
+      "id": "1",
+      "name": "Gregg Disantis",
+      "role": "admin"
+    },
+    {
+      "id": "8",
+      "name": "gdisantis",
+      "role": "admin"
+    },
+    {
+      "id": "60",
+      "name": "Maksym Melnyk",
+      "role": "manager"
+    },
+    {
+      "id": "88",
+      "name": "smelnyk",
+      "role": "manager"
+    },
+    {
+      "id": "150008",
+      "name": "Ben Thornton",
+      "role": "member"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\trole\n1\tGregg Disantis\tadmin\n8\tgdisantis\tadmin\n60\tMaksym Melnyk\tmanager\n88\tsmelnyk\tmanager\n150008\tBen Thornton\tmember\n",
+  "stderr": "",
+  "execution_time_ms": 67
+}

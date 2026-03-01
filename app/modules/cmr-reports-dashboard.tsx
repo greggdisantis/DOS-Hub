@@ -20,7 +20,7 @@ import { trpc } from '@/lib/trpc';
 import { exportMeetingReportPDF } from './client-meeting-report/pdf-export';
 import { ClientMeetingReport, DEAL_STATUS_LABELS } from './client-meeting-report/types';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { loadAllReports } from './client-meeting-report/storage';
+
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -590,24 +590,8 @@ export function CMRReportsDashboard() {
     enabled: isAdmin,
   });
 
-  // Fallback: load own reports from AsyncStorage for the current user
-  // This ensures reports appear even before the backfill runs.
-  const [localReports, setLocalReports] = useState<ClientMeetingReport[]>([]);
-  useEffect(() => {
-    loadAllReports().then(setLocalReports).catch(() => {});
-  }, []);
-
-  // Convert DB rows to ClientMeetingReport shape
-  const dbReports = useMemo(() => rawReports.map(toClientMeetingReport), [rawReports]);
-
-  // Merge DB reports with local AsyncStorage reports.
-  // Always include local reports not yet synced to DB — this ensures the
-  // dashboard shows data even when the DB is empty (before backfill runs).
-  const allReports = useMemo(() => {
-    const dbLocalIds = new Set(dbReports.map((r) => r.id));
-    const localOnly = localReports.filter((r) => !dbLocalIds.has(r.id));
-    return [...dbReports, ...localOnly];
-  }, [dbReports, localReports]);
+  // Convert DB rows to ClientMeetingReport shape (database is the single source of truth)
+  const allReports = useMemo(() => rawReports.map(toClientMeetingReport), [rawReports]);
 
   // Apply filters
   const filtered = useMemo(() => {

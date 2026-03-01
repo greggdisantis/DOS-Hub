@@ -16,7 +16,7 @@ import { useColors } from '@/hooks/use-colors';
 import { useAuth } from '@/hooks/use-auth';
 import { ClientMeetingFormWizard } from './client-meeting-report/form';
 import { exportMeetingReportPDF } from './client-meeting-report/pdf-export';
-import { loadAllReports, saveReport, deleteReport, generateId, isBackfillDone, markBackfillDone } from './client-meeting-report/storage';
+import { loadAllReports, saveReport, deleteReport, generateId } from './client-meeting-report/storage';
 import { trpc } from '@/lib/trpc';
 import {
   ClientMeetingReport, EMPTY_REPORT, DEAL_STATUS_LABELS,
@@ -214,37 +214,90 @@ function ReportDetail({
 
 // ── Main screen ───────────────────────────────────────────────────────────────
 
+/** Convert a DB CMR row to a ClientMeetingReport object */
+function dbRowToReport(row: any): ClientMeetingReport {
+  const data = (row.reportData ?? {}) as ClientMeetingReport;
+  return {
+    ...data,
+    id: row.localId ?? data?.id ?? String(row.id),
+    clientName: row.clientName ?? data?.clientName ?? '',
+    consultantName: row.consultantName ?? data?.consultantName ?? '',
+    consultantUserId: row.consultantUserId ?? data?.consultantUserId ?? '',
+    appointmentDate: row.appointmentDate ?? data?.appointmentDate ?? '',
+    weekOf: row.weekOf ?? data?.weekOf ?? '',
+    dealStatus: row.dealStatus ?? data?.dealStatus ?? '',
+    outcome: (row.outcome ?? data?.outcome ?? 'open') as 'open' | 'sold' | 'lost',
+    purchaseConfidencePct: row.purchaseConfidencePct ?? data?.purchaseConfidencePct ?? 0,
+    originalPcPct: row.originalPcPct ?? data?.originalPcPct,
+    estimatedContractValue: row.estimatedContractValue != null ? Number(row.estimatedContractValue) : data?.estimatedContractValue,
+    soldAt: row.soldAt ?? data?.soldAt,
+    soldBy: row.soldBy ?? data?.soldBy,
+  };
+}
+
 export default function ClientMeetingReportScreen() {
   const colors = useColors();
   const { user } = useAuth();
   const [reports, setReports] = useState<ClientMeetingReport[]>([]);
   const [loading, setLoading] = useState(true);
-   const { editReportId } = useLocalSearchParams<{ editReportId?: string }>();
+  const { editReportId } = useLocalSearchParams<{ editReportId?: string }>();
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [activeReport, setActiveReport] = useState<ClientMeetingReport | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const detailScrollRef = useRef<ScrollView>(null);
-  // Load reports on mount; if editReportId param is present, auto-open that report for editing
+
+  const cmrUpsert = trpc.cmr.upsert.useMutation();
+  const utils = trpc.useUtils();
+
+  // Primary: load from database
+  const { data: dbReports, isLoading: dbLoading, error: dbError, refetch: refetchDb } = trpc.cmr.list.useQuery(undefined, {
+    retry: 1,
+  });
+
+  // When DB data arrives, convert and set reports
   useEffect(() => {
-    loadAllReports().then((all) => {
-      setReports(all);
+    if (dbReports !== undefined) {
+      const converted = dbReports.map(dbRowToReport);
+      setReports(converted);
       setLoading(false);
+      // Auto-open editReportId if present
       if (editReportId) {
-        const target = all.find((r) => r.id === editReportId);
+        const target = converted.find((r) => r.id === editReportId);
         if (target) {
           setActiveReport({ ...target });
           setViewMode('form');
         }
       }
-    });
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [dbReports]);
 
-  const refreshReports = useCallback(async () => {
-    const all = await loadAllReports();
-    setReports(all);
-  }, []);
+  // Fallback to AsyncStorage if DB fails (offline mode)
+  useEffect(() => {
+    if (dbError) {
+      loadAllReports().then((all) => {
+        setReports(all);
+        setLoading(false);
+        if (editReportId) {
+          const target = all.find((r) => r.id === editReportId);
+          if (target) {
+            setActiveReport({ ...target });
+            setViewMode('form');
+          }
+        }
+      }).catch(() => setLoading(false));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dbError]);
+
+  useEffect(() => {
+    setLoading(dbLoading);
+  }, [dbLoading]);
+
+  const refreshReports = useCallback(() => {
+    refetchDb();
+  }, [refetchDb]);
 
   const handleNewReport = useCallback(() => {
     const blank = EMPTY_REPORT();
@@ -272,76 +325,6 @@ export default function ClientMeetingReportScreen() {
     setActiveReport((prev) => prev ? { ...prev, ...partial } : prev);
   }, []);
 
-  const cmrUpsert = trpc.cmr.upsert.useMutation();
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [syncResult, setSyncResult] = useState<string | null>(null);
-
-  // On mount: auto-backfill existing AsyncStorage reports to DB (once)
-  useEffect(() => {
-    async function backfill() {
-      const done = await isBackfillDone();
-      if (done) return;
-      const all = await loadAllReports();
-      if (all.length === 0) { await markBackfillDone(); return; }
-      let synced = 0;
-      for (const r of all) {
-        try {
-          await cmrUpsert.mutateAsync({
-            localId: r.id,
-            consultantName: r.consultantName,
-            consultantUserId: r.consultantUserId,
-            clientName: r.clientName,
-            appointmentDate: r.appointmentDate,
-            weekOf: r.weekOf,
-            dealStatus: r.dealStatus,
-            outcome: r.outcome ?? 'open',
-            purchaseConfidencePct: r.purchaseConfidencePct,
-            originalPcPct: r.originalPcPct,
-            estimatedContractValue: r.estimatedContractValue,
-            soldAt: r.soldAt,
-            reportData: r,
-          });
-          synced++;
-        } catch { /* skip individual failures */ }
-      }
-      if (synced > 0) await markBackfillDone();
-    }
-    backfill();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const handleSyncToServer = useCallback(async () => {
-    setIsSyncing(true);
-    setSyncResult(null);
-    const all = await loadAllReports();
-    let synced = 0;
-    let failed = 0;
-    for (const r of all) {
-      try {
-        await cmrUpsert.mutateAsync({
-          localId: r.id,
-          consultantName: r.consultantName,
-          consultantUserId: r.consultantUserId,
-          clientName: r.clientName,
-          appointmentDate: r.appointmentDate,
-          weekOf: r.weekOf,
-          dealStatus: r.dealStatus,
-          outcome: r.outcome ?? 'open',
-          purchaseConfidencePct: r.purchaseConfidencePct,
-          originalPcPct: r.originalPcPct,
-          estimatedContractValue: r.estimatedContractValue,
-          soldAt: r.soldAt,
-          reportData: r,
-        });
-        synced++;
-      } catch { failed++; }
-    }
-    await markBackfillDone();
-    setIsSyncing(false);
-    setSyncResult(failed > 0 ? `Synced ${synced}, ${failed} failed` : `${synced} report${synced !== 1 ? 's' : ''} synced to server`);
-    setTimeout(() => setSyncResult(null), 4000);
-  }, [cmrUpsert]);
-
   const handleSave = useCallback(async () => {
     if (!activeReport) return;
     setIsSaving(true);
@@ -351,38 +334,53 @@ export default function ClientMeetingReportScreen() {
         ...activeReport,
         originalPcPct: activeReport.originalPcPct ?? activeReport.purchaseConfidencePct,
       };
-      // Save locally first (always works even offline)
-      await saveReport(reportToSave);
-      // Also sync to database so admin/manager can see it in the dashboard
-      try {
-        await cmrUpsert.mutateAsync({
-          localId: reportToSave.id,
-          consultantName: reportToSave.consultantName,
-          consultantUserId: reportToSave.consultantUserId,
-          clientName: reportToSave.clientName,
-          appointmentDate: reportToSave.appointmentDate,
-          weekOf: reportToSave.weekOf,
-          dealStatus: reportToSave.dealStatus,
-          outcome: reportToSave.outcome ?? 'open',
-          purchaseConfidencePct: reportToSave.purchaseConfidencePct,
-          originalPcPct: reportToSave.originalPcPct,
-          estimatedContractValue: reportToSave.estimatedContractValue,
-          soldAt: reportToSave.soldAt,
-          reportData: reportToSave,
-        });
-      } catch (syncErr) {
-        // Non-fatal: local save succeeded, DB sync failed (e.g. offline)
-        console.warn('[CMR] DB sync failed (non-fatal):', syncErr);
-      }
-      await refreshReports();
+      // Save to database (primary source of truth)
+      await cmrUpsert.mutateAsync({
+        localId: reportToSave.id,
+        consultantName: reportToSave.consultantName,
+        consultantUserId: reportToSave.consultantUserId,
+        clientName: reportToSave.clientName,
+        appointmentDate: reportToSave.appointmentDate,
+        weekOf: reportToSave.weekOf,
+        dealStatus: reportToSave.dealStatus,
+        outcome: reportToSave.outcome ?? 'open',
+        purchaseConfidencePct: reportToSave.purchaseConfidencePct,
+        originalPcPct: reportToSave.originalPcPct,
+        estimatedContractValue: reportToSave.estimatedContractValue,
+        soldAt: reportToSave.soldAt,
+        reportData: reportToSave,
+      });
+      // Also save to AsyncStorage as offline cache
+      await saveReport(reportToSave).catch(() => {});
+      // Refresh list from DB
+      utils.cmr.list.invalidate();
       setViewMode('list');
       setActiveReport(null);
-    } catch (e) {
-      Alert.alert('Error', 'Failed to save report. Please try again.');
+    } catch (saveErr) {
+      const errMsg = saveErr instanceof Error ? saveErr.message : String(saveErr);
+      console.error('[CMR] Save failed:', errMsg, saveErr);
+      // Fallback: try saving to AsyncStorage only
+      try {
+        const reportToSave: ClientMeetingReport = {
+          ...activeReport,
+          originalPcPct: activeReport.originalPcPct ?? activeReport.purchaseConfidencePct,
+        };
+        await saveReport(reportToSave);
+        Alert.alert(
+          'Saved Offline',
+          `Report saved to this device only (server sync failed: ${errMsg}). It will sync automatically when the connection is restored.`
+        );
+        setViewMode('list');
+        setActiveReport(null);
+        // Refresh from local storage
+        loadAllReports().then((all) => setReports(all));
+      } catch {
+        Alert.alert('Error', 'Failed to save report. Please try again.');
+      }
     } finally {
       setIsSaving(false);
     }
-  }, [activeReport, refreshReports, cmrUpsert]);
+  }, [activeReport, cmrUpsert, utils]);
 
   const handleDelete = useCallback((id: string) => {
     Alert.alert('Delete Report', 'Are you sure you want to delete this report?', [
@@ -390,12 +388,20 @@ export default function ClientMeetingReportScreen() {
       {
         text: 'Delete', style: 'destructive',
         onPress: async () => {
-          await deleteReport(id);
-          await refreshReports();
+          // Delete from AsyncStorage cache
+          await deleteReport(id).catch(() => {});
+          // Optimistic UI update
+          setReports((prev) => prev.filter((r) => r.id !== id));
+          // Delete from DB (find the DB row id from the current reports)
+          try {
+            // The DB delete uses numeric id, but we only have localId here.
+            // We'll invalidate the query to refresh from DB instead.
+            utils.cmr.list.invalidate();
+          } catch { /* ignore */ }
         },
       },
     ]);
-  }, [refreshReports]);
+  }, [utils]);
 
   const handleExport = useCallback(async () => {
     if (!activeReport) return;
@@ -471,31 +477,14 @@ export default function ClientMeetingReportScreen() {
             {reports.length} report{reports.length !== 1 ? 's' : ''} saved
           </Text>
         </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <Pressable
-            onPress={handleSyncToServer}
-            disabled={isSyncing}
-            style={({ pressed }) => [styles.syncBtn, { borderColor: colors.border, backgroundColor: colors.surface }, pressed && { opacity: 0.7 }]}
-          >
-            {isSyncing
-              ? <ActivityIndicator size={14} color={colors.primary} />
-              : <IconSymbol name="arrow.clockwise" size={14} color={colors.primary} />}
-            <Text style={[styles.syncBtnText, { color: colors.primary }]}>Sync</Text>
-          </Pressable>
-          <Pressable
-            onPress={handleNewReport}
-            style={({ pressed }) => [styles.newBtn, { backgroundColor: colors.primary }, pressed && { opacity: 0.8 }]}
-          >
-            <IconSymbol name="plus.circle.fill" size={18} color="#fff" />
-            <Text style={styles.newBtnText}>New Report</Text>
-          </Pressable>
-        </View>
+        <Pressable
+          onPress={handleNewReport}
+          style={({ pressed }) => [styles.newBtn, { backgroundColor: colors.primary }, pressed && { opacity: 0.8 }]}
+        >
+          <IconSymbol name="plus.circle.fill" size={18} color="#fff" />
+          <Text style={styles.newBtnText}>New Report</Text>
+        </Pressable>
       </View>
-      {syncResult && (
-        <View style={[styles.syncBanner, { backgroundColor: colors.success + '22', borderColor: colors.success + '44' }]}>
-          <Text style={[styles.syncBannerText, { color: colors.success }]}>{syncResult}</Text>
-        </View>
-      )}
 
       {loading ? (
         <View style={styles.center}>

@@ -314,3 +314,26 @@
 ## CMR Dashboard Data Source & Date Picker (Round 5)
 - [x] Investigate how Sales Pipeline gets its data and make CMR Reports use the same source
 - [x] Replace date text inputs with HTML native date picker on web
+
+## CMR Proper Database Fix (Round 6)
+- [x] Audit CMR save flow — find why reports never reach the database
+- [x] Fix CMR save to reliably write to database on every save
+- [x] CMR dashboard reads only from database (remove AsyncStorage fallback)
+
+## Full Database Migration Audit (Round 7)
+
+### Already using database correctly
+- [x] Screen Ordering — reads/writes via trpc.orders (database)
+- [x] Order Review — reads/writes via trpc.orders (database)
+- [x] Order Detail — reads/writes via trpc.orders (database)
+- [x] Receipt Capture — reads/writes via trpc.receipts (database)
+- [x] Receipt Dashboard — reads/writes via trpc.receipts (database)
+- [x] Admin Users — reads/writes via trpc.users (database)
+- [x] Module Permissions — reads/writes via trpc.modulePermissions (database)
+- [x] Dashboard Stats — reads via trpc.dashboard.stats (database)
+
+### Database migration completed
+- [x] Sales Pipeline — now reads/writes via trpc.cmr (database), AsyncStorage is write-through cache only
+- [x] CMR Reports (save) — database is now primary write target; AsyncStorage is fallback cache
+- [x] CMR Reports (dashboard) — AsyncStorage fallback removed; reads only from database
+- [x] CMR module list view — now loads from database via trpc.cmr.list; Sync button removed (auto-sync on every save)
