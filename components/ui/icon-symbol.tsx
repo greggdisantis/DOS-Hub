@@ -58,6 +58,12 @@ const MAPPING = {
   "arrow.clockwise": "refresh",
   "tray.full.fill": "inbox",
   "checkmark.seal.fill": "verified",
+  // User management icons
+  "checkmark": "check",
+  "list.bullet": "list",
+  "lock.fill": "lock",
+  "person.fill": "person",
+  "person.2.fill": "people",
 } as IconMapping;
 
 /**

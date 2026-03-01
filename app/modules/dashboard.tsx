@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -8,6 +8,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Pressable,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
@@ -15,6 +16,7 @@ import { AuthGuard } from "@/components/auth-guard";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
+import SalesPipelineScreen, { SalesPipelineContent } from "./sales-pipeline";
 
 // ─── Status config ──────────────────────────────────────────────────────────
 
@@ -234,11 +236,81 @@ function RecentActivity({ orders, onTapOrder }: { orders: any[]; onTapOrder: (id
   );
 }
 
+// ─── Module Picker ──────────────────────────────────────────────────────────
+
+type DashboardModule = 'screen-ordering' | 'sales-pipeline';
+
+const DASHBOARD_MODULES: { key: DashboardModule; label: string; icon: any }[] = [
+  { key: 'screen-ordering', label: 'Screen Ordering', icon: 'rectangle.grid.2x2.fill' },
+  { key: 'sales-pipeline', label: 'Sales Pipeline', icon: 'chart.bar.fill' },
+];
+
+function ModulePicker({
+  active,
+  onChange,
+}: {
+  active: DashboardModule;
+  onChange: (m: DashboardModule) => void;
+}) {
+  const colors = useColors();
+  return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      style={{ paddingHorizontal: 12, marginBottom: 4 }}
+      contentContainerStyle={{ gap: 8, paddingVertical: 8 }}
+    >
+      {DASHBOARD_MODULES.map((m) => (
+        <Pressable
+          key={m.key}
+          onPress={() => onChange(m.key)}
+          style={({ pressed }) => ([
+            modulePickerStyles.tab,
+            {
+              borderColor: active === m.key ? colors.primary : colors.border,
+              backgroundColor: active === m.key ? colors.primary + '18' : colors.surface,
+            },
+            pressed && { opacity: 0.7 },
+          ])}
+        >
+          <IconSymbol
+            name={m.icon}
+            size={15}
+            color={active === m.key ? colors.primary : colors.muted}
+          />
+          <Text
+            style={[
+              modulePickerStyles.tabText,
+              { color: active === m.key ? colors.primary : colors.muted },
+            ]}
+          >
+            {m.label}
+          </Text>
+        </Pressable>
+      ))}
+    </ScrollView>
+  );
+}
+
+const modulePickerStyles = StyleSheet.create({
+  tab: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  tabText: { fontSize: 13, fontWeight: '600' },
+});
+
 // ─── Main Dashboard ─────────────────────────────────────────────────────────
 
 function DashboardContent() {
   const colors = useColors();
   const router = useRouter();
+  const [activeModule, setActiveModule] = useState<DashboardModule>('screen-ordering');
 
   const { data, isLoading, refetch } = trpc.dashboard.stats.useQuery();
   const [refreshing, setRefreshing] = useState(false);
@@ -253,9 +325,45 @@ function DashboardContent() {
     router.push({ pathname: "/modules/order-detail", params: { orderId: String(orderId) } } as any);
   };
 
+  // ── Header (shared across modules) ──────────────────────────────────────
+  const header = (
+    <View style={styles.header}>
+      <TouchableOpacity onPress={() => router.back()} activeOpacity={0.6}>
+        <IconSymbol
+          name="chevron.right"
+          size={24}
+          color={colors.foreground}
+          style={{ transform: [{ rotate: "180deg" }] }}
+        />
+      </TouchableOpacity>
+      <Text style={{ fontSize: 22, fontWeight: "700", color: colors.foreground, marginLeft: 8, flex: 1 }}>
+        Dashboard
+      </Text>
+      {activeModule === 'screen-ordering' && (
+        <TouchableOpacity onPress={onRefresh} activeOpacity={0.6} style={{ padding: 4 }}>
+          <IconSymbol name="arrow.clockwise" size={22} color={colors.primary} />
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+
+  // ── Sales Pipeline module ────────────────────────────────────────────────────────
+  if (activeModule === 'sales-pipeline') {
+    return (
+      <ScreenContainer edges={['top', 'left', 'right']}>
+        {header}
+        <ModulePicker active={activeModule} onChange={setActiveModule} />
+        <SalesPipelineContent />
+      </ScreenContainer>
+    );
+  }
+
+  // -- Screen Ordering module (default) --
   if (isLoading) {
     return (
       <ScreenContainer>
+        {header}
+        <ModulePicker active={activeModule} onChange={setActiveModule} />
         <View style={styles.center}>
           <ActivityIndicator size="large" color={colors.primary} />
           <Text style={{ color: colors.muted, marginTop: 12 }}>Loading dashboard...</Text>
@@ -273,23 +381,8 @@ function DashboardContent() {
         contentContainerStyle={{ paddingBottom: 40 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} activeOpacity={0.6}>
-            <IconSymbol
-              name="chevron.right"
-              size={24}
-              color={colors.foreground}
-              style={{ transform: [{ rotate: "180deg" }] }}
-            />
-          </TouchableOpacity>
-          <Text style={{ fontSize: 22, fontWeight: "700", color: colors.foreground, marginLeft: 8, flex: 1 }}>
-            Dashboard
-          </Text>
-          <TouchableOpacity onPress={onRefresh} activeOpacity={0.6} style={{ padding: 4 }}>
-            <IconSymbol name="arrow.clockwise" size={22} color={colors.primary} />
-          </TouchableOpacity>
-        </View>
+        {header}
+        <ModulePicker active={activeModule} onChange={setActiveModule} />
 
         {/* Summary Stats */}
         <View style={styles.statsRow}>

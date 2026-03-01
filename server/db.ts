@@ -132,6 +132,18 @@ export async function updateUserRole(userId: number, role: "pending" | "technici
   await db.update(users).set({ role }).where(eq(users.id, userId));
 }
 
+export async function updateDosRoles(userId: number, dosRoles: string[]) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(users).set({ dosRoles }).where(eq(users.id, userId));
+}
+
+export async function updatePermissions(userId: number, permissions: Record<string, boolean>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(users).set({ permissions }).where(eq(users.id, userId));
+}
+
 // ─── SCREEN ORDER QUERIES ───────────────────────────────────────────────────
 
 export async function createScreenOrder(data: InsertScreenOrder): Promise<number> {

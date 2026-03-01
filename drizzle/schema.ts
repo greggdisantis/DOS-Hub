@@ -18,6 +18,10 @@ export const users = mysqlTable("users", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
+  /** DOS-specific job roles (array of strings from the 17-role list) */
+  dosRoles: json("dosRoles").$type<string[]>(),
+  /** Module-level permissions (key-value map of module slug to boolean) */
+  permissions: json("permissions").$type<Record<string, boolean>>(),
 });
 
 /**

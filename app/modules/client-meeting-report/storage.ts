@@ -7,11 +7,24 @@ import { ClientMeetingReport } from './types';
 
 const STORAGE_KEY = 'client_meeting_reports_v1';
 
+/**
+ * Migrate legacy records saved before new fields were added.
+ * Ensures backward compatibility without a hard schema migration.
+ */
+function migrateReport(r: ClientMeetingReport): ClientMeetingReport {
+  return {
+    ...r,
+    // Default outcome to 'open' for records saved before the field existed
+    outcome: r.outcome ?? 'open' as 'open',
+  };
+}
+
 export async function loadAllReports(): Promise<ClientMeetingReport[]> {
   try {
     const raw = await AsyncStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
-    return JSON.parse(raw) as ClientMeetingReport[];
+    const parsed = JSON.parse(raw) as ClientMeetingReport[];
+    return parsed.map(migrateReport);
   } catch {
     return [];
   }

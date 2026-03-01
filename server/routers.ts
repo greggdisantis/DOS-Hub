@@ -77,6 +77,28 @@ export const appRouter = router({
         await db.updateUserRole(input.userId, input.role);
         return { success: true };
       }),
+
+    /** Update a user's DOS job roles (multi-select from 17-role list) */
+    updateDosRoles: protectedProcedure
+      .input(z.object({ userId: z.number(), dosRoles: z.array(z.string()) }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") {
+          throw new Error("Unauthorized: admin role required");
+        }
+        await db.updateDosRoles(input.userId, input.dosRoles);
+        return { success: true };
+      }),
+
+    /** Update a user's module-level permissions */
+    updatePermissions: protectedProcedure
+      .input(z.object({ userId: z.number(), permissions: z.record(z.string(), z.boolean()) }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") {
+          throw new Error("Unauthorized: admin role required");
+        }
+        await db.updatePermissions(input.userId, input.permissions);
+        return { success: true };
+      }),
   }),
 
   // ─── SCREEN ORDERS ─────────────────────────────────────────────────────────

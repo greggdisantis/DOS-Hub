@@ -131,10 +131,10 @@ function ReportDetail({
           <Pressable onPress={onEdit} style={({ pressed }) => [styles.toolbarBtn, pressed && { opacity: 0.6 }]}>
             <IconSymbol name="pencil" size={18} color={colors.primary} />
           </Pressable>
-          <Pressable onPress={onExport} style={({ pressed }) => [styles.toolbarBtn, pressed && { opacity: 0.6 }]}>
+          <Pressable onPress={onExport} style={({ pressed }) => [styles.exportBtn, { backgroundColor: colors.primary + (pressed ? 'CC' : 'FF') }, pressed && { opacity: 0.85 }]}>
             {isExporting
-              ? <ActivityIndicator size="small" color={colors.primary} />
-              : <IconSymbol name="square.and.arrow.up" size={18} color={colors.primary} />}
+              ? <ActivityIndicator size="small" color="#FFFFFF" />
+              : <Text style={styles.exportBtnText}>EXPORT TO PDF</Text>}
           </Pressable>
         </View>
       </View>
@@ -555,6 +555,21 @@ const styles = StyleSheet.create({
   toolbarBtnText: {
     fontSize: 15,
     fontWeight: '500',
+  },
+  exportBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    minWidth: 44,
+    justifyContent: 'center',
+  },
+  exportBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
   },
   toolbarTitle: {
     flex: 1,

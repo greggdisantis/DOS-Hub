@@ -180,3 +180,21 @@
 - [x] Add PC% accuracy analytics section: original vs final vs outcome per consultant
 - [x] Add pipeline summary stats: total pipeline value, weighted value (value × PC%), sold count, conversion rate
 - [x] Wire Sales Pipeline to Tools tab and/or Home quick actions
+
+## Dashboard Module Picker & Sales Pipeline Fixes
+
+- [x] Move Sales Pipeline into Dashboard screen with module picker (Screen Ordering + Sales Pipeline, more to come)
+- [x] Fix Sales Pipeline: reports with no `outcome` field (legacy data) should default to 'open' not show as 'lost'
+- [x] Fix Sales Pipeline: summary stats bar not counting open reports (same root cause as above)
+- [x] Fix Sales Pipeline: Reopen button not working
+- [x] Fix Sales Pipeline: inline PC% and Est. Value editing directly on the row (no modal needed)
+- [x] Fix Client Meeting Report: PDF export should be direct download button "EXPORT TO PDF", not share/print dialog
+
+## Dashboard & User Management
+
+- [x] Fix Dashboard module picker: tabs are oversized when Sales Pipeline is active (ScreenContainer nesting issue)
+- [x] Extract SalesPipelineContent component (no ScreenContainer) for embedding in Dashboard
+- [x] User Management: add multi-role assignment (up to 17 roles per user) with checkboxes
+- [x] User Management: add permissions panel per user (module-level access toggles)
+- [x] User Management: store roles and permissions in database (server-side)
+- [x] Fix PDF export in Client Meeting Report (direct download, not print dialog)
