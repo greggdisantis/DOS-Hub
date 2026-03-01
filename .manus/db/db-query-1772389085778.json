@@ -1,0 +1,15 @@
+{
+  "query": "SELECT COUNT(*) as total, MIN(createdAt) as oldest, MAX(createdAt) as newest FROM cmr_reports;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user rUcyWo8oc4HgvHh.root --database kseAyHgdHCF3tNKxdCJFMX --execute SELECT COUNT(*) as total, MIN(createdAt) as oldest, MAX(createdAt) as newest FROM cmr_reports;",
+  "rows": [
+    {
+      "total": "0",
+      "oldest": "NULL",
+      "newest": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "total\toldest\tnewest\n0\tNULL\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 59
+}

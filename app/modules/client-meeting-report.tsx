@@ -16,7 +16,7 @@ import { useColors } from '@/hooks/use-colors';
 import { useAuth } from '@/hooks/use-auth';
 import { ClientMeetingFormWizard } from './client-meeting-report/form';
 import { exportMeetingReportPDF } from './client-meeting-report/pdf-export';
-import { loadAllReports, saveReport, deleteReport, generateId } from './client-meeting-report/storage';
+import { loadAllReports, saveReport, deleteReport, generateId, isBackfillDone, markBackfillDone } from './client-meeting-report/storage';
 import { trpc } from '@/lib/trpc';
 import {
   ClientMeetingReport, EMPTY_REPORT, DEAL_STATUS_LABELS,
@@ -273,6 +273,74 @@ export default function ClientMeetingReportScreen() {
   }, []);
 
   const cmrUpsert = trpc.cmr.upsert.useMutation();
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<string | null>(null);
+
+  // On mount: auto-backfill existing AsyncStorage reports to DB (once)
+  useEffect(() => {
+    async function backfill() {
+      const done = await isBackfillDone();
+      if (done) return;
+      const all = await loadAllReports();
+      if (all.length === 0) { await markBackfillDone(); return; }
+      let synced = 0;
+      for (const r of all) {
+        try {
+          await cmrUpsert.mutateAsync({
+            localId: r.id,
+            consultantName: r.consultantName,
+            consultantUserId: r.consultantUserId,
+            clientName: r.clientName,
+            appointmentDate: r.appointmentDate,
+            weekOf: r.weekOf,
+            dealStatus: r.dealStatus,
+            outcome: r.outcome ?? 'open',
+            purchaseConfidencePct: r.purchaseConfidencePct,
+            originalPcPct: r.originalPcPct,
+            estimatedContractValue: r.estimatedContractValue,
+            soldAt: r.soldAt,
+            reportData: r,
+          });
+          synced++;
+        } catch { /* skip individual failures */ }
+      }
+      if (synced > 0) await markBackfillDone();
+    }
+    backfill();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleSyncToServer = useCallback(async () => {
+    setIsSyncing(true);
+    setSyncResult(null);
+    const all = await loadAllReports();
+    let synced = 0;
+    let failed = 0;
+    for (const r of all) {
+      try {
+        await cmrUpsert.mutateAsync({
+          localId: r.id,
+          consultantName: r.consultantName,
+          consultantUserId: r.consultantUserId,
+          clientName: r.clientName,
+          appointmentDate: r.appointmentDate,
+          weekOf: r.weekOf,
+          dealStatus: r.dealStatus,
+          outcome: r.outcome ?? 'open',
+          purchaseConfidencePct: r.purchaseConfidencePct,
+          originalPcPct: r.originalPcPct,
+          estimatedContractValue: r.estimatedContractValue,
+          soldAt: r.soldAt,
+          reportData: r,
+        });
+        synced++;
+      } catch { failed++; }
+    }
+    await markBackfillDone();
+    setIsSyncing(false);
+    setSyncResult(failed > 0 ? `Synced ${synced}, ${failed} failed` : `${synced} report${synced !== 1 ? 's' : ''} synced to server`);
+    setTimeout(() => setSyncResult(null), 4000);
+  }, [cmrUpsert]);
 
   const handleSave = useCallback(async () => {
     if (!activeReport) return;
@@ -403,14 +471,31 @@ export default function ClientMeetingReportScreen() {
             {reports.length} report{reports.length !== 1 ? 's' : ''} saved
           </Text>
         </View>
-        <Pressable
-          onPress={handleNewReport}
-          style={({ pressed }) => [styles.newBtn, { backgroundColor: colors.primary }, pressed && { opacity: 0.8 }]}
-        >
-          <IconSymbol name="plus.circle.fill" size={18} color="#fff" />
-          <Text style={styles.newBtnText}>New Report</Text>
-        </Pressable>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Pressable
+            onPress={handleSyncToServer}
+            disabled={isSyncing}
+            style={({ pressed }) => [styles.syncBtn, { borderColor: colors.border, backgroundColor: colors.surface }, pressed && { opacity: 0.7 }]}
+          >
+            {isSyncing
+              ? <ActivityIndicator size={14} color={colors.primary} />
+              : <IconSymbol name="arrow.clockwise" size={14} color={colors.primary} />}
+            <Text style={[styles.syncBtnText, { color: colors.primary }]}>Sync</Text>
+          </Pressable>
+          <Pressable
+            onPress={handleNewReport}
+            style={({ pressed }) => [styles.newBtn, { backgroundColor: colors.primary }, pressed && { opacity: 0.8 }]}
+          >
+            <IconSymbol name="plus.circle.fill" size={18} color="#fff" />
+            <Text style={styles.newBtnText}>New Report</Text>
+          </Pressable>
+        </View>
       </View>
+      {syncResult && (
+        <View style={[styles.syncBanner, { backgroundColor: colors.success + '22', borderColor: colors.success + '44' }]}>
+          <Text style={[styles.syncBannerText, { color: colors.success }]}>{syncResult}</Text>
+        </View>
+      )}
 
       {loading ? (
         <View style={styles.center}>
@@ -670,5 +755,31 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 13,
     lineHeight: 18,
+  },
+  syncBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 11,
+    paddingVertical: 8,
+    borderRadius: 18,
+    borderWidth: 1,
+  },
+  syncBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  syncBanner: {
+    marginHorizontal: 16,
+    marginBottom: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  syncBannerText: {
+    fontSize: 13,
+    fontWeight: '600',
+    textAlign: 'center',
   },
 });

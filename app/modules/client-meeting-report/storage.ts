@@ -6,6 +6,20 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ClientMeetingReport } from './types';
 
 const STORAGE_KEY = 'client_meeting_reports_v1';
+const BACKFILL_KEY = 'cmr_db_backfill_done_v1';
+
+export async function isBackfillDone(): Promise<boolean> {
+  try {
+    const val = await AsyncStorage.getItem(BACKFILL_KEY);
+    return val === 'true';
+  } catch { return false; }
+}
+
+export async function markBackfillDone(): Promise<void> {
+  try {
+    await AsyncStorage.setItem(BACKFILL_KEY, 'true');
+  } catch {}
+}
 
 /**
  * Migrate legacy records saved before new fields were added.

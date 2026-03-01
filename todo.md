@@ -300,3 +300,8 @@
 - [x] Save CMR reports to database (not just AsyncStorage) so Admin/Manager can see all users' reports
 - [x] Replace date text input boxes in CMR dashboard filters with native date picker
 - [x] Pull consultant/user list from users table for CMR dashboard filter (not derived from reports)
+
+## CMR Dashboard Empty Fix (Round 3)
+- [x] Diagnose why CMR dashboard shows empty even after new saves
+- [x] Add backfill: sync existing AsyncStorage CMR reports to database on first load
+- [x] Ensure CMR dashboard refreshes immediately after a new report is saved
