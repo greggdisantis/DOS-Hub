@@ -150,3 +150,6 @@
 - [x] Fix PDF export still blank — now captures actual visible report DOM element (same as Google AI Studio approach)
 - [x] Fix column headers running together (ZONESSUPERVISOR, QTYMANUFACTURER) — added gap:10 between columns
 - [x] Fix text being cut off in all product reports — increased lineHeight, minHeight, paddingVertical
+- [x] Fix ZONES and SF columns to be center-aligned instead of right-aligned
+- [x] Fix text descenders being clipped in PDF export (overflow:visible, line-height:1.5 override)
+- [x] Improve html2pdf capture quality (scale:3, letterRendering, quality:0.98)

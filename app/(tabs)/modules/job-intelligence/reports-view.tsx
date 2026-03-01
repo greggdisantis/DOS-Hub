@@ -529,7 +529,7 @@ function ProductMonthGroupedReport({
                 isScreens
                   ? [
                       { label: 'Customer', flex: 3 },
-                      { label: 'Qty', flex: 1, align: 'right' },
+                      { label: 'Qty', flex: 1, align: 'center' },
                       { label: 'Manufacturer', flex: 2 },
                       { label: 'Supervisor', flex: 2 },
                       { label: 'Source', flex: 2 },
@@ -538,8 +538,8 @@ function ProductMonthGroupedReport({
                   : isStruXure
                   ? [
                       { label: 'Customer', flex: 3 },
-                      { label: 'SF', flex: 1, align: 'right' },
-                      { label: 'Zones', flex: 1, align: 'right' },
+                      { label: 'SF', flex: 1, align: 'center' },
+                      { label: 'Zones', flex: 1, align: 'center' },
                       { label: 'Supervisor', flex: 2 },
                       { label: 'Source', flex: 2 },
                       { label: 'Conf.', flex: 1, align: 'right' },
@@ -563,7 +563,7 @@ function ProductMonthGroupedReport({
                     isHighlighted={highlighted}
                     columns={[
                       { value: job.customer, flex: 3, bold: true },
-                      { value: p.quantity ? String(p.quantity) : '—', flex: 1, align: 'right' },
+                      { value: p.quantity ? String(p.quantity) : '—', flex: 1, align: 'center' },
                       { value: p.manufacturer || '—', flex: 2 },
                       { value: job.projectSupervisor || '—', flex: 2 },
                       { value: p.sourceLabel || p.status, flex: 2 },
@@ -583,8 +583,8 @@ function ProductMonthGroupedReport({
                     isHighlighted={highlighted}
                     columns={[
                       { value: job.customer, flex: 3, bold: true },
-                      { value: p.sf ? String(p.sf) : '—', flex: 1, align: 'right' },
-                      { value: p.zones ? String(p.zones) : '—', flex: 1, align: 'right' },
+                      { value: p.sf ? String(p.sf) : '—', flex: 1, align: 'center' },
+                      { value: p.zones ? String(p.zones) : '—', flex: 1, align: 'center' },
                       { value: job.projectSupervisor || '—', flex: 2 },
                       { value: p.sourceLabel || p.status, flex: 2 },
                       {

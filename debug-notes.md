@@ -1,30 +1,15 @@
-# PDF Formatting Issues Found
+# PDF Formatting Issues - Round 2
 
-## StruXure Report
-1. **ZONESSUPERVISOR** — "ZONES" and "SUPERVISOR" column headers are merged with no space
-2. **Text cut off** — Customer names are being cut off/blurred at the bottom of each row
-3. Row height too small, causing text to be clipped vertically
+## Issues Found in StruXure PDF:
+1. **ZONES and SUPERVISOR headers still touching** — "ZONES SUPERVISOR" looks like "ZONES  SUPERVISOR" but the gap between them is minimal. The gap:10 helped but ZONES column is right-aligned and SUPERVISOR starts immediately after.
+2. **Text is still being cut off at bottom of rows** — Customer names like "Ballard, Christy" have the bottom of letters clipped (descenders cut). The issue is that html2canvas is cutting off the bottom of text.
+3. **ZONES numbers are right-aligned** — should be centered in the column
+4. **SF numbers are right-aligned** — should be centered in the column
+5. **Column header text appears blurry/pixelated** — "CUSTOMER", "SF", "ZONES", "SUPERVISOR" are hard to read
 
-## Screens Report
-1. **QTYMANUFACTURER** — "QTY" and "MANUFACTURER" column headers merged with no space
-2. Same text cut-off issue
-
-## All Product Reports (StruXure, Screens, Pergotenda, Awnings, Final)
-- Column headers running together
-- Text in rows being cut off/clipped at bottom
-- Row height needs increase
-- Column widths need proper spacing/gaps
-
-## Root Cause
-The on-screen layout uses React Native View/Text with styles that:
-1. Don't have enough gap/margin between adjacent columns
-2. Have insufficient row height (lineHeight too small or row padding too tight)
-3. Columns use flex without enough gap spacing
-
-## Fix needed in reports-view.tsx
-- Add proper gap/spacing between column headers
-- Increase row height / padding
-- Ensure text doesn't overflow/clip (numberOfLines + ellipsis)
-- Separate ZONES and SUPERVISOR into distinct columns with gap
-- Separate QTY and MANUFACTURER into distinct columns with gap
-- Increase lineHeight on all text elements
+## Root Causes:
+- The `align: 'right'` on SF and Zones columns pushes numbers to the far right edge
+- Need `align: 'center'` for SF and Zones columns
+- Text clipping is likely a html2canvas rendering issue with lineHeight vs actual text rendering
+- Need to increase scale in html2pdf options for better quality
+- May need to add extra paddingBottom to text elements to prevent descender clipping

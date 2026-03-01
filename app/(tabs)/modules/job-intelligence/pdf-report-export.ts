@@ -96,6 +96,11 @@ async function exportWebPDFFromElement(el: HTMLElement, filename: string): Promi
       background-color: #ffffff !important;
       padding: 16px !important;
     }
+    .pdf-export [data-testid], .pdf-export div, .pdf-export span {
+      overflow: visible !important;
+      text-overflow: clip !important;
+      line-height: 1.5 !important;
+    }
   `;
   document.head.appendChild(styleTag);
 
@@ -103,12 +108,14 @@ async function exportWebPDFFromElement(el: HTMLElement, filename: string): Promi
     const options = {
       margin: [10, 10, 10, 10],
       filename,
-      image: { type: 'jpeg' as const, quality: 0.95 },
+      image: { type: 'jpeg' as const, quality: 0.98 },
       html2canvas: {
-        scale: 2,
+        scale: 3,
         useCORS: true,
         backgroundColor: '#ffffff',
         logging: false,
+        letterRendering: true,
+        windowWidth: el.scrollWidth + 40,
       },
       jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' as const },
       pagebreak: { mode: ['css', 'legacy'] },
