@@ -20,23 +20,28 @@ import { trpc } from "@/lib/trpc";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const SYSTEM_ROLES = ["technician", "manager", "admin"] as const;
+const SYSTEM_ROLES = ["pending", "guest", "member", "manager", "admin"] as const;
 type SystemRole = (typeof SYSTEM_ROLES)[number];
 
 const SYSTEM_ROLE_LABELS: Record<string, string> = {
   pending: "Pending",
-  technician: "Technician",
+  guest: "Guest",
+  member: "Team Member",
   manager: "Manager",
   admin: "Admin",
+  // Legacy values kept for display of old records
   user: "User",
+  technician: "Technician",
 };
 
 const SYSTEM_ROLE_COLORS: Record<string, string> = {
   pending: "#F59E0B",
-  technician: "#0a7ea4",
+  guest: "#94A3B8",
+  member: "#0a7ea4",
   manager: "#8B5CF6",
   admin: "#EF4444",
   user: "#687076",
+  technician: "#0a7ea4",
 };
 
 /** The 17 DOS job roles users can be assigned (multi-select) */

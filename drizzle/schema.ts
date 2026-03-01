@@ -10,18 +10,46 @@ export const users = mysqlTable("users", {
   name: text("name"),
   email: varchar("email", { length: 320 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
-  /** Role hierarchy: pending (unapproved) → technician → manager → admin */
-  role: mysqlEnum("role", ["user", "admin", "pending", "technician", "manager"]).default("pending").notNull(),
+  /**
+   * System role — controls app-wide access level:
+   * - pending: no access until approved by Admin
+   * - guest: read-only preview of permitted modules, no save/export/reports/settings
+   * - member: full access to own work only (soft-delete goes to bin)
+   * - manager: full access to all work + modifications, no admin tools
+   * - admin: no restrictions
+   */
+  role: varchar("role", { length: 32 }).default("pending").notNull(),
   /** Whether the user has been approved by an admin */
   approved: boolean("approved").default(false).notNull(),
   companyId: int("companyId"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
+  /** First name — required on first login */
+  firstName: varchar("firstName", { length: 128 }),
+  /** Last name — required on first login */
+  lastName: varchar("lastName", { length: 128 }),
   /** DOS-specific job roles (array of strings from the 17-role list) */
   dosRoles: json("dosRoles").$type<string[]>(),
-  /** Module-level permissions (key-value map of module slug to boolean) */
+  /** Legacy per-user module permissions (superseded by module_permissions table for job-role-based access) */
   permissions: json("permissions").$type<Record<string, boolean>>(),
+});
+
+/**
+ * Module permissions table — maps each DOS Hub module to the job roles that have access.
+ * Managed exclusively by Owner-role users via the Module Permissions admin screen.
+ * Owner job role always has access to all modules regardless of this table.
+ */
+export const modulePermissions = mysqlTable("module_permissions", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Unique slug matching the Expo Router module path (e.g. "receipt-capture") */
+  moduleKey: varchar("moduleKey", { length: 64 }).notNull().unique(),
+  /** Human-readable display name */
+  moduleName: varchar("moduleName", { length: 128 }).notNull(),
+  /** Array of job role names (from the 17-role list) that have access to this module */
+  allowedJobRoles: json("allowedJobRoles").$type<string[]>().notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
 /**
@@ -163,3 +191,8 @@ export type Receipt = typeof receipts.$inferSelect;
 export type InsertReceipt = typeof receipts.$inferInsert;
 export type ZoningLookup = typeof zoningLookups.$inferSelect;
 export type InsertZoningLookup = typeof zoningLookups.$inferInsert;
+export type ModulePermission = typeof modulePermissions.$inferSelect;
+export type InsertModulePermission = typeof modulePermissions.$inferInsert;
+
+// System role type
+export type SystemRole = 'pending' | 'guest' | 'member' | 'manager' | 'admin';

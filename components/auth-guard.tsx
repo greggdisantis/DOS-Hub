@@ -4,6 +4,7 @@ import { ActivityIndicator, Text, View, Pressable, StyleSheet } from "react-nati
 import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { ScreenContainer } from "@/components/screen-container";
+import { NameCollectionScreen } from "@/components/name-collection-screen";
 
 type AuthGuardProps = {
   children: React.ReactNode;
@@ -18,7 +19,7 @@ type AuthGuardProps = {
  * Shows login prompt if not authenticated, pending screen if not approved.
  */
 export function AuthGuard({ children, requireManager, requireAdmin }: AuthGuardProps) {
-  const { user, isAuthenticated, loading: authLoading } = useAuth();
+  const { user, isAuthenticated, loading: authLoading, refresh } = useAuth();
   const colors = useColors();
 
   if (authLoading) {
@@ -90,6 +91,11 @@ export function AuthGuard({ children, requireManager, requireAdmin }: AuthGuardP
         </View>
       </ScreenContainer>
     );
+  }
+
+  // Approved but no name set — collect first/last name before proceeding
+  if (user && user.approved && !user.firstName) {
+    return <NameCollectionScreen onComplete={refresh} />;
   }
 
   // Check role requirements

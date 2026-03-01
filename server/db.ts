@@ -4,9 +4,11 @@ import {
   InsertUser,
   InsertScreenOrder,
   InsertOrderRevision,
+  SystemRole,
   users,
   screenOrders,
   orderRevisions,
+  modulePermissions,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
@@ -113,7 +115,7 @@ export async function getPendingUsers() {
   return db.select().from(users).where(eq(users.approved, false)).orderBy(desc(users.createdAt));
 }
 
-export async function approveUser(userId: number, role: "technician" | "manager" | "admin") {
+export async function approveUser(userId: number, role: SystemRole) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.update(users).set({ approved: true, role }).where(eq(users.id, userId));
@@ -126,10 +128,49 @@ export async function rejectUser(userId: number) {
   await db.delete(users).where(eq(users.id, userId));
 }
 
-export async function updateUserRole(userId: number, role: "pending" | "technician" | "manager" | "admin") {
+export async function updateUserRole(userId: number, role: SystemRole) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.update(users).set({ role }).where(eq(users.id, userId));
+}
+
+export async function updateUserName(userId: number, firstName: string, lastName: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const fullName = `${firstName.trim()} ${lastName.trim()}`;
+  await db.update(users).set({ firstName: firstName.trim(), lastName: lastName.trim(), name: fullName }).where(eq(users.id, userId));
+}
+
+// ── Module Permissions ────────────────────────────────────────────────────────
+
+export async function getAllModulePermissions() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(modulePermissions).orderBy(modulePermissions.moduleName);
+}
+
+export async function setModulePermissions(moduleKey: string, allowedJobRoles: string[]) {
+  const db = await getDb();
+  if (!db) return;
+  await db
+    .update(modulePermissions)
+    .set({ allowedJobRoles })
+    .where(eq(modulePermissions.moduleKey, moduleKey));
+}
+
+/** Check if a user’s job roles grant access to a module. Owner always has access. */
+export async function checkModuleAccess(moduleKey: string, userDosRoles: string[]): Promise<boolean> {
+  if (userDosRoles.includes('Owner')) return true;
+  const db = await getDb();
+  if (!db) return false;
+  const result = await db
+    .select()
+    .from(modulePermissions)
+    .where(eq(modulePermissions.moduleKey, moduleKey))
+    .limit(1);
+  if (result.length === 0) return false;
+  const allowed = (result[0].allowedJobRoles as string[]) ?? [];
+  return userDosRoles.some((r) => allowed.includes(r));
 }
 
 export async function updateDosRoles(userId: number, dosRoles: string[]) {

@@ -248,7 +248,10 @@ export default function ClientMeetingReportScreen() {
   const handleNewReport = useCallback(() => {
     const blank = EMPTY_REPORT();
     blank.id = generateId();
-    blank.consultantName = user?.name ?? '';
+    const fullName = (user?.firstName && user?.lastName)
+      ? `${user.firstName} ${user.lastName}`.trim()
+      : (user?.name ?? '');
+    blank.consultantName = fullName;
     blank.consultantUserId = user?.id != null ? String(user.id) : '';
     setActiveReport(blank);
     setViewMode('form');

@@ -204,3 +204,41 @@
 - [x] Fix Dashboard module picker: tabs still oversized (ScrollView flex expanding to full height)
 - [x] Fix User Management: new multi-role/permissions UI not rendering (still shows old Change Role button)
 - [x] Add Edit button to each Sales Pipeline row (navigate to Client Meeting Report form for that report)
+
+## RBAC System Roles & Module Permissions
+
+- [x] Update system role enum: pending | guest | member | manager | admin
+- [x] Add module_permissions table: module_key → allowed job roles (JSON array)
+- [x] Server: approveUser procedure (Admin only — changes pending → member/guest)
+- [x] Server: getModulePermissions / setModulePermissions procedures (Owner only)
+- [x] Server: enforce role middleware (pending users blocked from all modules)
+- [x] Hook: useSystemRole — returns current user's system role
+- [x] Hook: useModuleAccess(moduleKey) — returns whether current user can access a module
+- [x] Hook: useCanEdit — false for Guest
+- [x] Hook: useCanExport — false for Guest
+- [x] User Management: show system role badge (Pending/Guest/Member/Manager/Admin)
+- [x] User Management: Pending users show "Approve" button (Admin only)
+- [x] User Management: Approve flow lets Admin pick new role (Guest/Member/Manager)
+- [x] Module Permissions tab: Owner-only tab in admin area
+- [x] Module Permissions tab: list all DOS Hub modules with job role multi-select per module
+- [x] Module Permissions tab: Owner job role always has access to all modules
+- [x] Enforce RBAC: Pending users see "Access Pending" screen on login
+- [x] Enforce RBAC: Guest users cannot save work (save buttons hidden/disabled)
+- [x] Enforce RBAC: Guest users cannot export files (export buttons hidden)
+- [x] Enforce RBAC: Guest users cannot see dashboard data or run reports
+- [x] Enforce RBAC: Guest/Pending users cannot access Settings or Admin
+- [x] Enforce RBAC: Team Member sees only their own data in lists
+- [x] Enforce RBAC: Team Member soft-delete goes to deleted bin (Manager/Admin can purge)
+- [x] Enforce RBAC: Manager can see and edit all team members' work
+
+## Name Registration & Auto-fill
+
+- [x] Add firstName and lastName columns to users table in DB
+- [x] Add updateUserName server procedure
+- [x] Build name collection onboarding screen (shown after first login if name is missing)
+- [x] Name screen: require first name + last name before proceeding to app
+- [x] Store full name as firstName + lastName in DB, combine as displayName
+- [x] Auto-fill consultant name in Client Meeting Report from user profile
+- [x] Auto-fill submitter name in Screen Ordering from user profile
+- [ ] Auto-fill submitter name in Receipt Capture from user profile
+- [ ] Auto-fill user name in any other module that asks for a name

@@ -18,18 +18,22 @@ type SettingsRow = {
 
 const ROLE_LABELS: Record<string, string> = {
   pending: "Pending Approval",
-  technician: "Technician",
+  guest: "Guest",
+  member: "Team Member",
+  technician: "Team Member",
   manager: "Manager",
   admin: "Administrator",
-  user: "User",
+  user: "Team Member",
 };
 
 const ROLE_COLORS: Record<string, string> = {
   pending: "#F59E0B",
+  guest: "#94A3B8",
+  member: "#0a7ea4",
   technician: "#0a7ea4",
   manager: "#8B5CF6",
   admin: "#EF4444",
-  user: "#687076",
+  user: "#0a7ea4",
 };
 
 export default function ProfileScreen() {
@@ -85,8 +89,16 @@ export default function ProfileScreen() {
           id: "users",
           icon: "shield.fill",
           label: "User Management",
-          subtitle: "Approve users & set roles",
+          subtitle: "Approve users, set roles & permissions",
           onPress: () => router.push("/modules/admin-users"),
+          roles: ["admin"],
+        },
+        {
+          id: "module-permissions",
+          icon: "lock.fill",
+          label: "Module Permissions",
+          subtitle: "Configure role-based access per module",
+          onPress: () => router.push("/modules/module-permissions" as any),
           roles: ["admin"],
         },
         {

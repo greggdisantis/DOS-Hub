@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   Text, View, ScrollView, TextInput, Pressable, Alert, StyleSheet, Platform, Switch, Image,
 } from "react-native";
@@ -42,6 +42,17 @@ export default function ScreenOrderingScreen() {
   const [savedOrderId, setSavedOrderId] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [showSavedOrders, setShowSavedOrders] = useState(false);
+
+  // Auto-fill submitter name from user profile
+  useEffect(() => {
+    if (user && !order.state.project.submitterName) {
+      const fullName = (user.firstName && user.lastName)
+        ? `${user.firstName} ${user.lastName}`.trim()
+        : (user.name ?? '');
+      if (fullName) order.updateProject({ submitterName: fullName });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   const utils = trpc.useUtils();
   const createOrderMutation = trpc.orders.create.useMutation({

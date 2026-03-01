@@ -11,6 +11,9 @@ export type User = {
   role: string;
   approved: boolean;
   lastSignedIn: Date;
+  firstName?: string | null;
+  lastName?: string | null;
+  dosRoles?: string[] | null;
 };
 
 export async function getSessionToken(): Promise<string | null> {

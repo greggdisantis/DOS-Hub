@@ -5,6 +5,9 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import * as db from "./db";
 
+// System roles available in the app
+const SYSTEM_ROLES = ["pending", "guest", "member", "manager", "admin"] as const;
+
 export const appRouter = router({
   system: systemRouter,
 
@@ -35,12 +38,12 @@ export const appRouter = router({
       return db.getPendingUsers();
     }),
 
-    /** Approve a user and set their role */
+    /** Approve a user and set their system role */
     approve: protectedProcedure
       .input(
         z.object({
           userId: z.number(),
-          role: z.enum(["technician", "manager", "admin"]),
+          role: z.enum(SYSTEM_ROLES),
         }),
       )
       .mutation(async ({ ctx, input }) => {
@@ -62,12 +65,12 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    /** Update a user's role */
+    /** Update a user's system role */
     updateRole: protectedProcedure
       .input(
         z.object({
           userId: z.number(),
-          role: z.enum(["pending", "technician", "manager", "admin"]),
+          role: z.enum(SYSTEM_ROLES),
         }),
       )
       .mutation(async ({ ctx, input }) => {
@@ -75,6 +78,14 @@ export const appRouter = router({
           throw new Error("Unauthorized: admin role required");
         }
         await db.updateUserRole(input.userId, input.role);
+        return { success: true };
+      }),
+
+    /** Update the logged-in user's first and last name */
+    updateName: protectedProcedure
+      .input(z.object({ firstName: z.string().min(1).max(128), lastName: z.string().min(1).max(128) }))
+      .mutation(async ({ ctx, input }) => {
+        await db.updateUserName(ctx.user.id, input.firstName, input.lastName);
         return { success: true };
       }),
 
@@ -89,7 +100,7 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    /** Update a user's module-level permissions */
+    /** Update a user's legacy per-user module permissions */
     updatePermissions: protectedProcedure
       .input(z.object({ userId: z.number(), permissions: z.record(z.string(), z.boolean()) }))
       .mutation(async ({ ctx, input }) => {
@@ -97,6 +108,33 @@ export const appRouter = router({
           throw new Error("Unauthorized: admin role required");
         }
         await db.updatePermissions(input.userId, input.permissions);
+        return { success: true };
+      }),
+  }),
+
+  // ─── MODULE PERMISSIONS (Owner job role only) ──────────────────────────────
+  modulePermissions: router({
+    /** Get all module permission settings */
+    list: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user.role !== "admin") {
+        throw new Error("Unauthorized: admin role required");
+      }
+      return db.getAllModulePermissions();
+    }),
+
+    /** Set which job roles can access a module */
+    set: protectedProcedure
+      .input(z.object({ moduleKey: z.string(), allowedJobRoles: z.array(z.string()) }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") {
+          throw new Error("Unauthorized: admin role required");
+        }
+        // Only Owner job role users can modify module permissions
+        const dosRoles = (ctx.user.dosRoles as string[]) ?? [];
+        if (!dosRoles.includes("Owner")) {
+          throw new Error("Unauthorized: Owner job role required to modify module permissions");
+        }
+        await db.setModulePermissions(input.moduleKey, input.allowedJobRoles);
         return { success: true };
       }),
   }),
@@ -145,7 +183,6 @@ export const appRouter = router({
         }),
       )
       .mutation(async ({ ctx, input }) => {
-        // Check permission: owner, manager, or admin can edit
         const order = await db.getScreenOrder(input.orderId);
         if (!order) throw new Error("Order not found");
 
@@ -174,7 +211,6 @@ export const appRouter = router({
         const order = await db.getScreenOrder(input.orderId);
         if (!order) throw new Error("Order not found");
 
-        // Technicians can only see their own orders
         const isOwner = order.userId === ctx.user.id;
         const isManagerOrAdmin = ctx.user.role === "manager" || ctx.user.role === "admin";
 
@@ -185,7 +221,7 @@ export const appRouter = router({
         return order;
       }),
 
-    /** List orders — technicians see their own, managers/admins see all */
+    /** List orders — members see their own, managers/admins see all */
     list: protectedProcedure.query(async ({ ctx }) => {
       if (ctx.user.role === "manager" || ctx.user.role === "admin") {
         return db.getAllScreenOrders();

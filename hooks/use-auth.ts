@@ -35,6 +35,9 @@ export function useAuth(options?: UseAuthOptions) {
             role: (apiUser as any).role ?? "pending",
             approved: (apiUser as any).approved ?? false,
             lastSignedIn: new Date(apiUser.lastSignedIn),
+            firstName: (apiUser as any).firstName ?? null,
+            lastName: (apiUser as any).lastName ?? null,
+            dosRoles: (apiUser as any).dosRoles ?? null,
           };
           setUser(userInfo);
           // Cache user info in localStorage for faster subsequent loads
