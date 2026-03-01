@@ -67,17 +67,25 @@ async function exportWebPDF(html: string, filename: string): Promise<void> {
   // Dynamically import html2pdf.js (web only, avoids Metro bundling issues on native)
   const html2pdf = (await import('html2pdf.js')).default;
 
-  // Create a hidden container in the DOM with the report HTML
+  // Create a container that is in the DOM and visible to html2canvas,
+  // but visually hidden from the user via opacity + pointer-events.
+  // NOTE: position:fixed at -9999px causes html2canvas to produce blank output.
   const container = document.createElement('div');
-  container.style.position = 'fixed';
-  container.style.top = '-9999px';
-  container.style.left = '-9999px';
+  container.style.position = 'absolute';
+  container.style.top = '0';
+  container.style.left = '0';
   container.style.width = '850px';
+  container.style.zIndex = '-9999';
+  container.style.opacity = '0';
+  container.style.pointerEvents = 'none';
   container.style.background = '#ffffff';
   container.style.color = '#1a1a1a';
   container.style.fontFamily = 'Arial, sans-serif';
   container.innerHTML = html;
   document.body.appendChild(container);
+
+  // Give the browser a frame to lay out the content before capturing
+  await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
 
   try {
     const options = {
@@ -89,6 +97,10 @@ async function exportWebPDF(html: string, filename: string): Promise<void> {
         useCORS: true,
         backgroundColor: '#ffffff',
         logging: false,
+        // Ensure html2canvas scrolls to the element
+        scrollX: 0,
+        scrollY: 0,
+        windowWidth: 870,
       },
       jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' as const },
       pagebreak: { mode: ['css', 'legacy'] },

@@ -146,3 +146,4 @@
 - [x] Fix PDF export on web: auto-download to Downloads folder with correct filename instead of print dialog
 - [x] Update PDF export to use grouped layouts matching on-screen display (month-grouped, supervisor-grouped, status-grouped)
 - [x] Fix PDF export to actually save/download (study Google AI Studio working implementation)
+- [x] Fix PDF export producing empty file (html2canvas cannot capture off-screen div at -9999px)
