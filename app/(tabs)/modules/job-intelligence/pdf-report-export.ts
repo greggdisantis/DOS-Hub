@@ -50,42 +50,54 @@ export async function exportReportToPDF(
   reportTitle: string,
   jobs: JobData[],
   reportType: ReportType,
+  /** On web, pass the actual DOM element of the report content for direct capture */
+  reportElement?: HTMLElement | null,
 ): Promise<void> {
   const filename = buildFilename(reportTitle);
-  const html = generateReportHTML(reportTitle, jobs, reportType);
 
   if (Platform.OS === 'web') {
-    await exportWebPDF(html, filename);
+    if (reportElement) {
+      // Preferred: capture the actual visible report element (like Google AI Studio)
+      await exportWebPDFFromElement(reportElement, filename);
+    } else {
+      // Fallback: generate HTML and open in new window for print-to-PDF
+      const html = generateReportHTML(reportTitle, jobs, reportType);
+      await exportWebPDFFallback(html, filename, reportTitle);
+    }
   } else {
+    const html = generateReportHTML(reportTitle, jobs, reportType);
     await exportNativePDF(html, filename, reportTitle);
   }
 }
 
 // ─── Web export via html2pdf.js ───────────────────────────────────────────────
 
-async function exportWebPDF(html: string, filename: string): Promise<void> {
-  // Dynamically import html2pdf.js (web only, avoids Metro bundling issues on native)
+/**
+ * Web export — captures the actual visible report DOM element.
+ * This is the same approach used by Google AI Studio's downloadReportPdf.
+ * html2pdf.js uses html2canvas to screenshot the real on-screen element,
+ * then converts it to a PDF and triggers a direct browser download.
+ */
+async function exportWebPDFFromElement(el: HTMLElement, filename: string): Promise<void> {
   const html2pdf = (await import('html2pdf.js')).default;
 
-  // Create a container that is in the DOM and visible to html2canvas,
-  // but visually hidden from the user via opacity + pointer-events.
-  // NOTE: position:fixed at -9999px causes html2canvas to produce blank output.
-  const container = document.createElement('div');
-  container.style.position = 'absolute';
-  container.style.top = '0';
-  container.style.left = '0';
-  container.style.width = '850px';
-  container.style.zIndex = '-9999';
-  container.style.opacity = '0';
-  container.style.pointerEvents = 'none';
-  container.style.background = '#ffffff';
-  container.style.color = '#1a1a1a';
-  container.style.fontFamily = 'Arial, sans-serif';
-  container.innerHTML = html;
-  document.body.appendChild(container);
+  // Add a temporary class for PDF-specific styling (force hex colors, white bg)
+  el.classList.add('pdf-export');
 
-  // Give the browser a frame to lay out the content before capturing
-  await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+  // Inject a temporary style tag for pdf-export overrides
+  const styleTag = document.createElement('style');
+  styleTag.textContent = `
+    .pdf-export, .pdf-export * {
+      color: #1a1a1a !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    .pdf-export {
+      background-color: #ffffff !important;
+      padding: 16px !important;
+    }
+  `;
+  document.head.appendChild(styleTag);
 
   try {
     const options = {
@@ -97,19 +109,36 @@ async function exportWebPDF(html: string, filename: string): Promise<void> {
         useCORS: true,
         backgroundColor: '#ffffff',
         logging: false,
-        // Ensure html2canvas scrolls to the element
-        scrollX: 0,
-        scrollY: 0,
-        windowWidth: 870,
       },
       jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' as const },
       pagebreak: { mode: ['css', 'legacy'] },
     };
 
-    await (html2pdf() as any).set(options).from(container).save();
+    await (html2pdf() as any).set(options).from(el).save();
   } finally {
-    document.body.removeChild(container);
+    el.classList.remove('pdf-export');
+    document.head.removeChild(styleTag);
   }
+}
+
+/**
+ * Fallback web export — opens a new window with the generated HTML and triggers print.
+ * Used when no DOM element ref is available.
+ */
+async function exportWebPDFFallback(html: string, filename: string, reportTitle: string): Promise<void> {
+  const w = window.open('', '_blank');
+  if (!w) {
+    alert('Pop-up blocked. Please allow pop-ups to export PDF.');
+    return;
+  }
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
+  // Let the content render, then trigger print (user saves as PDF from print dialog)
+  w.onload = () => {
+    w.focus();
+    w.print();
+  };
 }
 
 // ─── Native export (expo-print + sharing) ────────────────────────────────────

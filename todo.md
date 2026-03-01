@@ -147,3 +147,4 @@
 - [x] Update PDF export to use grouped layouts matching on-screen display (month-grouped, supervisor-grouped, status-grouped)
 - [x] Fix PDF export to actually save/download (study Google AI Studio working implementation)
 - [x] Fix PDF export producing empty file (html2canvas cannot capture off-screen div at -9999px)
+- [x] Fix PDF export still blank — now captures actual visible report DOM element (same as Google AI Studio approach)

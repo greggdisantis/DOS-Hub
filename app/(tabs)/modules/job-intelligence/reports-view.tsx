@@ -3,7 +3,7 @@
  * Displays all report types with grouped layouts matching reference PDF designs
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -30,6 +30,7 @@ export function ReportsView({ jobs, isLoading = false }: ReportsViewProps) {
   const [exporting, setExporting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showReportMenu, setShowReportMenu] = useState(false);
+  const reportContentRef = useRef<View>(null);
 
   const filteredJobs = useMemo(() => {
     if (!searchQuery.trim()) return jobs;
@@ -50,7 +51,13 @@ export function ReportsView({ jobs, isLoading = false }: ReportsViewProps) {
     if (!currentReport) return;
     setExporting(true);
     try {
-      await exportReportToPDF(currentReport.title, reportData, activeReport);
+      // On web, get the actual DOM element from the ref for direct capture
+      let domElement: HTMLElement | null = null;
+      if (typeof window !== 'undefined' && reportContentRef.current) {
+        // React Native Web renders View as a div; the ref has the underlying DOM node
+        domElement = (reportContentRef.current as any) as HTMLElement;
+      }
+      await exportReportToPDF(currentReport.title, reportData, activeReport, domElement);
     } catch (error) {
       console.error('PDF export failed:', error);
     } finally {
@@ -237,7 +244,9 @@ export function ReportsView({ jobs, isLoading = false }: ReportsViewProps) {
         </View>
       ) : (
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 32 }}>
-          <ReportContent jobs={reportData} reportType={activeReport} searchQuery={searchQuery} />
+          <View ref={reportContentRef}>
+            <ReportContent jobs={reportData} reportType={activeReport} searchQuery={searchQuery} />
+          </View>
         </ScrollView>
       )}
     </ScreenContainer>
