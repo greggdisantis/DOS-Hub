@@ -17,6 +17,7 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import SalesPipelineScreen, { SalesPipelineContent } from "./sales-pipeline";
+import { ReceiptDashboardContent } from "./receipt-dashboard";
 
 // ─── Status config ──────────────────────────────────────────────────────────
 
@@ -238,11 +239,12 @@ function RecentActivity({ orders, onTapOrder }: { orders: any[]; onTapOrder: (id
 
 // ─── Module Picker ──────────────────────────────────────────────────────────
 
-type DashboardModule = 'screen-ordering' | 'sales-pipeline';
+type DashboardModule = 'screen-ordering' | 'sales-pipeline' | 'receipts';
 
 const DASHBOARD_MODULES: { key: DashboardModule; label: string; icon: any }[] = [
   { key: 'screen-ordering', label: 'Screen Ordering', icon: 'rectangle.grid.2x2.fill' },
   { key: 'sales-pipeline', label: 'Sales Pipeline', icon: 'chart.bar.fill' },
+  { key: 'receipts', label: 'Receipts', icon: 'receipt' },
 ];
 
 function ModulePicker({
@@ -346,6 +348,23 @@ function DashboardContent() {
       )}
     </View>
   );
+
+  // ── Receipts Finance module ──────────────────────────────────────────────────────
+  if (activeModule === 'receipts') {
+    return (
+      <ScreenContainer edges={['top', 'left', 'right']}>
+        <View style={{ flex: 1 }}>
+          {header}
+          <View style={{ flexShrink: 0 }}>
+            <ModulePicker active={activeModule} onChange={setActiveModule} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <ReceiptDashboardContent />
+          </View>
+        </View>
+      </ScreenContainer>
+    );
+  }
 
   // ── Sales Pipeline module ────────────────────────────────────────────────────────
   if (activeModule === 'sales-pipeline') {

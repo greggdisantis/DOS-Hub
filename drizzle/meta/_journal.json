@@ -43,6 +43,13 @@
       "when": 1772338734878,
       "tag": "0005_dry_master_chief",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1772379914304,
+      "tag": "0006_good_blink",
+      "breakpoints": true
     }
   ]
 }

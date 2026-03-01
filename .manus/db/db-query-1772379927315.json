@@ -1,0 +1,290 @@
+{
+  "query": "SHOW COLUMNS FROM receipts; SHOW COLUMNS FROM users;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user rUcyWo8oc4HgvHh.root --database kseAyHgdHCF3tNKxdCJFMX --execute SHOW COLUMNS FROM receipts; SHOW COLUMNS FROM users;",
+  "rows": [
+    {
+      "Field": "id",
+      "Type": "int",
+      "Null": "NO",
+      "Key": "PRI",
+      "Default": "NULL",
+      "Extra": "auto_increment"
+    },
+    {
+      "Field": "userId",
+      "Type": "int",
+      "Null": "NO",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "companyId",
+      "Type": "int",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "projectId",
+      "Type": "int",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "submitterName",
+      "Type": "varchar(255)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "vendorName",
+      "Type": "varchar(255)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "vendorLocation",
+      "Type": "text",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "purchaseDate",
+      "Type": "varchar(10)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "subtotal",
+      "Type": "decimal(10,2)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "tax",
+      "Type": "decimal(10,2)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "total",
+      "Type": "decimal(10,2)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "imageUrl",
+      "Type": "text",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "workOrderNumber",
+      "Type": "varchar(64)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "jobName",
+      "Type": "varchar(255)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "poNumber",
+      "Type": "varchar(64)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "materialCategory",
+      "Type": "enum('Structures','Screens','Electrical','Miscellaneous','Fuel','Tools')",
+      "Null": "YES",
+      "Key": "",
+      "Default": "Miscellaneous",
+      "Extra": ""
+    },
+    {
+      "Field": "expenseType",
+      "Type": "enum('JOB','OVERHEAD')",
+      "Null": "YES",
+      "Key": "",
+      "Default": "JOB",
+      "Extra": ""
+    },
+    {
+      "Field": "notes",
+      "Type": "text",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "createdAt",
+      "Type": "timestamp",
+      "Null": "NO",
+      "Key": "",
+      "Default": "CURRENT_TIMESTAMP",
+      "Extra": ""
+    },
+    {
+      "Field": "Field",
+      "Type": "Type",
+      "Null": "Null",
+      "Key": "Key",
+      "Default": "Default",
+      "Extra": "Extra"
+    },
+    {
+      "Field": "id",
+      "Type": "int",
+      "Null": "NO",
+      "Key": "PRI",
+      "Default": "NULL",
+      "Extra": "auto_increment"
+    },
+    {
+      "Field": "openId",
+      "Type": "varchar(64)",
+      "Null": "NO",
+      "Key": "UNI",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "name",
+      "Type": "text",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "email",
+      "Type": "varchar(320)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "loginMethod",
+      "Type": "varchar(64)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "role",
+      "Type": "varchar(32)",
+      "Null": "NO",
+      "Key": "",
+      "Default": "pending",
+      "Extra": ""
+    },
+    {
+      "Field": "createdAt",
+      "Type": "timestamp",
+      "Null": "NO",
+      "Key": "",
+      "Default": "CURRENT_TIMESTAMP",
+      "Extra": ""
+    },
+    {
+      "Field": "updatedAt",
+      "Type": "timestamp",
+      "Null": "NO",
+      "Key": "",
+      "Default": "CURRENT_TIMESTAMP",
+      "Extra": "DEFAULT_GENERATED on update CURRENT_TIMESTAMP"
+    },
+    {
+      "Field": "lastSignedIn",
+      "Type": "timestamp",
+      "Null": "NO",
+      "Key": "",
+      "Default": "CURRENT_TIMESTAMP",
+      "Extra": ""
+    },
+    {
+      "Field": "companyId",
+      "Type": "int",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "approved",
+      "Type": "tinyint(1)",
+      "Null": "NO",
+      "Key": "",
+      "Default": "0",
+      "Extra": ""
+    },
+    {
+      "Field": "dosRoles",
+      "Type": "json",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "permissions",
+      "Type": "json",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "firstName",
+      "Type": "varchar(128)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "lastName",
+      "Type": "varchar(128)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    }
+  ],
+  "messages": [],
+  "stdout": "Field\tType\tNull\tKey\tDefault\tExtra\nid\tint\tNO\tPRI\tNULL\tauto_increment\nuserId\tint\tNO\t\tNULL\t\ncompanyId\tint\tYES\t\tNULL\t\nprojectId\tint\tYES\t\tNULL\t\nsubmitterName\tvarchar(255)\tYES\t\tNULL\t\nvendorName\tvarchar(255)\tYES\t\tNULL\t\nvendorLocation\ttext\tYES\t\tNULL\t\npurchaseDate\tvarchar(10)\tYES\t\tNULL\t\nsubtotal\tdecimal(10,2)\tYES\t\tNULL\t\ntax\tdecimal(10,2)\tYES\t\tNULL\t\ntotal\tdecimal(10,2)\tYES\t\tNULL\t\nimageUrl\ttext\tYES\t\tNULL\t\nworkOrderNumber\tvarchar(64)\tYES\t\tNULL\t\njobName\tvarchar(255)\tYES\t\tNULL\t\npoNumber\tvarchar(64)\tYES\t\tNULL\t\nmaterialCategory\tenum('Structures','Screens','Electrical','Miscellaneous','Fuel','Tools')\tYES\t\tMiscellaneous\t\nexpenseType\tenum('JOB','OVERHEAD')\tYES\t\tJOB\t\nnotes\ttext\tYES\t\tNULL\t\ncreatedAt\ttimestamp\tNO\t\tCURRENT_TIMESTAMP\t\nField\tType\tNull\tKey\tDefault\tExtra\nid\tint\tNO\tPRI\tNULL\tauto_increment\nopenId\tvarchar(64)\tNO\tUNI\tNULL\t\nname\ttext\tYES\t\tNULL\t\nemail\tvarchar(320)\tYES\t\tNULL\t\nloginMethod\tvarchar(64)\tYES\t\tNULL\t\nrole\tvarchar(32)\tNO\t\tpending\t\ncreatedAt\ttimestamp\tNO\t\tCURRENT_TIMESTAMP\t\nupdatedAt\ttimestamp\tNO\t\tCURRENT_TIMESTAMP\tDEFAULT_GENERATED on update CURRENT_TIMESTAMP\nlastSignedIn\ttimestamp\tNO\t\tCURRENT_TIMESTAMP\t\ncompanyId\tint\tYES\t\tNULL\t\napproved\ttinyint(1)\tNO\t\t0\t\ndosRoles\tjson\tYES\t\tNULL\t\npermissions\tjson\tYES\t\tNULL\t\nfirstName\tvarchar(128)\tYES\t\tNULL\t\nlastName\tvarchar(128)\tYES\t\tNULL\t\n",
+  "stderr": "",
+  "execution_time_ms": 109
+}

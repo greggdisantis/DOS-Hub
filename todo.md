@@ -252,3 +252,24 @@
 - [x] Add Client Meeting Report to home screen modules grid
 - [x] Rename "New Order" quick action to "Screen Ordering"
 - [x] Remove unused "Projects" tab from bottom tab bar
+
+## Receipt Capture Module (Full Build)
+
+- [x] Update receipts DB schema: add lineItems (JSON), overheadCategory, receiptImageBase64, receiptImageMimeType, fileName columns
+- [x] Add server tRPC procedures: receipts.create, receipts.list, receipts.get, receipts.delete, receipts.analyzeImage
+- [x] Add db.ts helpers for receipts CRUD
+- [x] Build receipt capture form: image upload/camera, AI analysis, review & confirm
+- [x] Auto-fill submitter name from logged-in user profile
+- [x] Receipt Classification: Job Receipt vs Overhead/General with conditional fields
+- [x] Line items editor: add/edit/delete rows with description, qty, unit price, total
+- [x] Vendor & Date section with AI-extracted editable fields
+- [x] Material Class dropdown (Screens, Electrical, Miscellaneous, Fuel, Tools)
+- [x] Overhead Category dropdown (Office Supplies, Tools & Equipment, Marketing, etc.)
+- [x] Totals section: subtotal, tax, total
+- [x] Save receipt to database with receipt image stored in S3
+- [x] Generate filename: VendorName_D-M-YYYY_HHmmss
+- [x] PDF export per receipt: page 1 = summary (DOS header, classification, vendor, line items, totals), page 2 = original receipt image
+- [x] Receipt Dashboard: date-grouped file-system view (admin sees all, members see own)
+- [x] Dashboard rows: vendor, user, amount, date, PDF export button
+- [x] Dashboard filters: by user, date range, vendor name
+- [x] Dashboard analytics: total spend by user, by vendor, by category, monthly trend, top vendors

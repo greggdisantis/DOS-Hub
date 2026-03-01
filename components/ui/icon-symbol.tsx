@@ -64,7 +64,23 @@ const MAPPING = {
   "lock.fill": "lock",
   "person.fill": "person",
   "person.2.fill": "people",
-} as IconMapping;
+  // Receipt capture icons
+  "doc.badge.plus": "note-add",
+  "arrow.up.tray": "upload",
+  "arrow.down.tray": "download",
+  "doc.text.magnifyingglass": "find-in-page",
+  "line.3.horizontal.decrease.circle": "filter-list",
+  "calendar": "calendar-today",
+  "dollarsign.circle.fill": "attach-money",
+  "chart.pie.fill": "pie-chart",
+  "arrow.left": "arrow-back",
+  "chevron.left": "chevron-left",
+  "plus": "add",
+  "eye.fill": "visibility",
+  "safari.fill": "open-in-browser",
+  "arrow.down": "download",
+  "folder.badge.plus": "create-new-folder",
+} as unknown as IconMapping;
 
 /**
  * An icon component that uses native SF Symbols on iOS, and Material Icons on Android and web.

@@ -146,13 +146,20 @@ export const receipts = mysqlTable("receipts", {
   subtotal: decimal("subtotal", { precision: 10, scale: 2 }),
   tax: decimal("tax", { precision: 10, scale: 2 }),
   total: decimal("total", { precision: 10, scale: 2 }),
+  /** S3 URL of the uploaded receipt image */
   imageUrl: text("imageUrl"),
+  /** Line items extracted from the receipt */
+  lineItems: json("lineItems").$type<Array<{ description: string; quantity: number; unitPrice: number; lineTotal: number }>>(),
   workOrderNumber: varchar("workOrderNumber", { length: 64 }),
   jobName: varchar("jobName", { length: 255 }),
   poNumber: varchar("poNumber", { length: 64 }),
-  materialCategory: mysqlEnum("materialCategory", ["Structures", "Screens", "Electrical", "Miscellaneous", "Fuel", "Tools"]).default("Miscellaneous"),
+  materialCategory: varchar("materialCategory", { length: 64 }).default("Miscellaneous"),
   expenseType: mysqlEnum("expenseType", ["JOB", "OVERHEAD"]).default("JOB"),
+  /** Category for overhead expenses */
+  overheadCategory: varchar("overheadCategory", { length: 128 }),
   notes: text("notes"),
+  /** Generated filename: VendorName_D-M-YYYY_HHmmss */
+  fileName: varchar("fileName", { length: 255 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 

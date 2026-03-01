@@ -1,14 +1,16 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, gte, lte, like } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   InsertUser,
   InsertScreenOrder,
   InsertOrderRevision,
+  InsertReceipt,
   SystemRole,
   users,
   screenOrders,
   orderRevisions,
   modulePermissions,
+  receipts,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
@@ -369,4 +371,126 @@ export async function deleteScreenOrder(orderId: number) {
   // Delete revisions first (foreign key)
   await db.delete(orderRevisions).where(eq(orderRevisions.orderId, orderId));
   await db.delete(screenOrders).where(eq(screenOrders.id, orderId));
+}
+
+// ─── RECEIPT QUERIES ─────────────────────────────────────────────────────────
+
+export async function createReceipt(data: InsertReceipt): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const [result] = await db.insert(receipts).values(data).$returningId();
+  return result.id;
+}
+
+export async function getReceipt(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(receipts).where(eq(receipts.id, id)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getUserReceipts(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(receipts).where(eq(receipts.userId, userId)).orderBy(desc(receipts.createdAt));
+}
+
+export async function getAllReceipts() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(receipts).orderBy(desc(receipts.createdAt));
+}
+
+export async function getReceiptsWithFilters(filters: {
+  userId?: number;
+  vendorName?: string;
+  startDate?: string;
+  endDate?: string;
+}) {
+  const db = await getDb();
+  if (!db) return [];
+
+  const conditions = [];
+  if (filters.userId) conditions.push(eq(receipts.userId, filters.userId));
+  if (filters.vendorName) conditions.push(like(receipts.vendorName, `%${filters.vendorName}%`));
+  if (filters.startDate) conditions.push(gte(receipts.purchaseDate, filters.startDate));
+  if (filters.endDate) conditions.push(lte(receipts.purchaseDate, filters.endDate));
+
+  const query = db.select().from(receipts).orderBy(desc(receipts.createdAt));
+  if (conditions.length > 0) {
+    return query.where(and(...conditions));
+  }
+  return query;
+}
+
+export async function deleteReceipt(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(receipts).where(eq(receipts.id, id));
+}
+
+export async function getReceiptAnalytics() {
+  const db = await getDb();
+  if (!db) return { totalSpend: 0, byUser: [], byVendor: [], byCategory: [], monthlyTrend: [] };
+
+  const allReceipts = await db.select().from(receipts).orderBy(desc(receipts.createdAt));
+  const allUsers = await db.select().from(users);
+  const userMap = new Map(allUsers.map((u) => [u.id, u.name || u.email || "Unknown"]));
+
+  const totalSpend = allReceipts.reduce((sum, r) => sum + parseFloat(String(r.total ?? "0")), 0);
+
+  // By user
+  const userSpend = new Map<number, { name: string; total: number; count: number }>();
+  for (const r of allReceipts) {
+    if (!userSpend.has(r.userId)) {
+      userSpend.set(r.userId, { name: userMap.get(r.userId) || "Unknown", total: 0, count: 0 });
+    }
+    const u = userSpend.get(r.userId)!;
+    u.total += parseFloat(String(r.total ?? "0"));
+    u.count += 1;
+  }
+  const byUser = Array.from(userSpend.entries())
+    .map(([userId, d]) => ({ userId, name: d.name, total: d.total, count: d.count }))
+    .sort((a, b) => b.total - a.total);
+
+  // By vendor
+  const vendorSpend = new Map<string, { total: number; count: number }>();
+  for (const r of allReceipts) {
+    const vendor = r.vendorName || "Unknown";
+    if (!vendorSpend.has(vendor)) vendorSpend.set(vendor, { total: 0, count: 0 });
+    const v = vendorSpend.get(vendor)!;
+    v.total += parseFloat(String(r.total ?? "0"));
+    v.count += 1;
+  }
+  const byVendor = Array.from(vendorSpend.entries())
+    .map(([vendor, d]) => ({ vendor, total: d.total, count: d.count }))
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 10);
+
+  // By category (expenseType + overheadCategory)
+  const catSpend = new Map<string, { total: number; count: number }>();
+  for (const r of allReceipts) {
+    const cat = r.expenseType === "OVERHEAD" ? (r.overheadCategory || "Overhead/General") : (r.materialCategory || "Job");
+    if (!catSpend.has(cat)) catSpend.set(cat, { total: 0, count: 0 });
+    const c = catSpend.get(cat)!;
+    c.total += parseFloat(String(r.total ?? "0"));
+    c.count += 1;
+  }
+  const byCategory = Array.from(catSpend.entries())
+    .map(([category, d]) => ({ category, total: d.total, count: d.count }))
+    .sort((a, b) => b.total - a.total);
+
+  // Monthly trend (last 12 months)
+  const monthlyMap = new Map<string, number>();
+  for (const r of allReceipts) {
+    const date = r.purchaseDate || r.createdAt.toISOString().slice(0, 10);
+    const month = date.slice(0, 7); // YYYY-MM
+    monthlyMap.set(month, (monthlyMap.get(month) || 0) + parseFloat(String(r.total ?? "0")));
+  }
+  const monthlyTrend = Array.from(monthlyMap.entries())
+    .map(([month, total]) => ({ month, total }))
+    .sort((a, b) => a.month.localeCompare(b.month))
+    .slice(-12);
+
+  return { totalSpend, byUser, byVendor, byCategory, monthlyTrend };
 }
