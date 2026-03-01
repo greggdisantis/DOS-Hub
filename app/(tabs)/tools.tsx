@@ -53,6 +53,15 @@ const ALL_TOOLS: ToolItem[] = [
     category: "Operations",
   },
   {
+    id: "client-meeting-report",
+    title: "Client Meeting Report",
+    description: "Complete post-meeting reports with deal status, purchase confidence, and next steps.",
+    icon: "doc.text.fill",
+    route: "/modules/client-meeting-report",
+    color: "#10B981",
+    category: "Sales",
+  },
+  {
     id: "hubspot",
     title: "HubSpot CRM",
     description: "Search deals, attach documents, and manage customer records.",

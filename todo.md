@@ -153,3 +153,13 @@
 - [x] Fix ZONES and SF columns to be center-aligned instead of right-aligned
 - [x] Fix text descenders being clipped in PDF export (overflow:visible, line-height:1.5 override)
 - [x] Improve html2pdf capture quality (scale:3, letterRendering, quality:0.98)
+
+## Client Meeting Report Module
+
+- [x] Design data model for ClientMeetingReport (all fields from ConsultantWeeklyClientReport_V1.docx)
+- [x] Build multi-step form wizard (5 sections: Client Info, Deal Status, Purchase Confidence, Value/Objections, Next Steps + Marketing)
+- [x] Build reports list screen per salesperson (My Projects view)
+- [x] Wire up tab/module navigation for the new module
+- [x] Persist reports locally with AsyncStorage
+- [x] Add HubSpot CRM integration placeholder (client picker stub for future)
+- [x] Add PDF export for completed meeting reports
