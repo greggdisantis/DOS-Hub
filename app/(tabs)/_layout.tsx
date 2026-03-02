@@ -5,10 +5,16 @@ import { HapticTab } from "@/components/haptic-tab";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Platform } from "react-native";
 import { useColors } from "@/hooks/use-colors";
+import { usePushNotifications } from "@/hooks/use-push-notifications";
+import { trpc } from "@/lib/trpc";
 
 export default function TabLayout() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { data: user } = trpc.auth.me.useQuery();
+
+  // Register push notification token when user is authenticated
+  usePushNotifications(!!(user && (user as any).id));
   const bottomPadding = Platform.OS === "web" ? 12 : Math.max(insets.bottom, 8);
   const tabBarHeight = 56 + bottomPadding;
 

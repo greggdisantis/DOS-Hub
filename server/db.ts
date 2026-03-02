@@ -704,3 +704,31 @@ export async function addProjectMaterialAttachment(
     .set({ attachments: [...existing, attachment] })
     .where(eq(projectMaterialChecklists.id, id));
 }
+
+// ─── PUSH NOTIFICATIONS ──────────────────────────────────────────────────────
+
+/** Save or update the Expo push token for a user */
+export async function updateUserPushToken(userId: number, token: string): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db
+    .update(users)
+    .set({ expoPushToken: token })
+    .where(eq(users.id, userId));
+}
+
+/** Get all users who have a specific DOS job role and a push token registered */
+export async function getUsersWithPushTokenByDosRole(
+  dosRole: string,
+): Promise<Array<{ id: number; name: string | null; expoPushToken: string | null }>> {
+  const db = await getDb();
+  if (!db) return [];
+  const allUsers = await db
+    .select({ id: users.id, name: users.name, dosRoles: users.dosRoles, expoPushToken: users.expoPushToken })
+    .from(users);
+  return allUsers.filter((u) => {
+    if (!u.expoPushToken) return false;
+    const roles: string[] = (u.dosRoles as string[]) ?? [];
+    return roles.includes(dosRole);
+  });
+}

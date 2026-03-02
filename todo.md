@@ -370,3 +370,15 @@
 - [x] Audit trail tracking who did what at each stage
 - [x] Add module to home screen and register permissions
 - [x] Add "Project Material Delivery" tab to Dashboard screen
+
+## Push Notifications — Material Delivery
+
+- [x] Read server README and notification docs to understand existing push infrastructure
+- [x] Store Expo push tokens per user in the database (expoPushToken column on users table)
+- [x] Build usePushNotifications hook — requests permission and registers token on server
+- [x] Wire hook into tabs layout so token registers on first authenticated app open
+- [x] Build server-side sendPushNotifications utility using Expo Push API
+- [x] Send notification to Project Supervisor when status changes to "ready_for_supervisor"
+- [x] Send notification to Warehouse Manager when status changes to "awaiting_warehouse"
+- [x] Send notification to admins/managers for all other status transitions (awaiting_main_office, final_review, complete)
+- [x] Wire notification sending into the projectMaterial.updateStatus tRPC endpoint

@@ -29,6 +29,7 @@ function createAuthContext(): { ctx: TrpcContext; clearedCookies: CookieCall[] }
     lastSignedIn: new Date(),
     dosRoles: [],
     permissions: {},
+    expoPushToken: null,
   };
   
   const ctx: TrpcContext = {

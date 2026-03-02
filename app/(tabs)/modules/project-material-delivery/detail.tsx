@@ -114,6 +114,7 @@ export default function DetailScreen() {
         id: checklistId,
         status: transition.next,
         action: transition.action,
+        projectName: checklist?.projectName,
       });
       await refetch();
       await utils.projectMaterial.list.invalidate();

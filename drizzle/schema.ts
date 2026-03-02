@@ -33,6 +33,8 @@ export const users = mysqlTable("users", {
   dosRoles: json("dosRoles").$type<string[]>(),
   /** Legacy per-user module permissions (superseded by module_permissions table for job-role-based access) */
   permissions: json("permissions").$type<Record<string, boolean>>(),
+  /** Expo push notification token for sending remote notifications */
+  expoPushToken: varchar("expoPushToken", { length: 255 }),
 });
 
 /**

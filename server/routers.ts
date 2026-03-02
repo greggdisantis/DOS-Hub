@@ -4,6 +4,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import * as db from "./db";
+import { sendPushNotifications, MATERIAL_DELIVERY_NOTIFICATIONS } from "./push-notifications";
 
 // System roles available in the app
 const SYSTEM_ROLES = ["pending", "guest", "member", "manager", "admin"] as const;
@@ -599,10 +600,43 @@ export const appRouter = router({
         id: z.number(),
         status: z.string(),
         action: z.string(),
+        projectName: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const userName = [ctx.user.firstName, ctx.user.lastName].filter(Boolean).join(' ') || ctx.user.name || ctx.user.email || 'Unknown';
         await db.updateProjectMaterialChecklistStatus(input.id, input.status, { userId: ctx.user.id, userName, action: input.action });
+
+        // Send push notifications to the relevant role for this status transition
+        const notifConfig = MATERIAL_DELIVERY_NOTIFICATIONS[input.status];
+        if (notifConfig) {
+          const projectName = input.projectName ?? 'a project';
+          const { title, body, targetRole } = notifConfig;
+
+          if (targetRole) {
+            // Notify users with the specific DOS job role
+            const targets = await db.getUsersWithPushTokenByDosRole(targetRole);
+            const tokens = targets.map((u) => u.expoPushToken).filter(Boolean) as string[];
+            if (tokens.length > 0) {
+              sendPushNotifications(tokens, title, body(projectName), {
+                screen: '/(tabs)/modules/project-material-delivery',
+                checklistId: input.id,
+              }).catch(console.error);
+            }
+          } else {
+            // Notify all admins and managers
+            const allUsers = await db.getAllUsers();
+            const tokens = allUsers
+              .filter((u) => (u.role === 'admin' || u.role === 'manager') && u.expoPushToken)
+              .map((u) => u.expoPushToken) as string[];
+            if (tokens.length > 0) {
+              sendPushNotifications(tokens, title, body(projectName), {
+                screen: '/(tabs)/modules/project-material-delivery',
+                checklistId: input.id,
+              }).catch(console.error);
+            }
+          }
+        }
+
         return { success: true };
       }),
 
@@ -636,6 +670,19 @@ export const appRouter = router({
       }
       return db.getDashboardStats();
     }),
+  }),
+
+  notifications: router({
+    /** Register or update the Expo push token for the current user */
+    registerToken: protectedProcedure
+      .input((input: unknown) => {
+        const { z } = require("zod");
+        return z.object({ token: z.string().min(1) }).parse(input);
+      })
+      .mutation(async ({ ctx, input }) => {
+        await db.updateUserPushToken(ctx.user.id, input.token);
+        return { success: true };
+      }),
   }),
 });
 
