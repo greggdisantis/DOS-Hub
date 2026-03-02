@@ -390,3 +390,20 @@
 - [x] CMR Reports: notify all managers/admins when a new report is submitted (not on updates)
 - [x] Screen Orders: notify all managers/admins when a new order is created
 - [x] Screen Orders: notify the order owner when a manager/admin changes the status (approved, rejected, completed)
+
+## Notification Preferences Screen
+
+- [x] Add notificationPrefs JSON column to users table in database
+- [x] Add tRPC endpoint to get and save notification preferences per user
+- [x] Build notification preferences screen with toggles for each notification type
+- [x] Wire preferences into push notification senders (skip opted-out users)
+- [x] Link preferences screen from Profile tab
+
+## In-App Notification Badge
+
+- [x] Create notifications table in database (id, userId, title, body, type, isRead, createdAt)
+- [x] Add tRPC endpoints: list notifications, unread count, mark as read, mark all as read, delete, get/update prefs
+- [x] Store notifications in DB when push notifications are sent (notifyUsers helper)
+- [x] Add unread count badge on Profile tab bar icon (polls every 30s)
+- [x] Build in-app notification center screen (list, tap to mark read, swipe-delete, pull-to-refresh)
+- [x] Link notification center from Profile tab settings

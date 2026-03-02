@@ -78,7 +78,20 @@ export default function ProfileScreen() {
     {
       title: "Account",
       items: [
-        { id: "notifications", icon: "bell.fill", label: "Notifications", subtitle: "Manage alerts" },
+        {
+          id: "notifications",
+          icon: "bell.fill",
+          label: "Notifications",
+          subtitle: "View your notification history",
+          onPress: () => router.push("/modules/notifications" as any),
+        },
+        {
+          id: "notification-preferences",
+          icon: "gearshape.fill",
+          label: "Notification Preferences",
+          subtitle: "Choose which alerts you receive",
+          onPress: () => router.push("/modules/notification-preferences" as any),
+        },
         { id: "appearance", icon: "gearshape.fill", label: "Appearance", subtitle: "Theme & display" },
       ] as SettingsRow[],
     },

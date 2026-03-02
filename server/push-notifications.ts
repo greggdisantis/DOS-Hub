@@ -1,7 +1,10 @@
 /**
  * Server-side push notification sender using the Expo Push API.
- * Sends notifications to users via their stored Expo push tokens.
+ * Sends notifications to users via their stored Expo push tokens,
+ * and simultaneously stores them in the database for the in-app notification center.
  */
+
+import * as db from "./db";
 
 interface ExpoPushMessage {
   to: string | string[];
@@ -77,6 +80,47 @@ export async function sendPushNotifications(
     });
   } catch (error) {
     console.error("[PushNotifications] Failed to send notifications:", error);
+  }
+}
+
+/**
+ * Send push notifications AND store in-app notifications for a list of user IDs.
+ * This is the preferred function to use when you have user IDs (not just tokens).
+ * It handles both push delivery and in-app notification center storage.
+ *
+ * @param userIds - Array of user IDs to notify
+ * @param title - Notification title
+ * @param body - Notification body text
+ * @param type - Notification type key (e.g. 'cmr_new', 'order_status', 'material_delivery_status')
+ * @param data - Optional extra data for deep-linking
+ */
+export async function notifyUsers(
+  userIds: number[],
+  title: string,
+  body: string,
+  type: string,
+  data?: Record<string, unknown>,
+): Promise<void> {
+  if (userIds.length === 0) return;
+
+  // Store in-app notifications for all users
+  try {
+    await db.createNotificationsForUsers(userIds, { title, body, type, data: data ?? null, isRead: false });
+  } catch (err) {
+    console.error("[PushNotifications] Failed to store in-app notifications:", err);
+  }
+
+  // Get push tokens for all users and send push notifications
+  try {
+    const allUsers = await db.getAllUsers();
+    const tokens = allUsers
+      .filter((u) => userIds.includes(u.id) && u.expoPushToken)
+      .map((u) => u.expoPushToken as string);
+    if (tokens.length > 0) {
+      await sendPushNotifications(tokens, title, body, data);
+    }
+  } catch (err) {
+    console.error("[PushNotifications] Failed to send push notifications:", err);
   }
 }
 

@@ -7,6 +7,7 @@ import {
   InsertReceipt,
   InsertCmrReport,
   InsertProjectMaterialChecklist,
+  InsertNotification,
   SystemRole,
   users,
   screenOrders,
@@ -15,6 +16,7 @@ import {
   receipts,
   cmrReports,
   projectMaterialChecklists,
+  notifications,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
@@ -757,4 +759,102 @@ export async function getUserPushToken(userId: number): Promise<string | null> {
     .where(eq(users.id, userId))
     .limit(1);
   return result[0]?.expoPushToken ?? null;
+}
+
+// ─── IN-APP NOTIFICATIONS ────────────────────────────────────────────────────
+
+/** Store an in-app notification for a user */
+export async function createNotification(data: InsertNotification): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.insert(notifications).values(data);
+}
+
+/** Store in-app notifications for multiple users at once */
+export async function createNotificationsForUsers(
+  userIds: number[],
+  notification: Omit<InsertNotification, 'userId'>,
+): Promise<void> {
+  if (userIds.length === 0) return;
+  const db = await getDb();
+  if (!db) return;
+  await db.insert(notifications).values(
+    userIds.map((userId) => ({ ...notification, userId })),
+  );
+}
+
+/** Get all notifications for a user, newest first */
+export async function getUserNotifications(userId: number): Promise<any[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(notifications)
+    .where(eq(notifications.userId, userId))
+    .orderBy(desc(notifications.createdAt))
+    .limit(100);
+}
+
+/** Count unread notifications for a user */
+export async function getUnreadNotificationCount(userId: number): Promise<number> {
+  const db = await getDb();
+  if (!db) return 0;
+  const result = await db
+    .select({ id: notifications.id })
+    .from(notifications)
+    .where(and(eq(notifications.userId, userId), eq(notifications.isRead, false)));
+  return result.length;
+}
+
+/** Mark a specific notification as read */
+export async function markNotificationRead(id: number, userId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db
+    .update(notifications)
+    .set({ isRead: true })
+    .where(and(eq(notifications.id, id), eq(notifications.userId, userId)));
+}
+
+/** Mark all notifications for a user as read */
+export async function markAllNotificationsRead(userId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db
+    .update(notifications)
+    .set({ isRead: true })
+    .where(and(eq(notifications.userId, userId), eq(notifications.isRead, false)));
+}
+
+/** Delete a notification */
+export async function deleteNotification(id: number, userId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db
+    .delete(notifications)
+    .where(and(eq(notifications.id, id), eq(notifications.userId, userId)));
+}
+
+// ─── NOTIFICATION PREFERENCES ────────────────────────────────────────────────
+
+/** Get notification preferences for a user */
+export async function getNotificationPrefs(userId: number): Promise<Record<string, boolean> | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db
+    .select({ notificationPrefs: users.notificationPrefs })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  return (result[0]?.notificationPrefs as Record<string, boolean>) ?? null;
+}
+
+/** Update notification preferences for a user */
+export async function updateNotificationPrefs(
+  userId: number,
+  prefs: Record<string, boolean>,
+): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(users).set({ notificationPrefs: prefs }).where(eq(users.id, userId));
 }

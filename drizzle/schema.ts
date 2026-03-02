@@ -35,6 +35,12 @@ export const users = mysqlTable("users", {
   permissions: json("permissions").$type<Record<string, boolean>>(),
   /** Expo push notification token for sending remote notifications */
   expoPushToken: varchar("expoPushToken", { length: 255 }),
+  /**
+   * Notification preferences — JSON map of notification type -> boolean.
+   * e.g. { cmr_new: true, order_status: false, material_delivery: true }
+   * Null means all notifications are enabled (default).
+   */
+  notificationPrefs: json("notification_prefs").$type<Record<string, boolean>>(),
 });
 
 /**
@@ -238,6 +244,30 @@ export const projectMaterialChecklists = mysqlTable("project_material_checklists
 });
 
 /**
+ * In-app notifications table — stores all notifications sent to users.
+ * Used for the notification center and unread badge count.
+ */
+export const notifications = mysqlTable("notifications", {
+  id: int("id").autoincrement().primaryKey(),
+  /** The user this notification is for */
+  userId: int("user_id").notNull(),
+  /** Short title shown in notification center */
+  title: varchar("title", { length: 255 }).notNull(),
+  /** Full notification body */
+  body: text("body").notNull(),
+  /**
+   * Notification type — used for filtering and preferences:
+   * cmr_new, order_status, material_delivery_status, material_delivery_warehouse
+   */
+  type: varchar("type", { length: 100 }).notNull().default("general"),
+  /** Optional extra data (e.g. { checklistId: 42 }) for deep-linking */
+  data: json("data").$type<Record<string, unknown>>(),
+  /** Whether the user has read this notification */
+  isRead: boolean("is_read").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+/**
  * Zoning lookups table for property research history.
  */
 export const zoningLookups = mysqlTable("zoning_lookups", {
@@ -278,6 +308,8 @@ export type ProjectMaterialChecklist = typeof projectMaterialChecklists.$inferSe
 export type InsertProjectMaterialChecklist = typeof projectMaterialChecklists.$inferInsert;
 export type ModulePermission = typeof modulePermissions.$inferSelect;
 export type InsertModulePermission = typeof modulePermissions.$inferInsert;
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = typeof notifications.$inferInsert;
 
 // System role type
 export type SystemRole = 'pending' | 'guest' | 'member' | 'manager' | 'admin';

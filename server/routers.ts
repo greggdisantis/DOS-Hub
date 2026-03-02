@@ -4,7 +4,22 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import * as db from "./db";
-import { sendPushNotifications, MATERIAL_DELIVERY_NOTIFICATIONS } from "./push-notifications";
+import { sendPushNotifications, notifyUsers, MATERIAL_DELIVERY_NOTIFICATIONS } from "./push-notifications";
+
+/**
+ * Filter a list of user IDs by their notification preference for a given type.
+ * If a user has no preference set (null), they receive the notification by default.
+ */
+async function filterByPref(userIds: number[], prefKey: string): Promise<number[]> {
+  const filtered: number[] = [];
+  for (const userId of userIds) {
+    const prefs = await db.getNotificationPrefs(userId);
+    if (!prefs || prefs[prefKey] !== false) {
+      filtered.push(userId);
+    }
+  }
+  return filtered;
+}
 
 // System roles available in the app
 const SYSTEM_ROLES = ["pending", "guest", "member", "manager", "admin"] as const;
@@ -186,14 +201,18 @@ export const appRouter = router({
         // Notify managers/admins when a new order is created
         try {
           const managers = await db.getManagersAndAdminsWithPushToken();
-          const tokens = managers.map((m: any) => m.expoPushToken).filter(Boolean) as string[];
-          const submitterName = ctx.user.name ?? 'A team member';
-          await sendPushNotifications(
-            tokens,
-            'New Screen Order Submitted',
-            `${submitterName} submitted a new order: "${input.title}".`,
-            { screen: 'orders', orderId },
-          );
+          const allManagerIds = managers.map((m: any) => m.id as number);
+          const targetIds = await filterByPref(allManagerIds, 'order_status');
+          if (targetIds.length > 0) {
+            const submitterName = ctx.user.name ?? 'A team member';
+            await notifyUsers(
+              targetIds,
+              'New Screen Order Submitted',
+              `${submitterName} submitted a new order: "${input.title}".`,
+              'order_status',
+              { screen: 'orders', orderId },
+            );
+          }
         } catch (notifError) {
           console.error('[PushNotifications] Screen order create notification failed:', notifError);
         }
@@ -240,8 +259,8 @@ export const appRouter = router({
         const newStatus = input.status;
         if (newStatus && newStatus !== prevStatus && isManagerOrAdmin && !isOwner) {
           try {
-            const ownerToken = await db.getUserPushToken(order.userId);
-            if (ownerToken) {
+            const targetIds = await filterByPref([order.userId], 'order_status');
+            if (targetIds.length > 0) {
               const statusMessages: Record<string, string> = {
                 approved: `Your order "${order.title}" has been approved.`,
                 rejected: `Your order "${order.title}" has been rejected. Please review and resubmit.`,
@@ -249,10 +268,11 @@ export const appRouter = router({
                 submitted: `Your order "${order.title}" has been submitted for review.`,
               };
               const body = statusMessages[newStatus] ?? `Your order "${order.title}" status changed to ${newStatus}.`;
-              await sendPushNotifications(
-                [ownerToken],
+              await notifyUsers(
+                targetIds,
                 'Screen Order Update',
                 body,
+                'order_status',
                 { screen: 'orders', orderId },
               );
             }
@@ -546,15 +566,19 @@ export const appRouter = router({
         if (isNew) {
           try {
             const managers = await db.getManagersAndAdminsWithPushToken();
-            const tokens = managers.map((m: any) => m.expoPushToken).filter(Boolean) as string[];
-            const clientDisplay = input.clientName ?? 'a client';
-            const consultantDisplay = input.consultantName ?? ctx.user.name ?? 'A consultant';
-            await sendPushNotifications(
-              tokens,
-              'New CMR Report Submitted',
-              `${consultantDisplay} submitted a report for ${clientDisplay}.`,
-              { screen: 'cmr', localId: input.localId },
-            );
+            const allManagerIds = managers.map((m: any) => m.id as number);
+            const targetIds = await filterByPref(allManagerIds, 'cmr_new');
+            if (targetIds.length > 0) {
+              const clientDisplay = input.clientName ?? 'a client';
+              const consultantDisplay = input.consultantName ?? ctx.user.name ?? 'A consultant';
+              await notifyUsers(
+                targetIds,
+                'New CMR Report Submitted',
+                `${consultantDisplay} submitted a report for ${clientDisplay}.`,
+                'cmr_new',
+                { screen: 'cmr', localId: input.localId },
+              );
+            }
           } catch (notifError) {
             console.error('[PushNotifications] CMR notification failed:', notifError);
           }
@@ -672,34 +696,40 @@ export const appRouter = router({
         const userName = [ctx.user.firstName, ctx.user.lastName].filter(Boolean).join(' ') || ctx.user.name || ctx.user.email || 'Unknown';
         await db.updateProjectMaterialChecklistStatus(input.id, input.status, { userId: ctx.user.id, userName, action: input.action });
 
-        // Send push notifications to the relevant role for this status transition
+        // Send push notifications + in-app notifications for this status transition
         const notifConfig = MATERIAL_DELIVERY_NOTIFICATIONS[input.status];
         if (notifConfig) {
           const projectName = input.projectName ?? 'a project';
           const { title, body, targetRole } = notifConfig;
+          // Determine which pref key applies to this notification type
+          const prefKey = targetRole === 'Warehouse Manager'
+            ? 'material_delivery_warehouse'
+            : 'material_delivery_status';
 
+          let candidateIds: number[] = [];
           if (targetRole) {
-            // Notify users with the specific DOS job role
-            const targets = await db.getUsersWithPushTokenByDosRole(targetRole);
-            const tokens = targets.map((u) => u.expoPushToken).filter(Boolean) as string[];
-            if (tokens.length > 0) {
-              sendPushNotifications(tokens, title, body(projectName), {
-                screen: '/(tabs)/modules/project-material-delivery',
-                checklistId: input.id,
-              }).catch(console.error);
-            }
-          } else {
-            // Notify all admins and managers
+            // Users with the specific DOS job role
             const allUsers = await db.getAllUsers();
-            const tokens = allUsers
-              .filter((u) => (u.role === 'admin' || u.role === 'manager') && u.expoPushToken)
-              .map((u) => u.expoPushToken) as string[];
-            if (tokens.length > 0) {
-              sendPushNotifications(tokens, title, body(projectName), {
-                screen: '/(tabs)/modules/project-material-delivery',
-                checklistId: input.id,
-              }).catch(console.error);
-            }
+            candidateIds = allUsers
+              .filter((u) => {
+                const roles: string[] = (u.dosRoles as string[]) ?? [];
+                return roles.includes(targetRole);
+              })
+              .map((u) => u.id);
+          } else {
+            // All admins and managers
+            const allUsers = await db.getAllUsers();
+            candidateIds = allUsers
+              .filter((u) => u.role === 'admin' || u.role === 'manager')
+              .map((u) => u.id);
+          }
+
+          const targetIds = await filterByPref(candidateIds, prefKey);
+          if (targetIds.length > 0) {
+            notifyUsers(targetIds, title, body(projectName), prefKey, {
+              screen: '/(tabs)/modules/project-material-delivery',
+              checklistId: input.id,
+            }).catch(console.error);
           }
         }
 
@@ -747,6 +777,53 @@ export const appRouter = router({
       })
       .mutation(async ({ ctx, input }) => {
         await db.updateUserPushToken(ctx.user.id, input.token);
+        return { success: true };
+      }),
+
+    /** Get all in-app notifications for the current user */
+    list: protectedProcedure.query(async ({ ctx }) => {
+      return db.getUserNotifications(ctx.user.id);
+    }),
+
+    /** Get unread notification count for the current user */
+    unreadCount: protectedProcedure.query(async ({ ctx }) => {
+      const count = await db.getUnreadNotificationCount(ctx.user.id);
+      return { count };
+    }),
+
+    /** Mark a specific notification as read */
+    markRead: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        await db.markNotificationRead(input.id, ctx.user.id);
+        return { success: true };
+      }),
+
+    /** Mark all notifications as read for the current user */
+    markAllRead: protectedProcedure.mutation(async ({ ctx }) => {
+      await db.markAllNotificationsRead(ctx.user.id);
+      return { success: true };
+    }),
+
+    /** Delete a notification */
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        await db.deleteNotification(input.id, ctx.user.id);
+        return { success: true };
+      }),
+
+    /** Get notification preferences for the current user */
+    getPrefs: protectedProcedure.query(async ({ ctx }) => {
+      const prefs = await db.getNotificationPrefs(ctx.user.id);
+      return prefs ?? {};
+    }),
+
+    /** Update notification preferences for the current user */
+    updatePrefs: protectedProcedure
+      .input(z.object({ prefs: z.record(z.string(), z.boolean()) }))
+      .mutation(async ({ ctx, input }) => {
+        await db.updateNotificationPrefs(ctx.user.id, input.prefs);
         return { success: true };
       }),
   }),
