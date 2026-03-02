@@ -17,18 +17,49 @@ import {
 import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
+let _connectionPool: any = null;
 
-// Lazily create the drizzle instance so local tooling can run without a DB.
+// Lazily create the drizzle instance with proper connection pooling
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
-      _db = drizzle(process.env.DATABASE_URL);
+      const mysql = await import("mysql2");
+      
+      // Create connection pool with proper configuration to avoid ECONNRESET
+      const pool = mysql.createPool({
+        uri: process.env.DATABASE_URL,
+        waitForConnections: true,
+        connectionLimit: 5,
+        queueLimit: 10,
+        enableKeepAlive: true,
+        keepAliveInitialDelay: 0,
+      });
+      
+      _connectionPool = pool;
+      _db = drizzle(pool);
+      
+      console.log("[Database] Connected with pool (limit: 5, queue: 10)");
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;
+      _connectionPool = null;
     }
   }
   return _db;
+}
+
+// Close database connection on shutdown
+export async function closeDb() {
+  if (_connectionPool) {
+    try {
+      await _connectionPool.end();
+      console.log("[Database] Connection pool closed");
+      _db = null;
+      _connectionPool = null;
+    } catch (error) {
+      console.warn("[Database] Failed to close pool:", error);
+    }
+  }
 }
 
 // ─── USER QUERIES ───────────────────────────────────────────────────────────

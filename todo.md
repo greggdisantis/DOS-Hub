@@ -349,3 +349,7 @@
 ## Job Intelligence PDF Export Bug
 
 - [x] Fix PDF export button — root cause was incorrect html2pdf.js API usage (calling as function instead of constructor); now properly generates and downloads PDF with error display
+
+## OAuth Callback Bug Fix
+
+- [x] Fix "OAuth callback failed" error — root cause was database connection pool exhaustion (ECONNRESET); fixed with proper connection pool configuration and retry logic on transient errors
