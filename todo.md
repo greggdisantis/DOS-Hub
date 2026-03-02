@@ -382,3 +382,11 @@
 - [x] Send notification to Warehouse Manager when status changes to "awaiting_warehouse"
 - [x] Send notification to admins/managers for all other status transitions (awaiting_main_office, final_review, complete)
 - [x] Wire notification sending into the projectMaterial.updateStatus tRPC endpoint
+
+## Push Notifications — CMR Reports & Screen Orders
+
+- [x] Add getManagersAndAdminsWithPushToken DB helper
+- [x] Add getUserPushToken DB helper
+- [x] CMR Reports: notify all managers/admins when a new report is submitted (not on updates)
+- [x] Screen Orders: notify all managers/admins when a new order is created
+- [x] Screen Orders: notify the order owner when a manager/admin changes the status (approved, rejected, completed)

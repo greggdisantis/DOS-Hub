@@ -732,3 +732,29 @@ export async function getUsersWithPushTokenByDosRole(
     return roles.includes(dosRole);
   });
 }
+
+/** Get all managers and admins who have a push token registered */
+export async function getManagersAndAdminsWithPushToken(): Promise<
+  Array<{ id: number; name: string | null; expoPushToken: string | null }>
+> {
+  const db = await getDb();
+  if (!db) return [];
+  const allUsers = await db
+    .select({ id: users.id, name: users.name, role: users.role, expoPushToken: users.expoPushToken })
+    .from(users);
+  return allUsers.filter(
+    (u) => u.expoPushToken && (u.role === "manager" || u.role === "admin"),
+  );
+}
+
+/** Get a single user's push token by user ID */
+export async function getUserPushToken(userId: number): Promise<string | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db
+    .select({ expoPushToken: users.expoPushToken })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  return result[0]?.expoPushToken ?? null;
+}

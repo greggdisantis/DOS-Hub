@@ -182,6 +182,22 @@ export const appRouter = router({
           submitterNotes: input.submitterNotes,
           projectId: input.projectId,
         });
+
+        // Notify managers/admins when a new order is created
+        try {
+          const managers = await db.getManagersAndAdminsWithPushToken();
+          const tokens = managers.map((m: any) => m.expoPushToken).filter(Boolean) as string[];
+          const submitterName = ctx.user.name ?? 'A team member';
+          await sendPushNotifications(
+            tokens,
+            'New Screen Order Submitted',
+            `${submitterName} submitted a new order: "${input.title}".`,
+            { screen: 'orders', orderId },
+          );
+        } catch (notifError) {
+          console.error('[PushNotifications] Screen order create notification failed:', notifError);
+        }
+
         return { orderId };
       }),
 
@@ -210,6 +226,7 @@ export const appRouter = router({
           throw new Error("Unauthorized: you can only edit your own orders");
         }
 
+        const prevStatus = order.status;
         const { orderId, changeDescription, ...updateData } = input;
         await db.updateScreenOrder(
           orderId,
@@ -218,6 +235,32 @@ export const appRouter = router({
           ctx.user.name,
           changeDescription,
         );
+
+        // Notify the order owner when a manager/admin changes the status
+        const newStatus = input.status;
+        if (newStatus && newStatus !== prevStatus && isManagerOrAdmin && !isOwner) {
+          try {
+            const ownerToken = await db.getUserPushToken(order.userId);
+            if (ownerToken) {
+              const statusMessages: Record<string, string> = {
+                approved: `Your order "${order.title}" has been approved.`,
+                rejected: `Your order "${order.title}" has been rejected. Please review and resubmit.`,
+                completed: `Your order "${order.title}" has been marked as completed.`,
+                submitted: `Your order "${order.title}" has been submitted for review.`,
+              };
+              const body = statusMessages[newStatus] ?? `Your order "${order.title}" status changed to ${newStatus}.`;
+              await sendPushNotifications(
+                [ownerToken],
+                'Screen Order Update',
+                body,
+                { screen: 'orders', orderId },
+              );
+            }
+          } catch (notifError) {
+            console.error('[PushNotifications] Screen order status notification failed:', notifError);
+          }
+        }
+
         return { success: true };
       }),
 
@@ -477,6 +520,10 @@ export const appRouter = router({
         reportData: z.any(),
       }))
       .mutation(async ({ ctx, input }) => {
+        // Check if this is a new report (no existing record with this localId)
+        const existingReports = await db.getUserCmrReports(ctx.user.id);
+        const isNew = !existingReports.some((r: any) => r.localId === input.localId);
+
         await db.upsertCmrReport({
           localId: input.localId,
           userId: ctx.user.id,
@@ -494,6 +541,25 @@ export const appRouter = router({
           soldAt: input.soldAt,
           reportData: input.reportData,
         });
+
+        // Notify managers/admins when a new CMR report is submitted
+        if (isNew) {
+          try {
+            const managers = await db.getManagersAndAdminsWithPushToken();
+            const tokens = managers.map((m: any) => m.expoPushToken).filter(Boolean) as string[];
+            const clientDisplay = input.clientName ?? 'a client';
+            const consultantDisplay = input.consultantName ?? ctx.user.name ?? 'A consultant';
+            await sendPushNotifications(
+              tokens,
+              'New CMR Report Submitted',
+              `${consultantDisplay} submitted a report for ${clientDisplay}.`,
+              { screen: 'cmr', localId: input.localId },
+            );
+          } catch (notifError) {
+            console.error('[PushNotifications] CMR notification failed:', notifError);
+          }
+        }
+
         return { success: true };
       }),
 
