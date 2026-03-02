@@ -105,8 +105,12 @@ async function exportWebPDFFromElement(el: HTMLElement, filename: string): Promi
   document.head.appendChild(styleTag);
 
   try {
+    if (!html2pdf) {
+      throw new Error('html2pdf library failed to load');
+    }
+
     const options = {
-      margin: [10, 10, 10, 10],
+      margin: [10, 10, 10, 10] as [number, number, number, number],
       filename,
       image: { type: 'jpeg' as const, quality: 0.98 },
       html2canvas: {
@@ -121,7 +125,12 @@ async function exportWebPDFFromElement(el: HTMLElement, filename: string): Promi
       pagebreak: { mode: ['css', 'legacy'] },
     };
 
-    await (html2pdf() as any).set(options).from(el).save();
+    // html2pdf is a constructor; set options then pass element
+    const instance = new html2pdf();
+    await instance.set(options).from(el).save();
+  } catch (error) {
+    console.error('[PDF Export] Web export failed:', error);
+    throw new Error(`Failed to generate PDF: ${error instanceof Error ? error.message : String(error)}`);
   } finally {
     el.classList.remove('pdf-export');
     document.head.removeChild(styleTag);

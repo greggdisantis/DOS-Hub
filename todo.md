@@ -341,3 +341,11 @@
 ## Receipt Capture Bug Fix
 
 - [x] Fix delete button in Receipt Capture — root cause was receipts.delete endpoint requiring admin role only; now allows admins/managers to delete any receipt and members to delete their own
+
+## Auth / Login Bug Fix
+
+- [ ] Fix infinite loading spinner after OAuth sign-in — new users get stuck on blank white screen with spinner and never reach pending approval or home screen
+
+## Job Intelligence PDF Export Bug
+
+- [x] Fix PDF export button — root cause was incorrect html2pdf.js API usage (calling as function instead of constructor); now properly generates and downloads PDF with error display

@@ -28,6 +28,7 @@ export function ReportsView({ jobs, isLoading = false }: ReportsViewProps) {
   const colors = useColors();
   const [activeReport, setActiveReport] = useState<ReportType>('final');
   const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showReportMenu, setShowReportMenu] = useState(false);
   const reportContentRef = useRef<View>(null);
@@ -50,6 +51,7 @@ export function ReportsView({ jobs, isLoading = false }: ReportsViewProps) {
   const handleExportPDF = async () => {
     if (!currentReport) return;
     setExporting(true);
+    setExportError(null);
     try {
       // On web, get the actual DOM element from the ref for direct capture
       let domElement: HTMLElement | null = null;
@@ -59,7 +61,9 @@ export function ReportsView({ jobs, isLoading = false }: ReportsViewProps) {
       }
       await exportReportToPDF(currentReport.title, reportData, activeReport, domElement);
     } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Failed to export PDF';
       console.error('PDF export failed:', error);
+      setExportError(errorMsg);
     } finally {
       setExporting(false);
     }
@@ -234,6 +238,23 @@ export function ReportsView({ jobs, isLoading = false }: ReportsViewProps) {
           </Text>
         </Pressable>
       </View>
+
+      {/* Export Error Message */}
+      {exportError && (
+        <View
+          style={{
+            paddingHorizontal: 16,
+            paddingVertical: 10,
+            backgroundColor: colors.error + '15',
+            borderBottomWidth: 1,
+            borderBottomColor: colors.error,
+          }}
+        >
+          <Text style={{ color: colors.error, fontSize: 13, fontWeight: '500' }}>
+            Export failed: {exportError}
+          </Text>
+        </View>
+      )}
 
       {/* Report Content */}
       {reportData.length === 0 ? (
