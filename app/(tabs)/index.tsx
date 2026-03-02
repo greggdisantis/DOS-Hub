@@ -78,6 +78,14 @@ const MODULES: ModuleCard[] = [
     route: "/modules/dashboard",
     color: "#0EA5E9",
   },
+  {
+    id: "project-material-delivery",
+    title: "Material Delivery",
+    description: "Project material checklists & warehouse tracking",
+    icon: "shippingbox.fill",
+    route: "/modules/project-material-delivery",
+    color: "#7C3AED",
+  },
 ];
 
 const QUICK_ACTIONS = [

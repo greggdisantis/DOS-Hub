@@ -353,3 +353,20 @@
 ## OAuth Callback Bug Fix
 
 - [x] Fix "OAuth callback failed" error — root cause was database connection pool exhaustion (ECONNRESET); fixed with proper connection pool configuration and retry logic on transient errors
+
+## Project Material Delivery Module
+
+- [x] Design data model and database schema (checklist, inventory items, status, audit trail)
+- [x] Create tRPC endpoints (create, list, get, update, updateStatus, addAuditEntry, uploadFile)
+- [x] Build Project Info screen (project name, client, location, supervisor dropdown, created by auto-fill)
+- [x] Build Boxed Items inventory screen (PVC, screen screws, ledger locks, wedge anchors, foam tape, caulk/sealants, LED lights, notes)
+- [x] Build Time of Delivery Pulled Items screen (fans, PVC pipe, AZEK, wire, misc, notes)
+- [x] Build Project Specific Items screen (heaters, other items, notes)
+- [x] Build preview/summary screens for each inventory section
+- [x] Implement full status workflow (Draft → Ready for Supervisor → Awaiting Main Office → Awaiting Warehouse → Final Review → Complete → Closed)
+- [x] Build Project Material Delivery dashboard with status columns and filters
+- [x] Implement warehouse checklist view with item check-off boxes
+- [x] File uploads for purchase order PDFs and delivery photos (materials loaded / delivered)
+- [x] Audit trail tracking who did what at each stage
+- [x] Add module to home screen and register permissions
+- [x] Add "Project Material Delivery" tab to Dashboard screen

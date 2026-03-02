@@ -88,6 +88,15 @@ const ALL_TOOLS: ToolItem[] = [
     color: "#8B5CF6",
     category: "Training",
   },
+  {
+    id: "project-material-delivery",
+    title: "Material Delivery",
+    description: "Create and track project material checklists from warehouse to job site.",
+    icon: "shippingbox.fill",
+    route: "/modules/project-material-delivery",
+    color: "#7C3AED",
+    category: "Operations",
+  },
 ];
 
 export default function ToolsScreen() {

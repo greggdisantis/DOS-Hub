@@ -191,6 +191,51 @@ export const cmrReports = mysqlTable("cmr_reports", {
 });
 
 /**
+ * Project Material Delivery checklists table.
+ * Stores the full multi-step checklist workflow for project material delivery.
+ */
+export const projectMaterialChecklists = mysqlTable("project_material_checklists", {
+  id: int("id").autoincrement().primaryKey(),
+  /** The user who created this checklist */
+  createdByUserId: int("createdByUserId").notNull(),
+  createdByName: varchar("createdByName", { length: 255 }),
+  /** Project details */
+  projectName: varchar("projectName", { length: 255 }).notNull(),
+  clientName: varchar("clientName", { length: 255 }),
+  projectLocation: text("projectLocation"),
+  /** Assigned project supervisor (userId) */
+  supervisorUserId: int("supervisorUserId"),
+  supervisorName: varchar("supervisorName", { length: 255 }),
+  /**
+   * Workflow status:
+   * draft -> ready_for_supervisor -> awaiting_main_office -> awaiting_warehouse
+   * -> final_review -> complete -> closed
+   */
+  status: varchar("status", { length: 64 }).default("draft").notNull(),
+  /** Full inventory data as JSON (boxed items, delivery items, project specific items) */
+  boxedItems: json("boxedItems").$type<Record<string, unknown>>(),
+  deliveryItems: json("deliveryItems").$type<Record<string, unknown>>(),
+  projectSpecificItems: json("projectSpecificItems").$type<Record<string, unknown>>(),
+  /** Warehouse check-off state (which boxed items have been pulled) */
+  warehouseCheckoffs: json("warehouseCheckoffs").$type<Record<string, boolean>>(),
+  /** Audit trail — array of {userId, userName, action, timestamp} */
+  auditTrail: json("auditTrail").$type<Array<{ userId: number; userName: string; action: string; timestamp: string }>>(),
+  /** Uploaded file URLs (purchase order PDFs, delivery photos) */
+  attachments: json("attachments").$type<Array<{ url: string; name: string; type: string; uploadedByName: string; uploadedAt: string }>>(),
+  /** Photos uploaded when materials are loaded */
+  materialsLoadedPhotos: json("materialsLoadedPhotos").$type<string[]>(),
+  /** Photos uploaded when materials are delivered */
+  materialsDeliveredPhotos: json("materialsDeliveredPhotos").$type<string[]>(),
+  /** Whether materials have been loaded onto truck */
+  materialsLoaded: boolean("materialsLoaded").default(false).notNull(),
+  /** Whether materials have been delivered */
+  materialsDelivered: boolean("materialsDelivered").default(false).notNull(),
+  companyId: int("companyId"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+/**
  * Zoning lookups table for property research history.
  */
 export const zoningLookups = mysqlTable("zoning_lookups", {
@@ -227,6 +272,8 @@ export type CmrReport = typeof cmrReports.$inferSelect;
 export type InsertCmrReport = typeof cmrReports.$inferInsert;
 export type ZoningLookup = typeof zoningLookups.$inferSelect;
 export type InsertZoningLookup = typeof zoningLookups.$inferInsert;
+export type ProjectMaterialChecklist = typeof projectMaterialChecklists.$inferSelect;
+export type InsertProjectMaterialChecklist = typeof projectMaterialChecklists.$inferInsert;
 export type ModulePermission = typeof modulePermissions.$inferSelect;
 export type InsertModulePermission = typeof modulePermissions.$inferInsert;
 

@@ -529,6 +529,104 @@ export const appRouter = router({
       }),
   }),
 
+  // ─── PROJECT MATERIAL DELIVERY ────────────────────────────────────────────
+  projectMaterial: router({
+    /** Create a new checklist (manager/admin only) */
+    create: protectedProcedure
+      .input(z.object({
+        projectName: z.string(),
+        clientName: z.string().optional(),
+        projectLocation: z.string().optional(),
+        supervisorUserId: z.number().optional(),
+        supervisorName: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== 'admin' && ctx.user.role !== 'manager') {
+          throw new Error('Unauthorized: manager or admin role required');
+        }
+        const createdByName = [ctx.user.firstName, ctx.user.lastName].filter(Boolean).join(' ') || ctx.user.name || ctx.user.email || 'Unknown';
+        return db.createProjectMaterialChecklist({
+          createdByUserId: ctx.user.id,
+          createdByName,
+          projectName: input.projectName,
+          clientName: input.clientName,
+          projectLocation: input.projectLocation,
+          supervisorUserId: input.supervisorUserId,
+          supervisorName: input.supervisorName,
+          status: 'draft',
+          auditTrail: [{ userId: ctx.user.id, userName: createdByName, action: 'Created checklist', timestamp: new Date().toISOString() }],
+        });
+      }),
+
+    /** List all checklists */
+    list: protectedProcedure.query(async ({ ctx }) => {
+      return db.getAllProjectMaterialChecklists();
+    }),
+
+    /** Get a single checklist by ID */
+    get: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ ctx, input }) => {
+        return db.getProjectMaterialChecklist(input.id);
+      }),
+
+    /** Update checklist inventory data */
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        boxedItems: z.any().optional(),
+        deliveryItems: z.any().optional(),
+        projectSpecificItems: z.any().optional(),
+        supervisorUserId: z.number().optional(),
+        supervisorName: z.string().optional(),
+        warehouseCheckoffs: z.any().optional(),
+        attachments: z.any().optional(),
+        materialsLoaded: z.boolean().optional(),
+        materialsDelivered: z.boolean().optional(),
+        materialsLoadedPhotos: z.array(z.string()).optional(),
+        materialsDeliveredPhotos: z.array(z.string()).optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const { id, ...updates } = input;
+        const userName = [ctx.user.firstName, ctx.user.lastName].filter(Boolean).join(' ') || ctx.user.name || ctx.user.email || 'Unknown';
+        await db.updateProjectMaterialChecklist(id, updates, { userId: ctx.user.id, userName });
+        return { success: true };
+      }),
+
+    /** Advance the status of a checklist */
+    updateStatus: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        status: z.string(),
+        action: z.string(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const userName = [ctx.user.firstName, ctx.user.lastName].filter(Boolean).join(' ') || ctx.user.name || ctx.user.email || 'Unknown';
+        await db.updateProjectMaterialChecklistStatus(input.id, input.status, { userId: ctx.user.id, userName, action: input.action });
+        return { success: true };
+      }),
+
+    /** Upload a file attachment (purchase order PDF or photo) */
+    uploadFile: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        fileUrl: z.string(),
+        fileName: z.string(),
+        fileType: z.string(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const userName = [ctx.user.firstName, ctx.user.lastName].filter(Boolean).join(' ') || ctx.user.name || ctx.user.email || 'Unknown';
+        await db.addProjectMaterialAttachment(input.id, {
+          url: input.fileUrl,
+          name: input.fileName,
+          type: input.fileType,
+          uploadedByName: userName,
+          uploadedAt: new Date().toISOString(),
+        });
+        return { success: true };
+      }),
+  }),
+
   // ─── DASHBOARD ANALYTICS ─────────────────────────────────────────────────────
   dashboard: router({
     /** Get dashboard stats (manager/admin only) */

@@ -6,6 +6,7 @@ import {
   InsertOrderRevision,
   InsertReceipt,
   InsertCmrReport,
+  InsertProjectMaterialChecklist,
   SystemRole,
   users,
   screenOrders,
@@ -13,6 +14,7 @@ import {
   modulePermissions,
   receipts,
   cmrReports,
+  projectMaterialChecklists,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
@@ -591,4 +593,114 @@ export async function getReceiptAnalytics() {
     .slice(-12);
 
   return { totalSpend, byUser, byVendor, byCategory, monthlyTrend };
+}
+
+// ─── PROJECT MATERIAL CHECKLIST QUERIES ──────────────────────────────────────
+
+export async function createProjectMaterialChecklist(
+  data: InsertProjectMaterialChecklist,
+): Promise<{ id: number }> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const result = await db.insert(projectMaterialChecklists).values({
+    ...data,
+    auditTrail: data.auditTrail ?? [],
+    attachments: [],
+    materialsLoadedPhotos: [],
+    materialsDeliveredPhotos: [],
+    warehouseCheckoffs: {},
+  });
+
+  // Return the inserted ID
+  const rows = await db
+    .select({ id: projectMaterialChecklists.id })
+    .from(projectMaterialChecklists)
+    .where(eq(projectMaterialChecklists.createdByUserId, data.createdByUserId))
+    .orderBy(desc(projectMaterialChecklists.createdAt))
+    .limit(1);
+
+  return { id: rows[0]?.id ?? 0 };
+}
+
+export async function getAllProjectMaterialChecklists(): Promise<any[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db
+    .select()
+    .from(projectMaterialChecklists)
+    .orderBy(desc(projectMaterialChecklists.updatedAt));
+}
+
+export async function getProjectMaterialChecklist(id: number): Promise<any | null> {
+  const db = await getDb();
+  if (!db) return null;
+
+  const rows = await db
+    .select()
+    .from(projectMaterialChecklists)
+    .where(eq(projectMaterialChecklists.id, id))
+    .limit(1);
+
+  return rows[0] ?? null;
+}
+
+export async function updateProjectMaterialChecklist(
+  id: number,
+  updates: Partial<InsertProjectMaterialChecklist>,
+  actor: { userId: number; userName: string },
+): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+
+  // Append to audit trail
+  const current = await getProjectMaterialChecklist(id);
+  const existingAudit: any[] = current?.auditTrail ?? [];
+  const newAudit = [
+    ...existingAudit,
+    { userId: actor.userId, userName: actor.userName, action: "Updated checklist", timestamp: new Date().toISOString() },
+  ];
+
+  await db
+    .update(projectMaterialChecklists)
+    .set({ ...updates, auditTrail: newAudit })
+    .where(eq(projectMaterialChecklists.id, id));
+}
+
+export async function updateProjectMaterialChecklistStatus(
+  id: number,
+  status: string,
+  actor: { userId: number; userName: string; action: string },
+): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+
+  const current = await getProjectMaterialChecklist(id);
+  const existingAudit: any[] = current?.auditTrail ?? [];
+  const newAudit = [
+    ...existingAudit,
+    { userId: actor.userId, userName: actor.userName, action: actor.action, timestamp: new Date().toISOString() },
+  ];
+
+  await db
+    .update(projectMaterialChecklists)
+    .set({ status, auditTrail: newAudit })
+    .where(eq(projectMaterialChecklists.id, id));
+}
+
+export async function addProjectMaterialAttachment(
+  id: number,
+  attachment: { url: string; name: string; type: string; uploadedByName: string; uploadedAt: string },
+): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+
+  const current = await getProjectMaterialChecklist(id);
+  const existing: any[] = current?.attachments ?? [];
+
+  await db
+    .update(projectMaterialChecklists)
+    .set({ attachments: [...existing, attachment] })
+    .where(eq(projectMaterialChecklists.id, id));
 }

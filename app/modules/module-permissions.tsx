@@ -30,6 +30,7 @@ const ALL_MODULES = [
   { key: "zoning-lookup", label: "Zoning Lookup", icon: "map.fill", description: "Look up property zoning information" },
   { key: "hubspot-crm", label: "HubSpot CRM", icon: "link", description: "Access HubSpot CRM contacts and deals" },
   { key: "training", label: "Training", icon: "book.fill", description: "Training materials and resources" },
+  { key: "project-material-delivery", label: "Material Delivery", icon: "shippingbox.fill", description: "Project material checklists & warehouse tracking" },
   { key: "admin-users", label: "User Management", icon: "person.2.fill", description: "Manage users, roles, and permissions" },
   { key: "module-permissions", label: "Module Permissions", icon: "lock.fill", description: "Configure which job roles can access each module" },
 ];

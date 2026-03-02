@@ -36,6 +36,7 @@ const MAPPING = {
   "building.2.fill": "business",
   "hammer.fill": "construction",
   "book.fill": "menu-book",
+  "shippingbox.fill": "inventory",
   "shield.fill": "admin-panel-settings",
   "bolt.fill": "bolt",
   "photo.fill": "photo",

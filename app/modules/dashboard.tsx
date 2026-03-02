@@ -19,6 +19,7 @@ import { trpc } from "@/lib/trpc";
 import SalesPipelineScreen, { SalesPipelineContent } from "./sales-pipeline";
 import { ReceiptDashboardContent } from "./receipt-dashboard";
 import { CMRReportsDashboard } from "./cmr-reports-dashboard";
+import ProjectMaterialDeliveryScreen from "../(tabs)/modules/project-material-delivery/index";
 
 // ─── Status config ──────────────────────────────────────────────────────────
 
@@ -240,13 +241,14 @@ function RecentActivity({ orders, onTapOrder }: { orders: any[]; onTapOrder: (id
 
 // ─── Module Picker ──────────────────────────────────────────────────────────
 
-type DashboardModule = 'screen-ordering' | 'sales-pipeline' | 'receipts' | 'cmr-reports';
+type DashboardModule = 'screen-ordering' | 'sales-pipeline' | 'receipts' | 'cmr-reports' | 'material-delivery';
 
 const DASHBOARD_MODULES: { key: DashboardModule; label: string; icon: any }[] = [
   { key: 'screen-ordering', label: 'Screen Ordering', icon: 'rectangle.grid.2x2.fill' },
   { key: 'sales-pipeline', label: 'Sales Pipeline', icon: 'chart.bar.fill' },
   { key: 'receipts', label: 'Receipts', icon: 'receipt' },
   { key: 'cmr-reports', label: 'CMR Reports', icon: 'doc.text.fill' },
+  { key: 'material-delivery', label: 'Material Delivery', icon: 'shippingbox.fill' },
 ];
 
 function ModulePicker({
@@ -350,6 +352,23 @@ function DashboardContent() {
       )}
     </View>
   );
+
+  // ── Material Delivery module ─────────────────────────────────────────────────────
+  if (activeModule === 'material-delivery') {
+    return (
+      <ScreenContainer edges={['top', 'left', 'right']}>
+        <View style={{ flex: 1 }}>
+          {header}
+          <View style={{ flexShrink: 0 }}>
+            <ModulePicker active={activeModule} onChange={setActiveModule} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <ProjectMaterialDeliveryScreen />
+          </View>
+        </View>
+      </ScreenContainer>
+    );
+  }
 
   // ── CMR Reports module ───────────────────────────────────────────────────────────
   if (activeModule === 'cmr-reports') {
