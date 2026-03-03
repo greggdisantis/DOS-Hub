@@ -407,3 +407,7 @@
 - [x] Add unread count badge on Profile tab bar icon (polls every 30s)
 - [x] Build in-app notification center screen (list, tap to mark read, swipe-delete, pull-to-refresh)
 - [x] Link notification center from Profile tab settings
+- [x] Add database migration safeguard: fix 0003_brainy_umar.sql to use TiDB-compatible JSON syntax (no DEFAULT)
+- [ ] Fix onboarding: users.updateName tRPC endpoint properly saves firstName/lastName
+- [x] Fix approved/role fields returned from /api/auth/me endpoint
+- [ ] Test Google OAuth login on deployed site

@@ -1,0 +1,1 @@
+ALTER TABLE `users` ADD `approved` tinyint DEFAULT 0 NOT NULL;

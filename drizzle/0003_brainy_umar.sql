@@ -1,2 +1,2 @@
-ALTER TABLE `users` ADD `dosRoles` json DEFAULT ('[]');--> statement-breakpoint
-ALTER TABLE `users` ADD `permissions` json DEFAULT ('{}');
+ALTER TABLE `users` ADD `dosRoles` json;--> statement-breakpoint
+ALTER TABLE `users` ADD `permissions` json;
