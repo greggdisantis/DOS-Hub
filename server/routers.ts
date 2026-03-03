@@ -1,28 +1,832 @@
+import { z } from "zod";
 import { COOKIE_NAME } from "../shared/const.js";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, router } from "./_core/trpc";
+import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
+import * as db from "./db";
+import { sendPushNotifications, notifyUsers, MATERIAL_DELIVERY_NOTIFICATIONS } from "./push-notifications";
+
+/**
+ * Filter a list of user IDs by their notification preference for a given type.
+ * If a user has no preference set (null), they receive the notification by default.
+ */
+async function filterByPref(userIds: number[], prefKey: string): Promise<number[]> {
+  const filtered: number[] = [];
+  for (const userId of userIds) {
+    const prefs = await db.getNotificationPrefs(userId);
+    if (!prefs || prefs[prefKey] !== false) {
+      filtered.push(userId);
+    }
+  }
+  return filtered;
+}
+
+// System roles available in the app
+const SYSTEM_ROLES = ["pending", "guest", "member", "manager", "admin"] as const;
 
 export const appRouter = router({
-  // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
   system: systemRouter,
+
   auth: router({
     me: publicProcedure.query((opts) => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
-      return {
-        success: true,
-      } as const;
+      return { success: true } as const;
     }),
   }),
 
-  // TODO: add feature routers here, e.g.
-  // todo: router({
-  //   list: protectedProcedure.query(({ ctx }) =>
-  //     db.getUserTodos(ctx.user.id)
-  //   ),
-  // }),
+  // ─── USER MANAGEMENT (admin only) ──────────────────────────────────────────
+  users: router({
+    /** Get all users (admin/manager only) */
+    list: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user.role !== "admin" && ctx.user.role !== "manager") {
+        throw new Error("Unauthorized: admin or manager role required");
+      }
+      return db.getAllUsers();
+    }),
+
+    /** Get pending (unapproved) users */
+    pending: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user.role !== "admin") {
+        throw new Error("Unauthorized: admin role required");
+      }
+      return db.getPendingUsers();
+    }),
+
+    /** Approve a user and set their system role */
+    approve: protectedProcedure
+      .input(
+        z.object({
+          userId: z.number(),
+          role: z.enum(SYSTEM_ROLES),
+        }),
+      )
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") {
+          throw new Error("Unauthorized: admin role required");
+        }
+        await db.approveUser(input.userId, input.role);
+        return { success: true };
+      }),
+
+    /** Reject (delete) a pending user */
+    reject: protectedProcedure
+      .input(z.object({ userId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") {
+          throw new Error("Unauthorized: admin role required");
+        }
+        await db.rejectUser(input.userId);
+        return { success: true };
+      }),
+
+    /** Update a user's system role */
+    updateRole: protectedProcedure
+      .input(
+        z.object({
+          userId: z.number(),
+          role: z.enum(SYSTEM_ROLES),
+        }),
+      )
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") {
+          throw new Error("Unauthorized: admin role required");
+        }
+        await db.updateUserRole(input.userId, input.role);
+        return { success: true };
+      }),
+
+    /** Update the logged-in user's first and last name */
+    updateName: protectedProcedure
+      .input(z.object({ firstName: z.string().min(1).max(128), lastName: z.string().min(1).max(128) }))
+      .mutation(async ({ ctx, input }) => {
+        await db.updateUserName(ctx.user.id, input.firstName, input.lastName);
+        return { success: true };
+      }),
+
+    /** Update a user's DOS job roles (multi-select from 17-role list) */
+    updateDosRoles: protectedProcedure
+      .input(z.object({ userId: z.number(), dosRoles: z.array(z.string()) }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") {
+          throw new Error("Unauthorized: admin role required");
+        }
+        await db.updateDosRoles(input.userId, input.dosRoles);
+        return { success: true };
+      }),
+
+    /** List approved users (for consultant picker in CMR filters) */
+    listConsultants: protectedProcedure.query(async ({ ctx }) => {
+      const isAdmin = ctx.user.role === 'admin' || ctx.user.role === 'manager';
+      if (!isAdmin) throw new Error('Unauthorized: manager or admin role required');
+      const all = await db.getAllUsers();
+      return all
+        .filter((u) => u.approved && u.firstName)
+        .map((u) => ({
+          id: u.id,
+          name: u.name || `${u.firstName ?? ''} ${u.lastName ?? ''}`.trim() || u.email || 'Unknown',
+          firstName: u.firstName,
+          lastName: u.lastName,
+          email: u.email,
+        }));
+    }),
+
+    /** Update a user's legacy per-user module permissions */
+    updatePermissions: protectedProcedure
+      .input(z.object({ userId: z.number(), permissions: z.record(z.string(), z.boolean()) }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") {
+          throw new Error("Unauthorized: admin role required");
+        }
+        await db.updatePermissions(input.userId, input.permissions);
+        return { success: true };
+      }),
+  }),
+
+  // ─── MODULE PERMISSIONS (Owner job role only) ──────────────────────────────
+  modulePermissions: router({
+    /** Get all module permission settings */
+    list: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user.role !== "admin") {
+        throw new Error("Unauthorized: admin role required");
+      }
+      return db.getAllModulePermissions();
+    }),
+
+    /** Set which job roles can access a module */
+    set: protectedProcedure
+      .input(z.object({ moduleKey: z.string(), allowedJobRoles: z.array(z.string()) }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") {
+          throw new Error("Unauthorized: admin role required");
+        }
+        // Only Owner job role users can modify module permissions
+        const dosRoles = (ctx.user.dosRoles as string[]) ?? [];
+        if (!dosRoles.includes("Owner")) {
+          throw new Error("Unauthorized: Owner job role required to modify module permissions");
+        }
+        await db.setModulePermissions(input.moduleKey, input.allowedJobRoles);
+        return { success: true };
+      }),
+  }),
+
+  // ─── SCREEN ORDERS ─────────────────────────────────────────────────────────
+  orders: router({
+    /** Create a new screen order */
+    create: protectedProcedure
+      .input(
+        z.object({
+          title: z.string().min(1).max(255),
+          orderData: z.any(),
+          screenCount: z.number().min(1).default(1),
+          manufacturer: z.string().optional(),
+          submitterNotes: z.string().optional(),
+          projectId: z.number().optional(),
+        }),
+      )
+      .mutation(async ({ ctx, input }) => {
+        const orderId = await db.createScreenOrder({
+          userId: ctx.user.id,
+          companyId: ctx.user.companyId,
+          title: input.title,
+          status: "draft",
+          orderData: input.orderData,
+          screenCount: input.screenCount,
+          manufacturer: input.manufacturer,
+          submitterNotes: input.submitterNotes,
+          projectId: input.projectId,
+        });
+
+        // Notify managers/admins when a new order is created
+        try {
+          const managers = await db.getManagersAndAdminsWithPushToken();
+          const allManagerIds = managers.map((m: any) => m.id as number);
+          const targetIds = await filterByPref(allManagerIds, 'order_status');
+          if (targetIds.length > 0) {
+            const submitterName = ctx.user.name ?? 'A team member';
+            await notifyUsers(
+              targetIds,
+              'New Screen Order Submitted',
+              `${submitterName} submitted a new order: "${input.title}".`,
+              'order_status',
+              { screen: 'orders', orderId },
+            );
+          }
+        } catch (notifError) {
+          console.error('[PushNotifications] Screen order create notification failed:', notifError);
+        }
+
+        return { orderId };
+      }),
+
+    /** Update an existing order (creates a revision) */
+    update: protectedProcedure
+      .input(
+        z.object({
+          orderId: z.number(),
+          title: z.string().min(1).max(255).optional(),
+          orderData: z.any().optional(),
+          screenCount: z.number().min(1).optional(),
+          manufacturer: z.string().optional(),
+          status: z.enum(["draft", "submitted", "approved", "rejected", "completed"]).optional(),
+          submitterNotes: z.string().optional(),
+          changeDescription: z.string().default("Updated order"),
+        }),
+      )
+      .mutation(async ({ ctx, input }) => {
+        const order = await db.getScreenOrder(input.orderId);
+        if (!order) throw new Error("Order not found");
+
+        const isOwner = order.userId === ctx.user.id;
+        const isManagerOrAdmin = ctx.user.role === "manager" || ctx.user.role === "admin";
+
+        if (!isOwner && !isManagerOrAdmin) {
+          throw new Error("Unauthorized: you can only edit your own orders");
+        }
+
+        const prevStatus = order.status;
+        const { orderId, changeDescription, ...updateData } = input;
+        await db.updateScreenOrder(
+          orderId,
+          updateData,
+          ctx.user.id,
+          ctx.user.name,
+          changeDescription,
+        );
+
+        // Notify the order owner when a manager/admin changes the status
+        const newStatus = input.status;
+        if (newStatus && newStatus !== prevStatus && isManagerOrAdmin && !isOwner) {
+          try {
+            const targetIds = await filterByPref([order.userId], 'order_status');
+            if (targetIds.length > 0) {
+              const statusMessages: Record<string, string> = {
+                approved: `Your order "${order.title}" has been approved.`,
+                rejected: `Your order "${order.title}" has been rejected. Please review and resubmit.`,
+                completed: `Your order "${order.title}" has been marked as completed.`,
+                submitted: `Your order "${order.title}" has been submitted for review.`,
+              };
+              const body = statusMessages[newStatus] ?? `Your order "${order.title}" status changed to ${newStatus}.`;
+              await notifyUsers(
+                targetIds,
+                'Screen Order Update',
+                body,
+                'order_status',
+                { screen: 'orders', orderId },
+              );
+            }
+          } catch (notifError) {
+            console.error('[PushNotifications] Screen order status notification failed:', notifError);
+          }
+        }
+
+        return { success: true };
+      }),
+
+    /** Get a single order by ID */
+    get: protectedProcedure
+      .input(z.object({ orderId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const order = await db.getScreenOrder(input.orderId);
+        if (!order) throw new Error("Order not found");
+
+        const isOwner = order.userId === ctx.user.id;
+        const isManagerOrAdmin = ctx.user.role === "manager" || ctx.user.role === "admin";
+
+        if (!isOwner && !isManagerOrAdmin) {
+          throw new Error("Unauthorized");
+        }
+
+        return order;
+      }),
+
+    /** List orders — members see their own, managers/admins see all */
+    list: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user.role === "manager" || ctx.user.role === "admin") {
+        return db.getAllScreenOrders();
+      }
+      return db.getUserScreenOrders(ctx.user.id);
+    }),
+
+    /** Get revision history for an order */
+    revisions: protectedProcedure
+      .input(z.object({ orderId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const order = await db.getScreenOrder(input.orderId);
+        if (!order) throw new Error("Order not found");
+
+        const isOwner = order.userId === ctx.user.id;
+        const isManagerOrAdmin = ctx.user.role === "manager" || ctx.user.role === "admin";
+
+        if (!isOwner && !isManagerOrAdmin) {
+          throw new Error("Unauthorized");
+        }
+
+        return db.getOrderRevisions(input.orderId);
+      }),
+
+    /** Delete an order (admin only) */
+    delete: protectedProcedure
+      .input(z.object({ orderId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") {
+          throw new Error("Unauthorized: admin role required");
+        }
+        await db.deleteScreenOrder(input.orderId);
+        return { success: true };
+      }),
+  }),
+
+  // ─── RECEIPTS ──────────────────────────────────────────────────────────────
+  receipts: router({
+    /** Analyze a receipt image with AI and extract structured data */
+    analyzeImage: protectedProcedure
+      .input(z.object({ imageUrl: z.string() }))
+      .mutation(async ({ input }) => {
+        const { invokeLLM } = await import("./_core/llm");
+        const response = await invokeLLM({
+          messages: [
+            {
+              role: "system",
+              content: `You are a receipt data extraction assistant. Extract all data from the receipt image and return it as JSON. Be precise with numbers.`,
+            },
+            {
+              role: "user",
+              content: [
+                { type: "text", text: "Extract all data from this receipt image. Return JSON with: vendorName, vendorLocation, purchaseDate (YYYY-MM-DD format), lineItems (array of {description, quantity, unitPrice, lineTotal}), subtotal, tax, total. If a field is not visible, return null." },
+                { type: "image_url", image_url: { url: input.imageUrl } },
+              ],
+            },
+          ],
+          response_format: { type: "json_object" },
+        });
+        const content = response.choices[0].message.content;
+        return JSON.parse(typeof content === "string" ? content : JSON.stringify(content));
+      }),
+
+    /** Create a new receipt */
+    create: protectedProcedure
+      .input(
+        z.object({
+          submitterName: z.string().optional(),
+          vendorName: z.string().optional(),
+          vendorLocation: z.string().optional(),
+          purchaseDate: z.string().optional(),
+          expenseType: z.enum(["JOB", "OVERHEAD"]).default("JOB"),
+          jobName: z.string().optional(),
+          workOrderNumber: z.string().optional(),
+          poNumber: z.string().optional(),
+          overheadCategory: z.string().optional(),
+          materialCategory: z.string().optional(),
+          lineItems: z.array(z.object({
+            description: z.string(),
+            quantity: z.number(),
+            unitPrice: z.number(),
+            lineTotal: z.number(),
+          })).optional(),
+          subtotal: z.number().optional(),
+          tax: z.number().optional(),
+          total: z.number().optional(),
+          notes: z.string().optional(),
+          imageUrl: z.string().optional(),
+          fileName: z.string().optional(),
+        }),
+      )
+      .mutation(async ({ ctx, input }) => {
+        const id = await db.createReceipt({
+          userId: ctx.user.id,
+          companyId: ctx.user.companyId,
+          submitterName: input.submitterName,
+          vendorName: input.vendorName,
+          vendorLocation: input.vendorLocation,
+          purchaseDate: input.purchaseDate,
+          expenseType: input.expenseType,
+          jobName: input.jobName,
+          workOrderNumber: input.workOrderNumber,
+          poNumber: input.poNumber,
+          overheadCategory: input.overheadCategory,
+          materialCategory: input.materialCategory || "Miscellaneous",
+          lineItems: input.lineItems,
+          subtotal: input.subtotal?.toString(),
+          tax: input.tax?.toString(),
+          total: input.total?.toString(),
+          notes: input.notes,
+          imageUrl: input.imageUrl,
+          fileName: input.fileName,
+        });
+        return { id };
+      }),
+
+    /** List receipts — members see own, managers/admins see all */
+    list: protectedProcedure
+      .input(z.object({
+        userId: z.number().optional(),
+        vendorName: z.string().optional(),
+        startDate: z.string().optional(),
+        endDate: z.string().optional(),
+      }).optional())
+      .query(async ({ ctx, input }) => {
+        const isAdmin = ctx.user.role === "admin" || ctx.user.role === "manager";
+        if (isAdmin && input && (input.userId || input.vendorName || input.startDate || input.endDate)) {
+          return db.getReceiptsWithFilters(input);
+        }
+        if (isAdmin) return db.getAllReceipts();
+        return db.getUserReceipts(ctx.user.id);
+      }),
+
+    /** Get a single receipt */
+    get: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const receipt = await db.getReceipt(input.id);
+        if (!receipt) throw new Error("Receipt not found");
+        const isAdmin = ctx.user.role === "admin" || ctx.user.role === "manager";
+        if (!isAdmin && receipt.userId !== ctx.user.id) throw new Error("Unauthorized");
+        return receipt;
+      }),
+
+    /** Delete a receipt — admins/managers can delete any; members can delete their own */
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const isAdmin = ctx.user.role === "admin" || ctx.user.role === "manager";
+        if (!isAdmin) {
+          // Members can only delete their own receipts
+          const receipt = await db.getReceipt(input.id);
+          if (!receipt) throw new Error("Receipt not found");
+          if (receipt.userId !== ctx.user.id) throw new Error("Unauthorized: you can only delete your own receipts");
+        }
+        await db.deleteReceipt(input.id);
+        return { success: true };
+      }),
+
+    /** Generate PDF for a receipt and return as base64 data URI */
+    generatePDF: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const receipt = await db.getReceipt(input.id);
+        if (!receipt) throw new Error("Receipt not found");
+        const isAdmin = ctx.user.role === "admin" || ctx.user.role === "manager";
+        if (!isAdmin && receipt.userId !== ctx.user.id) throw new Error("Unauthorized");
+
+        const { generateReceiptPDF } = await import("./receipt-pdf");
+        const pdfBuffer = await generateReceiptPDF({
+          fileName: receipt.fileName || `${receipt.vendorName || 'Receipt'}_${receipt.purchaseDate || 'unknown'}`,
+          submitterName: receipt.submitterName,
+          expenseType: receipt.expenseType,
+          jobName: receipt.jobName,
+          workOrderNumber: receipt.workOrderNumber,
+          poNumber: receipt.poNumber,
+          overheadCategory: receipt.overheadCategory,
+          vendorName: receipt.vendorName,
+          vendorLocation: receipt.vendorLocation,
+          purchaseDate: receipt.purchaseDate,
+          materialCategory: receipt.materialCategory,
+          lineItems: receipt.lineItems,
+          subtotal: receipt.subtotal,
+          tax: receipt.tax,
+          total: receipt.total,
+          notes: receipt.notes,
+          imageUrl: receipt.imageUrl,
+          createdAt: receipt.createdAt,
+        });
+
+        // Upload to S3 so the mobile client can open it via URL
+        const { storagePut } = await import("./storage");
+        const fileKey = `receipts/pdf/${receipt.fileName || `receipt-${receipt.id}`}.pdf`;
+        const { url } = await storagePut(fileKey, pdfBuffer, "application/pdf");
+        return { url, fileName: (receipt.fileName || `receipt-${receipt.id}`) + ".pdf" };
+      }),
+
+    /** Upload receipt image to S3 and return URL */
+    uploadImage: protectedProcedure
+      .input(z.object({ base64: z.string(), mimeType: z.string().default("image/jpeg"), fileName: z.string().optional() }))
+      .mutation(async ({ ctx, input }) => {
+        const { storagePut } = await import("./storage");
+        const ext = input.mimeType === "image/png" ? "png" : "jpg";
+        const key = `receipts/images/${ctx.user.id}-${Date.now()}.${ext}`;
+        const buf = Buffer.from(input.base64, "base64");
+        const { url } = await storagePut(key, buf, input.mimeType);
+        return { url };
+      }),
+
+    /** Get analytics for the finance dashboard */
+    analytics: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user.role !== "admin" && ctx.user.role !== "manager") {
+        throw new Error("Unauthorized: manager or admin role required");
+      }
+      return db.getReceiptAnalytics();
+    }),
+  }),
+
+  // ─── CMR REPORTS ──────────────────────────────────────────────────────────────
+  cmr: router({
+    /** Upsert a CMR report (create or update by localId) */
+    upsert: protectedProcedure
+      .input(z.object({
+        localId: z.string(),
+        consultantName: z.string().optional(),
+        consultantUserId: z.string().optional(),
+        clientName: z.string().optional(),
+        appointmentDate: z.string().optional(),
+        weekOf: z.string().optional(),
+        dealStatus: z.string().optional(),
+        outcome: z.string().optional(),
+        purchaseConfidencePct: z.number().optional(),
+        originalPcPct: z.number().optional(),
+        estimatedContractValue: z.number().optional(),
+        soldAt: z.string().optional(),
+        reportData: z.any(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        // Check if this is a new report (no existing record with this localId)
+        const existingReports = await db.getUserCmrReports(ctx.user.id);
+        const isNew = !existingReports.some((r: any) => r.localId === input.localId);
+
+        await db.upsertCmrReport({
+          localId: input.localId,
+          userId: ctx.user.id,
+          companyId: ctx.user.companyId,
+          consultantName: input.consultantName,
+          consultantUserId: input.consultantUserId,
+          clientName: input.clientName,
+          appointmentDate: input.appointmentDate,
+          weekOf: input.weekOf,
+          dealStatus: input.dealStatus,
+          outcome: input.outcome ?? 'open',
+          purchaseConfidencePct: input.purchaseConfidencePct,
+          originalPcPct: input.originalPcPct,
+          estimatedContractValue: input.estimatedContractValue?.toString(),
+          soldAt: input.soldAt,
+          reportData: input.reportData,
+        });
+
+        // Notify managers/admins when a new CMR report is submitted
+        if (isNew) {
+          try {
+            const managers = await db.getManagersAndAdminsWithPushToken();
+            const allManagerIds = managers.map((m: any) => m.id as number);
+            const targetIds = await filterByPref(allManagerIds, 'cmr_new');
+            if (targetIds.length > 0) {
+              const clientDisplay = input.clientName ?? 'a client';
+              const consultantDisplay = input.consultantName ?? ctx.user.name ?? 'A consultant';
+              await notifyUsers(
+                targetIds,
+                'New CMR Report Submitted',
+                `${consultantDisplay} submitted a report for ${clientDisplay}.`,
+                'cmr_new',
+                { screen: 'cmr', localId: input.localId },
+              );
+            }
+          } catch (notifError) {
+            console.error('[PushNotifications] CMR notification failed:', notifError);
+          }
+        }
+
+        return { success: true };
+      }),
+
+    /** List CMR reports — members see own, managers/admins see all */
+    list: protectedProcedure
+      .input(z.object({
+        userId: z.number().optional(),
+        startDate: z.string().optional(),
+        endDate: z.string().optional(),
+        outcome: z.string().optional(),
+        minValue: z.number().optional(),
+        maxValue: z.number().optional(),
+        minPc: z.number().optional(),
+        maxPc: z.number().optional(),
+      }).optional())
+      .query(async ({ ctx, input }) => {
+        const isAdmin = ctx.user.role === 'admin' || ctx.user.role === 'manager';
+        if (!isAdmin) {
+          return db.getUserCmrReports(ctx.user.id);
+        }
+        if (input && Object.values(input).some((v) => v !== undefined)) {
+          return db.getCmrReportsWithFilters(input);
+        }
+        return db.getAllCmrReports();
+      }),
+
+    /** Delete a CMR report (admin only) */
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== 'admin') throw new Error('Unauthorized: admin role required');
+        await db.deleteCmrReport(input.id);
+        return { success: true };
+      }),
+  }),
+
+  // ─── PROJECT MATERIAL DELIVERY ────────────────────────────────────────────
+  projectMaterial: router({
+    /** Create a new checklist (manager/admin only) */
+    create: protectedProcedure
+      .input(z.object({
+        projectName: z.string(),
+        clientName: z.string().optional(),
+        projectLocation: z.string().optional(),
+        supervisorUserId: z.number().optional(),
+        supervisorName: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== 'admin' && ctx.user.role !== 'manager') {
+          throw new Error('Unauthorized: manager or admin role required');
+        }
+        const createdByName = [ctx.user.firstName, ctx.user.lastName].filter(Boolean).join(' ') || ctx.user.name || ctx.user.email || 'Unknown';
+        return db.createProjectMaterialChecklist({
+          createdByUserId: ctx.user.id,
+          createdByName,
+          projectName: input.projectName,
+          clientName: input.clientName,
+          projectLocation: input.projectLocation,
+          supervisorUserId: input.supervisorUserId,
+          supervisorName: input.supervisorName,
+          status: 'draft',
+          auditTrail: [{ userId: ctx.user.id, userName: createdByName, action: 'Created checklist', timestamp: new Date().toISOString() }],
+        });
+      }),
+
+    /** List all checklists */
+    list: protectedProcedure.query(async ({ ctx }) => {
+      return db.getAllProjectMaterialChecklists();
+    }),
+
+    /** Get a single checklist by ID */
+    get: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ ctx, input }) => {
+        return db.getProjectMaterialChecklist(input.id);
+      }),
+
+    /** Update checklist inventory data */
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        boxedItems: z.any().optional(),
+        deliveryItems: z.any().optional(),
+        projectSpecificItems: z.any().optional(),
+        supervisorUserId: z.number().optional(),
+        supervisorName: z.string().optional(),
+        warehouseCheckoffs: z.any().optional(),
+        attachments: z.any().optional(),
+        materialsLoaded: z.boolean().optional(),
+        materialsDelivered: z.boolean().optional(),
+        materialsLoadedPhotos: z.array(z.string()).optional(),
+        materialsDeliveredPhotos: z.array(z.string()).optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const { id, ...updates } = input;
+        const userName = [ctx.user.firstName, ctx.user.lastName].filter(Boolean).join(' ') || ctx.user.name || ctx.user.email || 'Unknown';
+        await db.updateProjectMaterialChecklist(id, updates, { userId: ctx.user.id, userName });
+        return { success: true };
+      }),
+
+    /** Advance the status of a checklist */
+    updateStatus: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        status: z.string(),
+        action: z.string(),
+        projectName: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const userName = [ctx.user.firstName, ctx.user.lastName].filter(Boolean).join(' ') || ctx.user.name || ctx.user.email || 'Unknown';
+        await db.updateProjectMaterialChecklistStatus(input.id, input.status, { userId: ctx.user.id, userName, action: input.action });
+
+        // Send push notifications + in-app notifications for this status transition
+        const notifConfig = MATERIAL_DELIVERY_NOTIFICATIONS[input.status];
+        if (notifConfig) {
+          const projectName = input.projectName ?? 'a project';
+          const { title, body, targetRole } = notifConfig;
+          // Determine which pref key applies to this notification type
+          const prefKey = targetRole === 'Warehouse Manager'
+            ? 'material_delivery_warehouse'
+            : 'material_delivery_status';
+
+          let candidateIds: number[] = [];
+          if (targetRole) {
+            // Users with the specific DOS job role
+            const allUsers = await db.getAllUsers();
+            candidateIds = allUsers
+              .filter((u) => {
+                const roles: string[] = (u.dosRoles as string[]) ?? [];
+                return roles.includes(targetRole);
+              })
+              .map((u) => u.id);
+          } else {
+            // All admins and managers
+            const allUsers = await db.getAllUsers();
+            candidateIds = allUsers
+              .filter((u) => u.role === 'admin' || u.role === 'manager')
+              .map((u) => u.id);
+          }
+
+          const targetIds = await filterByPref(candidateIds, prefKey);
+          if (targetIds.length > 0) {
+            notifyUsers(targetIds, title, body(projectName), prefKey, {
+              screen: '/(tabs)/modules/project-material-delivery',
+              checklistId: input.id,
+            }).catch(console.error);
+          }
+        }
+
+        return { success: true };
+      }),
+
+    /** Upload a file attachment (purchase order PDF or photo) */
+    uploadFile: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        fileUrl: z.string(),
+        fileName: z.string(),
+        fileType: z.string(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const userName = [ctx.user.firstName, ctx.user.lastName].filter(Boolean).join(' ') || ctx.user.name || ctx.user.email || 'Unknown';
+        await db.addProjectMaterialAttachment(input.id, {
+          url: input.fileUrl,
+          name: input.fileName,
+          type: input.fileType,
+          uploadedByName: userName,
+          uploadedAt: new Date().toISOString(),
+        });
+        return { success: true };
+      }),
+  }),
+
+  // ─── DASHBOARD ANALYTICS ─────────────────────────────────────────────────────
+  dashboard: router({
+    /** Get dashboard stats (manager/admin only) */
+    stats: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user.role !== "admin" && ctx.user.role !== "manager") {
+        throw new Error("Unauthorized: manager or admin role required");
+      }
+      return db.getDashboardStats();
+    }),
+  }),
+
+  notifications: router({
+    /** Register or update the Expo push token for the current user */
+    registerToken: protectedProcedure
+      .input((input: unknown) => {
+        const { z } = require("zod");
+        return z.object({ token: z.string().min(1) }).parse(input);
+      })
+      .mutation(async ({ ctx, input }) => {
+        await db.updateUserPushToken(ctx.user.id, input.token);
+        return { success: true };
+      }),
+
+    /** Get all in-app notifications for the current user */
+    list: protectedProcedure.query(async ({ ctx }) => {
+      return db.getUserNotifications(ctx.user.id);
+    }),
+
+    /** Get unread notification count for the current user */
+    unreadCount: protectedProcedure.query(async ({ ctx }) => {
+      const count = await db.getUnreadNotificationCount(ctx.user.id);
+      return { count };
+    }),
+
+    /** Mark a specific notification as read */
+    markRead: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        await db.markNotificationRead(input.id, ctx.user.id);
+        return { success: true };
+      }),
+
+    /** Mark all notifications as read for the current user */
+    markAllRead: protectedProcedure.mutation(async ({ ctx }) => {
+      await db.markAllNotificationsRead(ctx.user.id);
+      return { success: true };
+    }),
+
+    /** Delete a notification */
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        await db.deleteNotification(input.id, ctx.user.id);
+        return { success: true };
+      }),
+
+    /** Get notification preferences for the current user */
+    getPrefs: protectedProcedure.query(async ({ ctx }) => {
+      const prefs = await db.getNotificationPrefs(ctx.user.id);
+      return prefs ?? {};
+    }),
+
+    /** Update notification preferences for the current user */
+    updatePrefs: protectedProcedure
+      .input(z.object({ prefs: z.record(z.string(), z.boolean()) }))
+      .mutation(async ({ ctx, input }) => {
+        await db.updateNotificationPrefs(ctx.user.id, input.prefs);
+        return { success: true };
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

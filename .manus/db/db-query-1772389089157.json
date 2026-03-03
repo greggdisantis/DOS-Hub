@@ -1,0 +1,9 @@
+{
+  "query": "SELECT id, localId, userId, consultantName, clientName, appointmentDate, outcome FROM cmr_reports LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user rUcyWo8oc4HgvHh.root --database kseAyHgdHCF3tNKxdCJFMX --execute SELECT id, localId, userId, consultantName, clientName, appointmentDate, outcome FROM cmr_reports LIMIT 10;",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 57
+}

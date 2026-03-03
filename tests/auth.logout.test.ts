@@ -18,11 +18,19 @@ function createAuthContext(): { ctx: TrpcContext; clearedCookies: CookieCall[] }
     openId: "sample-user",
     email: "sample@example.com",
     name: "Sample User",
+    firstName: "Sample",
+    lastName: "User",
     loginMethod: "manus",
     role: "user",
+    approved: true,
+    companyId: null,
     createdAt: new Date(),
     updatedAt: new Date(),
     lastSignedIn: new Date(),
+    dosRoles: [],
+    permissions: {},
+    expoPushToken: null,
+    notificationPrefs: null,
   };
   
   const ctx: TrpcContext = {

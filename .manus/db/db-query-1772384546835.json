@@ -1,0 +1,9 @@
+{
+  "query": "CREATE TABLE IF NOT EXISTS `cmr_reports` (\n  `id` int AUTO_INCREMENT PRIMARY KEY NOT NULL,\n  `localId` varchar(64) NOT NULL UNIQUE,\n  `userId` int NOT NULL,\n  `companyId` int,\n  `consultantName` varchar(255),\n  `consultantUserId` varchar(64),\n  `clientName` varchar(255),\n  `appointmentDate` varchar(10),\n  `weekOf` varchar(10),\n  `dealStatus` varchar(64),\n  `outcome` varchar(16) DEFAULT 'open',\n  `purchaseConfidencePct` int,\n  `originalPcPct` int,\n  `estimatedContractValue` decimal(12,2),\n  `soldAt` varchar(32),\n  `reportData` json NOT NULL,\n  `createdAt` timestamp NOT NULL DEFAULT NOW(),\n  `updatedAt` timestamp NOT NULL DEFAULT NOW() ON UPDATE NOW()\n);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user rUcyWo8oc4HgvHh.root --database kseAyHgdHCF3tNKxdCJFMX --execute CREATE TABLE IF NOT EXISTS `cmr_reports` (\n  `id` int AUTO_INCREMENT PRIMARY KEY NOT NULL,\n  `localId` varchar(64) NOT NULL UNIQUE,\n  `userId` int NOT NULL,\n  `companyId` int,\n  `consultantName` varchar(255),\n  `consultantUserId` varchar(64),\n  `clientName` varchar(255),\n  `appointmentDate` varchar(10),\n  `weekOf` varchar(10),\n  `dealStatus` varchar(64),\n  `outcome` varchar(16) DEFAULT 'open',\n  `purchaseConfidencePct` int,\n  `originalPcPct` int,\n  `estimatedContractValue` decimal(12,2),\n  `soldAt` varchar(32),\n  `reportData` json NOT NULL,\n  `createdAt` timestamp NOT NULL DEFAULT NOW(),\n  `updatedAt` timestamp NOT NULL DEFAULT NOW() ON UPDATE NOW()\n);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 258
+}
