@@ -6,6 +6,11 @@
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || "http://127.0.0.1:3000";
 const HEALTH_CHECK_ENDPOINT = `${API_BASE_URL}/api/health`;
 
+// Cache health check results to avoid excessive checks
+let lastHealthCheckTime = 0;
+let lastHealthCheckResult = true;
+const HEALTH_CHECK_CACHE_MS = 30000; // Cache for 30 seconds
+
 interface HealthCheckResult {
   isHealthy: boolean;
   attempts: number;
@@ -14,13 +19,19 @@ interface HealthCheckResult {
 
 /**
  * Check if the backend server is healthy
+ * Uses a shorter timeout (2s) for quick detection of real issues
  */
 async function checkHealth(): Promise<boolean> {
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2000); // Reduced from 5s to 2s
+    
     const response = await fetch(HEALTH_CHECK_ENDPOINT, {
       method: "GET",
-      timeout: 5000,
+      signal: controller.signal,
     });
+    
+    clearTimeout(timeoutId);
     return response.ok;
   } catch (error) {
     return false;
@@ -33,10 +44,15 @@ async function checkHealth(): Promise<boolean> {
  */
 async function triggerWakeUp(): Promise<void> {
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+    
     await fetch(HEALTH_CHECK_ENDPOINT, {
       method: "GET",
-      timeout: 3000,
+      signal: controller.signal,
     });
+    
+    clearTimeout(timeoutId);
   } catch (error) {
     // Expected to fail if server is still hibernating
     // The request itself triggers the wake-up process
@@ -83,7 +99,20 @@ export async function performAutoWake(): Promise<HealthCheckResult> {
 /**
  * Quick health check without retry
  * Used to detect if server is already down
+ * Caches results to avoid excessive checks on rapid page refreshes
  */
 export async function quickHealthCheck(): Promise<boolean> {
-  return checkHealth();
+  const now = Date.now();
+  
+  // Return cached result if still valid
+  if (now - lastHealthCheckTime < HEALTH_CHECK_CACHE_MS) {
+    return lastHealthCheckResult;
+  }
+  
+  // Perform new health check
+  const result = await checkHealth();
+  lastHealthCheckTime = now;
+  lastHealthCheckResult = result;
+  
+  return result;
 }

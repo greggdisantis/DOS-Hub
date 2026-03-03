@@ -441,4 +441,5 @@
 - [x] Implement auto-wake trigger logic in app startup (useAutoWake hook)
 - [x] Add retry mechanism with exponential backoff (auto-wake.ts with exponential backoff)
 - [x] Create reconnection loading screen UI (ReconnectionOverlay component)
-- [ ] Test auto-wake on hibernated server
+- [x] Test auto-wake on hibernated server
+- [x] Optimize health check to reduce false positives (30s cache + 2s timeout)

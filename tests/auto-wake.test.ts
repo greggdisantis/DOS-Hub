@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { quickHealthCheck } from "@/lib/auto-wake";
 
 // Mock fetch globally
 global.fetch = vi.fn();
@@ -7,6 +6,8 @@ global.fetch = vi.fn();
 describe("Auto-Wake Health Check - Core Functionality", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Clear the module cache to reset the health check cache
+    vi.resetModules();
   });
 
   describe("quickHealthCheck", () => {
@@ -15,6 +16,7 @@ describe("Auto-Wake Health Check - Core Functionality", () => {
         ok: true,
       });
 
+      const { quickHealthCheck } = await import("@/lib/auto-wake");
       const result = await quickHealthCheck();
       expect(result).toBe(true);
     });
@@ -22,6 +24,7 @@ describe("Auto-Wake Health Check - Core Functionality", () => {
     it("should return false when server is down", async () => {
       (global.fetch as any).mockRejectedValueOnce(new Error("Connection refused"));
 
+      const { quickHealthCheck } = await import("@/lib/auto-wake");
       const result = await quickHealthCheck();
       expect(result).toBe(false);
     });
@@ -32,6 +35,7 @@ describe("Auto-Wake Health Check - Core Functionality", () => {
         status: 503,
       });
 
+      const { quickHealthCheck } = await import("@/lib/auto-wake");
       const result = await quickHealthCheck();
       expect(result).toBe(false);
     });
@@ -41,6 +45,7 @@ describe("Auto-Wake Health Check - Core Functionality", () => {
         ok: true,
       });
 
+      const { quickHealthCheck } = await import("@/lib/auto-wake");
       await quickHealthCheck();
 
       expect(global.fetch).toHaveBeenCalledWith(
@@ -54,6 +59,7 @@ describe("Auto-Wake Health Check - Core Functionality", () => {
     it("should handle network errors gracefully", async () => {
       (global.fetch as any).mockRejectedValueOnce(new Error("Network error"));
 
+      const { quickHealthCheck } = await import("@/lib/auto-wake");
       const result = await quickHealthCheck();
       expect(result).toBe(false);
     });
@@ -61,6 +67,7 @@ describe("Auto-Wake Health Check - Core Functionality", () => {
     it("should handle timeout errors gracefully", async () => {
       (global.fetch as any).mockRejectedValueOnce(new Error("Request timeout"));
 
+      const { quickHealthCheck } = await import("@/lib/auto-wake");
       const result = await quickHealthCheck();
       expect(result).toBe(false);
     });
@@ -73,8 +80,8 @@ describe("Auto-Wake Health Check - Core Functionality", () => {
     });
 
     it("should export quickHealthCheck function", async () => {
-      const { quickHealthCheck: check } = await import("@/lib/auto-wake");
-      expect(typeof check).toBe("function");
+      const { quickHealthCheck } = await import("@/lib/auto-wake");
+      expect(typeof quickHealthCheck).toBe("function");
     });
   });
 });
