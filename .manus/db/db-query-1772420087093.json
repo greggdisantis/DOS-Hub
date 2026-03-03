@@ -1,9 +1,0 @@
-{
-  "query": "\nCREATE TABLE IF NOT EXISTS `notifications` (\n  `id` int NOT NULL AUTO_INCREMENT,\n  `user_id` int NOT NULL,\n  `title` varchar(255) NOT NULL,\n  `body` text NOT NULL,\n  `type` varchar(100) NOT NULL DEFAULT 'general',\n  `data` json DEFAULT NULL,\n  `is_read` tinyint(1) NOT NULL DEFAULT 0,\n  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,\n  PRIMARY KEY (`id`),\n  KEY `idx_notifications_user_id` (`user_id`),\n  KEY `idx_notifications_is_read` (`is_read`)\n);\n\nALTER TABLE `users` ADD COLUMN IF NOT EXISTS `notification_prefs` json DEFAULT NULL;\n",
-  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user rUcyWo8oc4HgvHh.root --database kseAyHgdHCF3tNKxdCJFMX --execute \nCREATE TABLE IF NOT EXISTS `notifications` (\n  `id` int NOT NULL AUTO_INCREMENT,\n  `user_id` int NOT NULL,\n  `title` varchar(255) NOT NULL,\n  `body` text NOT NULL,\n  `type` varchar(100) NOT NULL DEFAULT 'general',\n  `data` json DEFAULT NULL,\n  `is_read` tinyint(1) NOT NULL DEFAULT 0,\n  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,\n  PRIMARY KEY (`id`),\n  KEY `idx_notifications_user_id` (`user_id`),\n  KEY `idx_notifications_is_read` (`is_read`)\n);\n\nALTER TABLE `users` ADD COLUMN IF NOT EXISTS `notification_prefs` json DEFAULT NULL;\n",
-  "rows": [],
-  "messages": [],
-  "stdout": "",
-  "stderr": "",
-  "execution_time_ms": 802
-}

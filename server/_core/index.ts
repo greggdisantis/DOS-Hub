@@ -56,22 +56,6 @@ async function startServer() {
 
   registerOAuthRoutes(app);
 
-  // Receipt image upload endpoint
-  app.post("/api/upload-image", async (req, res) => {
-    try {
-      const { base64, mimeType = "image/jpeg" } = req.body;
-      if (!base64) { res.status(400).json({ error: "base64 required" }); return; }
-      const { storagePut } = await import("../storage");
-      const ext = mimeType === "image/png" ? "png" : "jpg";
-      const key = `receipts/images/upload-${Date.now()}.${ext}`;
-      const buf = Buffer.from(base64, "base64");
-      const { url } = await storagePut(key, buf, mimeType);
-      res.json({ url });
-    } catch (err: any) {
-      res.status(500).json({ error: err.message || "Upload failed" });
-    }
-  });
-
   app.get("/api/health", (_req, res) => {
     res.json({ ok: true, timestamp: Date.now() });
   });

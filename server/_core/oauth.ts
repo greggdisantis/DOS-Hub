@@ -57,12 +57,7 @@ function buildUserResponse(
     name: user?.name ?? null,
     email: user?.email ?? null,
     loginMethod: user?.loginMethod ?? null,
-    role: (user as any)?.role ?? "pending",
-    approved: (user as any)?.approved ?? false,
     lastSignedIn: (user?.lastSignedIn ?? new Date()).toISOString(),
-    firstName: (user as any)?.firstName ?? null,
-    lastName: (user as any)?.lastName ?? null,
-    dosRoles: (user as any)?.dosRoles ?? null,
   };
 }
 
@@ -79,32 +74,7 @@ export function registerOAuthRoutes(app: Express) {
     try {
       const tokenResponse = await sdk.exchangeCodeForToken(code, state);
       const userInfo = await sdk.getUserInfo(tokenResponse.accessToken);
-      
-      // Retry syncUser with exponential backoff for transient database errors
-      let syncError: Error | null = null;
-      for (let attempt = 1; attempt <= 3; attempt++) {
-        try {
-          await syncUser(userInfo);
-          syncError = null;
-          break;
-        } catch (err) {
-          syncError = err as Error;
-          if (attempt < 3 && syncError.message?.includes('ECONNRESET')) {
-            // Transient connection error, retry with backoff
-            const delayMs = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
-            console.warn(`[OAuth] syncUser failed (attempt ${attempt}/3), retrying in ${delayMs}ms...`, syncError.message);
-            await new Promise(resolve => setTimeout(resolve, delayMs));
-          } else {
-            // Not a transient error, fail immediately
-            throw err;
-          }
-        }
-      }
-      
-      if (syncError) {
-        throw syncError;
-      }
-      
+      await syncUser(userInfo);
       const sessionToken = await sdk.createSessionToken(userInfo.openId!, {
         name: userInfo.name || "",
         expiresInMs: ONE_YEAR_MS,
