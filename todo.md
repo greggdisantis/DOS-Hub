@@ -412,3 +412,6 @@
 - [x] Fix approved/role fields returned from /api/auth/me endpoint
 - [ ] Test Google OAuth login on deployed site
 - [x] Fix extra tab bar items: module screens inside (tabs)/modules/ are being auto-registered as tabs by Expo Router
+- [x] Reorganize Tools screen into categories: Utilities, Sales, Training, Administration
+- [x] Rename CMR module to "My Client Meeting Reports" and filter to show only current user's own reports
+- [x] Fix Sales Pipeline PDF export button (currently broken)

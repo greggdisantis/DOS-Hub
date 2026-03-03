@@ -250,9 +250,12 @@ export default function ClientMeetingReportScreen() {
   const cmrUpsert = trpc.cmr.upsert.useMutation();
   const utils = trpc.useUtils();
 
-  // Primary: load from database
-  const { data: dbReports, isLoading: dbLoading, error: dbError, refetch: refetchDb } = trpc.cmr.list.useQuery(undefined, {
+  // Primary: load from database — always pass current user's ID to filter to their own reports
+  const { data: dbReports, isLoading: dbLoading, error: dbError, refetch: refetchDb } = trpc.cmr.list.useQuery(
+    user?.id ? { userId: user.id } : undefined,
+    {
     retry: 1,
+    enabled: !!user,
   });
 
   // When DB data arrives, convert and set reports
@@ -472,7 +475,7 @@ export default function ClientMeetingReportScreen() {
       {/* Header */}
       <View style={styles.listHeader}>
         <View>
-          <Text style={[styles.listTitle, { color: colors.foreground }]}>Meeting Reports</Text>
+          <Text style={[styles.listTitle, { color: colors.foreground }]}>My Client Meeting Reports</Text>
           <Text style={[styles.listSubtitle, { color: colors.muted }]}>
             {reports.length} report{reports.length !== 1 ? 's' : ''} saved
           </Text>

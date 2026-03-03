@@ -587,7 +587,7 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    /** List CMR reports — members see own, managers/admins see all */
+    /** List CMR reports — if userId is provided, always filter to that user; otherwise admins see all */
     list: protectedProcedure
       .input(z.object({
         userId: z.number().optional(),
@@ -601,9 +601,15 @@ export const appRouter = router({
       }).optional())
       .query(async ({ ctx, input }) => {
         const isAdmin = ctx.user.role === 'admin' || ctx.user.role === 'manager';
+        // If a specific userId is requested, filter to that user (respects admin viewing own reports)
+        if (input?.userId !== undefined) {
+          return db.getUserCmrReports(input.userId);
+        }
+        // Non-admins always see only their own reports
         if (!isAdmin) {
           return db.getUserCmrReports(ctx.user.id);
         }
+        // Admins with other filters
         if (input && Object.values(input).some((v) => v !== undefined)) {
           return db.getCmrReportsWithFilters(input);
         }

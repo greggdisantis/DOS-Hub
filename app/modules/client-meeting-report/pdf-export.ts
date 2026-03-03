@@ -96,12 +96,35 @@ async function exportWebPDFFromElement(el: HTMLElement, filename: string): Promi
 }
 
 async function exportWebPDFFallback(html: string, filename: string): Promise<void> {
-  const w = window.open('', '_blank');
-  if (!w) { alert('Pop-up blocked. Please allow pop-ups to export PDF.'); return; }
-  w.document.open();
-  w.document.write(html);
-  w.document.close();
-  w.onload = () => { w.focus(); w.print(); };
+  const html2pdf = (await import('html2pdf.js')).default;
+
+  // Create a hidden container to render the HTML
+  const container = document.createElement('div');
+  container.style.position = 'fixed';
+  container.style.left = '-9999px';
+  container.style.top = '0';
+  container.style.width = '800px';
+  container.style.background = '#ffffff';
+  container.innerHTML = html;
+  document.body.appendChild(container);
+
+  try {
+    await (html2pdf() as any).set({
+      margin: [10, 10, 10, 10],
+      filename,
+      image: { type: 'jpeg' as const, quality: 0.98 },
+      html2canvas: {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+      },
+      jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' as const },
+      pagebreak: { mode: ['css', 'legacy'] },
+    }).from(container).save();
+  } finally {
+    document.body.removeChild(container);
+  }
 }
 
 // ── Native: expo-print + sharing ──────────────────────────────────────────────

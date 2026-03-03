@@ -15,7 +15,38 @@ type ToolItem = {
   category: string;
 };
 
+// Category display order
+const CATEGORY_ORDER = ["Utilities", "Sales", "Training", "Administration"];
+
 const ALL_TOOLS: ToolItem[] = [
+  // Utilities
+  {
+    id: "screen-ordering",
+    title: "Motorized Screens",
+    description: "Configure and order motorized screens with structural calculations.",
+    icon: "rectangle.grid.2x2.fill",
+    route: "/modules/screen-ordering",
+    color: "#F59E0B",
+    category: "Utilities",
+  },
+  {
+    id: "job-intelligence",
+    title: "Job Intelligence",
+    description: "Service Fusion open jobs readiness engine and project tracking.",
+    icon: "chart.bar.fill",
+    route: "/modules/job-intelligence",
+    color: "#3B82F6",
+    category: "Utilities",
+  },
+  {
+    id: "project-material-delivery",
+    title: "Material Delivery",
+    description: "Create and track project material checklists from warehouse to job site.",
+    icon: "shippingbox.fill",
+    route: "/modules/project-material-delivery",
+    color: "#7C3AED",
+    category: "Utilities",
+  },
   {
     id: "receipt-capture",
     title: "Receipt Capture",
@@ -34,28 +65,11 @@ const ALL_TOOLS: ToolItem[] = [
     color: "#6366F1",
     category: "Utilities",
   },
-  {
-    id: "screen-ordering",
-    title: "Motorized Screens",
-    description: "Configure and order motorized screens with structural calculations.",
-    icon: "rectangle.grid.2x2.fill",
-    route: "/modules/screen-ordering",
-    color: "#F59E0B",
-    category: "Engineering",
-  },
-  {
-    id: "job-intelligence",
-    title: "Job Intelligence",
-    description: "Service Fusion open jobs readiness engine and project tracking.",
-    icon: "chart.bar.fill",
-    route: "/modules/job-intelligence",
-    color: "#3B82F6",
-    category: "Operations",
-  },
+  // Sales
   {
     id: "client-meeting-report",
-    title: "Client Meeting Report",
-    description: "Complete post-meeting reports with deal status, purchase confidence, and next steps.",
+    title: "My Client Meeting Reports",
+    description: "Post-meeting reports with deal status, purchase confidence, and next steps.",
     icon: "doc.text.fill",
     route: "/modules/client-meeting-report",
     color: "#10B981",
@@ -70,15 +84,7 @@ const ALL_TOOLS: ToolItem[] = [
     color: "#059669",
     category: "Sales",
   },
-  {
-    id: "hubspot",
-    title: "HubSpot CRM",
-    description: "Search deals, attach documents, and manage customer records.",
-    icon: "link",
-    route: "/modules/hubspot",
-    color: "#EF4444",
-    category: "Operations",
-  },
+  // Training
   {
     id: "training",
     title: "Training Hub",
@@ -88,14 +94,15 @@ const ALL_TOOLS: ToolItem[] = [
     color: "#8B5CF6",
     category: "Training",
   },
+  // Administration
   {
-    id: "project-material-delivery",
-    title: "Material Delivery",
-    description: "Create and track project material checklists from warehouse to job site.",
-    icon: "shippingbox.fill",
-    route: "/modules/project-material-delivery",
-    color: "#7C3AED",
-    category: "Operations",
+    id: "hubspot",
+    title: "HubSpot CRM",
+    description: "Search deals, attach documents, and manage customer records.",
+    icon: "link",
+    route: "/modules/hubspot",
+    color: "#EF4444",
+    category: "Administration",
   },
 ];
 
@@ -116,8 +123,10 @@ export default function ToolsScreen() {
   }, [search]);
 
   const categories = useMemo(() => {
-    const cats = [...new Set(filteredTools.map((t) => t.category))];
-    return cats.map((cat) => ({
+    const presentCats = [...new Set(filteredTools.map((t) => t.category))];
+    // Sort by the defined order
+    const ordered = CATEGORY_ORDER.filter((c) => presentCats.includes(c));
+    return ordered.map((cat) => ({
       category: cat,
       tools: filteredTools.filter((t) => t.category === cat),
     }));
