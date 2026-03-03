@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, lte, like } from "drizzle-orm";
+import { and, desc, eq, gte, lte, like, ne, isNull, or } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   InsertUser,
@@ -429,13 +429,19 @@ export async function getReceipt(id: number) {
 export async function getUserReceipts(userId: number) {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(receipts).where(eq(receipts.userId, userId)).orderBy(desc(receipts.createdAt));
+  // Exclude archived receipts from the main list
+  return db.select().from(receipts)
+    .where(and(eq(receipts.userId, userId), or(eq(receipts.archived, false), isNull(receipts.archived))))
+    .orderBy(desc(receipts.createdAt));
 }
 
 export async function getAllReceipts() {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(receipts).orderBy(desc(receipts.createdAt));
+  // Exclude archived receipts from the main list
+  return db.select().from(receipts)
+    .where(or(eq(receipts.archived, false), isNull(receipts.archived)))
+    .orderBy(desc(receipts.createdAt));
 }
 
 export async function getReceiptsWithFilters(filters: {
@@ -447,17 +453,56 @@ export async function getReceiptsWithFilters(filters: {
   const db = await getDb();
   if (!db) return [];
 
-  const conditions = [];
+  // Always exclude archived from main list
+  const conditions: any[] = [or(eq(receipts.archived, false), isNull(receipts.archived))];
   if (filters.userId) conditions.push(eq(receipts.userId, filters.userId));
   if (filters.vendorName) conditions.push(like(receipts.vendorName, `%${filters.vendorName}%`));
   if (filters.startDate) conditions.push(gte(receipts.purchaseDate, filters.startDate));
   if (filters.endDate) conditions.push(lte(receipts.purchaseDate, filters.endDate));
 
-  const query = db.select().from(receipts).orderBy(desc(receipts.createdAt));
-  if (conditions.length > 0) {
-    return query.where(and(...conditions));
-  }
-  return query;
+  return db.select().from(receipts).where(and(...conditions)).orderBy(desc(receipts.createdAt));
+}
+
+export async function getArchivedReceipts() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(receipts)
+    .where(eq(receipts.archived, true))
+    .orderBy(desc(receipts.archivedAt));
+}
+
+export async function getArchivedReceiptsWithFilters(filters: {
+  userId?: number;
+  vendorName?: string;
+  startDate?: string;
+  endDate?: string;
+}) {
+  const db = await getDb();
+  if (!db) return [];
+
+  const conditions: any[] = [eq(receipts.archived, true)];
+  if (filters.userId) conditions.push(eq(receipts.userId, filters.userId));
+  if (filters.vendorName) conditions.push(like(receipts.vendorName, `%${filters.vendorName}%`));
+  if (filters.startDate) conditions.push(gte(receipts.purchaseDate, filters.startDate));
+  if (filters.endDate) conditions.push(lte(receipts.purchaseDate, filters.endDate));
+
+  return db.select().from(receipts).where(and(...conditions)).orderBy(desc(receipts.archivedAt));
+}
+
+export async function archiveReceipt(id: number, archivedBy: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(receipts)
+    .set({ archived: true, archivedAt: new Date(), archivedBy })
+    .where(eq(receipts.id, id));
+}
+
+export async function unarchiveReceipt(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(receipts)
+    .set({ archived: false, archivedAt: null, archivedBy: null })
+    .where(eq(receipts.id, id));
 }
 
 export async function deleteReceipt(id: number) {

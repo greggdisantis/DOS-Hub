@@ -420,3 +420,16 @@
 - [x] Fix Delete Receipt button in receipt capture — replaced Alert.alert (broken on web) with inline confirm UI
 - [x] Add User Management to Administration category in Home and Tools screens
 - [ ] Fix infinite loading spinner after OAuth sign-in for new users
+
+## Receipt Archive Feature
+
+- [x] Add `archived` boolean column to receipts table in DB schema
+- [x] Add `receipts.archive` tRPC endpoint (admin/manager only)
+- [x] Add `receipts.listArchived` tRPC endpoint with same filters as list
+- [x] Update `receipts.list` to exclude archived receipts by default
+- [x] Update `receipts.analytics` to include archived receipts in totals
+- [x] Add "Receipt Processed" button in receipt detail sheet (admin/manager only, inline confirm)
+- [x] Add "Archive" view tab in receipt dashboard (Files / Archive / Analytics)
+- [x] Archive view: date-grouped layout matching main Files view
+- [x] Archive view: filter panel (same filters as Files view)
+- [x] Archive view: allow un-archiving a receipt (admin/manager only) — "Restore to Active" button

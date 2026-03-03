@@ -511,7 +511,46 @@ export const appRouter = router({
         return { url };
       }),
 
-    /** Get analytics for the finance dashboard */
+    /** Archive a receipt — marks it as processed (admin/manager only) */
+    archive: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const isAdmin = ctx.user.role === "admin" || ctx.user.role === "manager";
+        if (!isAdmin) throw new Error("Unauthorized: manager or admin role required");
+        const receipt = await db.getReceipt(input.id);
+        if (!receipt) throw new Error("Receipt not found");
+        await db.archiveReceipt(input.id, ctx.user.id);
+        return { success: true };
+      }),
+
+    /** Unarchive a receipt — restores it to the main list (admin/manager only) */
+    unarchive: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const isAdmin = ctx.user.role === "admin" || ctx.user.role === "manager";
+        if (!isAdmin) throw new Error("Unauthorized: manager or admin role required");
+        await db.unarchiveReceipt(input.id);
+        return { success: true };
+      }),
+
+    /** List archived receipts — admin/manager only */
+    listArchived: protectedProcedure
+      .input(z.object({
+        userId: z.number().optional(),
+        vendorName: z.string().optional(),
+        startDate: z.string().optional(),
+        endDate: z.string().optional(),
+      }).optional())
+      .query(async ({ ctx, input }) => {
+        const isAdmin = ctx.user.role === "admin" || ctx.user.role === "manager";
+        if (!isAdmin) throw new Error("Unauthorized: manager or admin role required");
+        if (input && (input.userId || input.vendorName || input.startDate || input.endDate)) {
+          return db.getArchivedReceiptsWithFilters(input);
+        }
+        return db.getArchivedReceipts();
+      }),
+
+    /** Get analytics for the finance dashboard — includes archived receipts */
     analytics: protectedProcedure.query(async ({ ctx }) => {
       if (ctx.user.role !== "admin" && ctx.user.role !== "manager") {
         throw new Error("Unauthorized: manager or admin role required");

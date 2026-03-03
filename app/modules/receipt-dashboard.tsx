@@ -347,9 +347,26 @@ function FiltersPanel({
 
 // ─── Receipt Detail Modal ─────────────────────────────────────────────────────
 
-function ReceiptDetailSheet({ receipt, onClose, onDelete }: { receipt: any; onClose: () => void; onDelete: () => void }) {
+function ReceiptDetailSheet({
+  receipt,
+  onClose,
+  onDelete,
+  onArchive,
+  onUnarchive,
+  isAdmin,
+  isArchived,
+}: {
+  receipt: any;
+  onClose: () => void;
+  onDelete: () => void;
+  onArchive?: () => void;
+  onUnarchive?: () => void;
+  isAdmin?: boolean;
+  isArchived?: boolean;
+}) {
   const colors = useColors();
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmArchive, setConfirmArchive] = useState(false);
   const lineItems: any[] = (() => {
     try {
       if (!receipt.lineItems) return [];
@@ -440,6 +457,49 @@ function ReceiptDetailSheet({ receipt, onClose, onDelete }: { receipt: any; onCl
           </View>
         ) : null}
 
+        {/* Archive / Unarchive — admin/manager only */}
+        {isAdmin && (
+          isArchived ? (
+            <Pressable
+              style={({ pressed }) => [styles.archiveBtn, { borderColor: colors.primary, opacity: pressed ? 0.7 : 1 }]}
+              onPress={onUnarchive}
+            >
+              <IconSymbol name="arrow.uturn.left" size={16} color={colors.primary} />
+              <Text style={{ color: colors.primary, fontWeight: "600", marginLeft: 6 }}>Restore to Active</Text>
+            </Pressable>
+          ) : (
+            confirmArchive ? (
+              <View style={[styles.confirmDeleteBox, { borderColor: "#22C55E", backgroundColor: "#22C55E11" }]}>
+                <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600", textAlign: "center", marginBottom: 10 }}>
+                  Mark this receipt as processed? It will move to the Archive folder.
+                </Text>
+                <View style={{ flexDirection: "row", gap: 10 }}>
+                  <Pressable
+                    style={({ pressed }) => [styles.confirmBtn, { borderColor: colors.border, backgroundColor: colors.surface, opacity: pressed ? 0.7 : 1 }]}
+                    onPress={() => setConfirmArchive(false)}
+                  >
+                    <Text style={{ color: colors.foreground, fontWeight: "600", fontSize: 13 }}>Cancel</Text>
+                  </Pressable>
+                  <Pressable
+                    style={({ pressed }) => [styles.confirmBtn, { borderColor: "#22C55E", backgroundColor: "#22C55E", opacity: pressed ? 0.7 : 1 }]}
+                    onPress={onArchive}
+                  >
+                    <Text style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}>Mark Processed</Text>
+                  </Pressable>
+                </View>
+              </View>
+            ) : (
+              <Pressable
+                style={({ pressed }) => [styles.archiveBtn, { borderColor: "#22C55E", opacity: pressed ? 0.7 : 1 }]}
+                onPress={() => setConfirmArchive(true)}
+              >
+                <IconSymbol name="checkmark.circle.fill" size={16} color="#22C55E" />
+                <Text style={{ color: "#22C55E", fontWeight: "600", marginLeft: 6 }}>Receipt Processed</Text>
+              </Pressable>
+            )
+          )
+        )}
+
         {/* Delete */}
         {confirmDelete ? (
           <View style={[styles.confirmDeleteBox, { borderColor: colors.error, backgroundColor: colors.error + "11" }]}>
@@ -486,7 +546,7 @@ function DetailRow({ label, value, colors }: { label: string; value: string; col
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-type ViewMode = "files" | "analytics";
+type ViewMode = "files" | "archive" | "analytics";
 
 export function ReceiptDashboardContent() {
   const colors = useColors();
@@ -504,16 +564,24 @@ export function ReceiptDashboardContent() {
   const { data: receipts, isLoading, refetch } = trpc.receipts.list.useQuery(
     Object.keys(filters).length > 0 ? filters : undefined
   );
+  const { data: archivedReceipts, isLoading: isLoadingArchive, refetch: refetchArchive } = trpc.receipts.listArchived.useQuery(
+    Object.keys(filters).length > 0 ? filters : undefined
+  );
   const { data: analytics, refetch: refetchAnalytics } = trpc.receipts.analytics.useQuery();
   const { data: usersData } = trpc.users.list.useQuery();
   const deleteReceiptMutation = trpc.receipts.delete.useMutation();
+  const archiveMutation = trpc.receipts.archive.useMutation();
+  const unarchiveMutation = trpc.receipts.unarchive.useMutation();
   const utils = trpc.useUtils();
+
+  // If analytics query succeeds, user is admin/manager
+  const isAdmin = analytics !== undefined;
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await Promise.all([refetch(), refetchAnalytics()]);
+    await Promise.all([refetch(), refetchArchive(), refetchAnalytics()]);
     setRefreshing(false);
-  }, [refetch, refetchAnalytics]);
+  }, [refetch, refetchArchive, refetchAnalytics]);
 
   const userList = useMemo(
     () => (usersData || []).map((u: any) => ({ id: u.id, name: u.name || u.email || "User" })),
@@ -521,9 +589,9 @@ export function ReceiptDashboardContent() {
   );
 
   const grouped = useMemo(() => groupByDate(receipts || []), [receipts]);
+  const groupedArchive = useMemo(() => groupByDate(archivedReceipts || []), [archivedReceipts]);
 
   const handleExportPDF = useCallback((receipt: any) => {
-    // Navigate to PDF export screen
     router.push({
       pathname: "/modules/receipt-pdf",
       params: { receiptId: String(receipt.id) },
@@ -534,12 +602,34 @@ export function ReceiptDashboardContent() {
     try {
       await deleteReceiptMutation.mutateAsync({ id: receipt.id });
       await utils.receipts.list.invalidate();
+      await utils.receipts.listArchived.invalidate();
       setSelectedReceipt(null);
     } catch (e: any) {
-      const msg = e?.message ?? "Failed to delete receipt.";
-      Alert.alert("Delete Failed", msg);
+      Alert.alert("Delete Failed", e?.message ?? "Failed to delete receipt.");
     }
   }, [deleteReceiptMutation, utils]);
+
+  const handleArchive = useCallback(async (receipt: any) => {
+    try {
+      await archiveMutation.mutateAsync({ id: receipt.id });
+      await utils.receipts.list.invalidate();
+      await utils.receipts.listArchived.invalidate();
+      setSelectedReceipt(null);
+    } catch (e: any) {
+      Alert.alert("Archive Failed", e?.message ?? "Failed to archive receipt.");
+    }
+  }, [archiveMutation, utils]);
+
+  const handleUnarchive = useCallback(async (receipt: any) => {
+    try {
+      await unarchiveMutation.mutateAsync({ id: receipt.id });
+      await utils.receipts.list.invalidate();
+      await utils.receipts.listArchived.invalidate();
+      setSelectedReceipt(null);
+    } catch (e: any) {
+      Alert.alert("Restore Failed", e?.message ?? "Failed to restore receipt.");
+    }
+  }, [unarchiveMutation, utils]);
 
   if (isLoading) {
     return (
@@ -550,13 +640,15 @@ export function ReceiptDashboardContent() {
     );
   }
 
+  const isCurrentArchived = selectedReceipt ? !!selectedReceipt.archived : false;
+
   return (
     <View style={{ flex: 1 }}>
       {/* Toolbar */}
       <View style={[styles.toolbar, { borderBottomColor: colors.border }]}>
         {/* View mode toggle */}
         <View style={[styles.modeToggle, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          {(["files", "analytics"] as ViewMode[]).map((mode) => (
+          {(["files", "archive", "analytics"] as ViewMode[]).map((mode) => (
             <Pressable
               key={mode}
               style={({ pressed }) => [
@@ -569,12 +661,12 @@ export function ReceiptDashboardContent() {
               onPress={() => setViewMode(mode)}
             >
               <IconSymbol
-                name={mode === "files" ? "folder.fill" : "chart.pie.fill"}
+                name={mode === "files" ? "folder.fill" : mode === "archive" ? "archivebox.fill" : "chart.pie.fill"}
                 size={14}
                 color={viewMode === mode ? "#fff" : colors.muted}
               />
-              <Text style={{ color: viewMode === mode ? "#fff" : colors.muted, fontSize: 12, fontWeight: "600", marginLeft: 4 }}>
-                {mode === "files" ? "Files" : "Analytics"}
+              <Text style={{ color: viewMode === mode ? "#fff" : colors.muted, fontSize: 11, fontWeight: "600", marginLeft: 3 }}>
+                {mode === "files" ? "Files" : mode === "archive" ? "Archive" : "Analytics"}
               </Text>
             </Pressable>
           ))}
@@ -630,7 +722,6 @@ export function ReceiptDashboardContent() {
             ) : (
               grouped.map((group) => (
                 <View key={group.label}>
-                  {/* Date group header */}
                   <View style={[styles.groupHeader, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
                     <IconSymbol name="calendar" size={14} color={colors.muted} />
                     <Text style={[styles.groupLabel, { color: colors.muted }]}>{group.label}</Text>
@@ -639,14 +730,61 @@ export function ReceiptDashboardContent() {
                       {fmt$(group.data.reduce((s: number, r: any) => s + parseFloat(String(r.total ?? "0")), 0))}
                     </Text>
                   </View>
-
-                  {/* Receipt rows */}
                   <View style={[styles.groupBody, { backgroundColor: colors.background, borderColor: colors.border }]}>
                     {group.data.map((receipt: any) => (
                       <ReceiptRow
                         key={receipt.id}
                         receipt={receipt}
                         onPress={() => setSelectedReceipt(receipt)}
+                        onExportPDF={() => handleExportPDF(receipt)}
+                      />
+                    ))}
+                  </View>
+                </View>
+              ))
+            )}
+          </View>
+        )}
+
+        {viewMode === "archive" && (
+          <View>
+            {/* Archive header banner */}
+            <View style={[styles.archiveBanner, { backgroundColor: "#22C55E15", borderColor: "#22C55E40" }]}>
+              <IconSymbol name="archivebox.fill" size={16} color="#22C55E" />
+              <Text style={{ color: "#22C55E", fontSize: 12, fontWeight: "600", marginLeft: 6 }}>
+                Processed Receipts — {archivedReceipts?.length ?? 0} archived
+              </Text>
+            </View>
+
+            {isLoadingArchive ? (
+              <View style={[styles.center, { paddingVertical: 40 }]}>
+                <ActivityIndicator size="small" color={colors.primary} />
+              </View>
+            ) : groupedArchive.length === 0 ? (
+              <View style={styles.emptyState}>
+                <IconSymbol name="archivebox.fill" size={48} color={colors.muted} />
+                <Text style={[styles.emptyTitle, { color: colors.foreground }]}>No Archived Receipts</Text>
+                <Text style={[styles.emptySubtitle, { color: colors.muted }]}>
+                  Receipts marked as processed will appear here.
+                </Text>
+              </View>
+            ) : (
+              groupedArchive.map((group) => (
+                <View key={group.label}>
+                  <View style={[styles.groupHeader, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+                    <IconSymbol name="calendar" size={14} color={colors.muted} />
+                    <Text style={[styles.groupLabel, { color: colors.muted }]}>{group.label}</Text>
+                    <Text style={[styles.groupCount, { color: colors.muted }]}>
+                      {group.data.length} receipt{group.data.length !== 1 ? "s" : ""} ·{" "}
+                      {fmt$(group.data.reduce((s: number, r: any) => s + parseFloat(String(r.total ?? "0")), 0))}
+                    </Text>
+                  </View>
+                  <View style={[styles.groupBody, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                    {group.data.map((receipt: any) => (
+                      <ReceiptRow
+                        key={receipt.id}
+                        receipt={receipt}
+                        onPress={() => setSelectedReceipt({ ...receipt, archived: true })}
                         onExportPDF={() => handleExportPDF(receipt)}
                       />
                     ))}
@@ -666,6 +804,10 @@ export function ReceiptDashboardContent() {
             receipt={selectedReceipt}
             onClose={() => setSelectedReceipt(null)}
             onDelete={() => handleDelete(selectedReceipt)}
+            onArchive={() => handleArchive(selectedReceipt)}
+            onUnarchive={() => handleUnarchive(selectedReceipt)}
+            isAdmin={isAdmin}
+            isArchived={isCurrentArchived}
           />
         </View>
       )}
@@ -868,6 +1010,27 @@ const styles = StyleSheet.create({
   },
   totalLabel: { fontSize: 15, fontWeight: "700" },
   totalValue: { fontSize: 15, fontWeight: "800" },
+  archiveBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: 12,
+    marginTop: 12,
+    marginBottom: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  archiveBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginHorizontal: 12,
+    marginTop: 8,
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
   deleteReceiptBtn: {
     flexDirection: "row",
     alignItems: "center",

@@ -78,6 +78,20 @@
       "when": 1772420662511,
       "tag": "0010_brave_sasquatch",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "5",
+      "when": 1772510052138,
+      "tag": "0011_flaky_yellow_claw",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "5",
+      "when": 1772511368512,
+      "tag": "0012_wealthy_darkstar",
+      "breakpoints": true
     }
   ]
 }

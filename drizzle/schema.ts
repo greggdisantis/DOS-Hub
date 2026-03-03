@@ -168,6 +168,12 @@ export const receipts = mysqlTable("receipts", {
   notes: text("notes"),
   /** Generated filename: VendorName_D-M-YYYY_HHmmss */
   fileName: varchar("fileName", { length: 255 }),
+  /** Whether this receipt has been marked as processed/archived by an admin or manager */
+  archived: boolean("archived").default(false).notNull(),
+  /** When the receipt was archived */
+  archivedAt: timestamp("archivedAt"),
+  /** Who archived the receipt (userId) */
+  archivedBy: int("archivedBy"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 

@@ -75,6 +75,8 @@ const MAPPING = {
   "dollarsign.circle.fill": "attach-money",
   "chart.pie.fill": "pie-chart",
   "arrow.left": "arrow-back",
+  "arrow.uturn.left": "undo",
+  "archivebox.fill": "inventory",
   "chevron.left": "chevron-left",
   "plus": "add",
   "eye.fill": "visibility",
