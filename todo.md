@@ -17,6 +17,7 @@
 - [x] Update app.config.ts with branding info (appName, logoUrl)
 - [x] Set up database schema for multi-tenancy (companies, branding)
 - [ ] Implement dynamic branding engine (load company colors/logo on login) — deferred to next phase
+- [ ] Consider server keep-alive strategy instead of auto-wake (prevent hibernation)
 - [x] Implement Screen Ordering module — product configuration (dimensions, fabric, motor, housing)
 - [x] Implement Screen Ordering module — structural calculations engine
 - [x] Implement Screen Ordering module — multi-line order management (add/remove lines)
@@ -435,11 +436,9 @@
 - [x] Archive view: allow un-archiving a receipt (admin/manager only) — "Restore to Active" button
 
 
-## Auto-Wake Health Check System
+## Auto-Wake Health Check System (REMOVED)
 
-- [x] Add health check endpoint to backend server (already exists at /api/health)
-- [x] Implement auto-wake trigger logic in app startup (useAutoWake hook)
-- [x] Add retry mechanism with exponential backoff (auto-wake.ts with exponential backoff)
-- [x] Create reconnection loading screen UI (ReconnectionOverlay component)
-- [x] Test auto-wake on hibernated server
-- [x] Optimize health check to reduce false positives (30s cache + 2s timeout)
+- [x] Attempted auto-wake implementation for web
+- [x] Discovered auto-wake causes excessive reloads on web browsers
+- [x] Disabled auto-wake feature (not suitable for web)
+- Note: Auto-wake is better suited for native mobile apps with controlled lifecycle
