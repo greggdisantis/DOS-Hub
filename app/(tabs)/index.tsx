@@ -1,8 +1,10 @@
 import { ScrollView, Text, View, Pressable, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
+
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
+import { useState } from "react";
 
 type ModuleCard = {
   id: string;
@@ -131,14 +133,53 @@ const QUICK_ACTIONS = [
 export default function HomeScreen() {
   const colors = useColors();
   const router = useRouter();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      // Attempt to fetch from the API to check server status
+      const response = await fetch(
+        (process.env.EXPO_PUBLIC_API_URL || "http://127.0.0.1:3000") + "/api/health",
+        { method: "GET" }
+      );
+      if (response.ok) {
+        // Server is up, reload the page
+        window.location.reload();
+      }
+    } catch (error) {
+      // Server is down, show error
+      console.error("Server is not responding", error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   return (
     <ScreenContainer>
       <ScrollView contentContainerStyle={{ flexGrow: 1, paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View className="px-5 pt-4 pb-2">
-          <Text className="text-sm text-muted">Welcome back</Text>
-          <Text className="text-3xl font-bold text-foreground mt-1">DOS Hub</Text>
+        {/* Header with Refresh Button */}
+        <View className="px-5 pt-4 pb-2 flex-row items-center justify-between">
+          <View>
+            <Text className="text-sm text-muted">Welcome back</Text>
+            <Text className="text-3xl font-bold text-foreground mt-1">DOS Hub</Text>
+          </View>
+          <Pressable
+            onPress={handleRefresh}
+            disabled={isRefreshing}
+            style={({ pressed }) => [
+              styles.refreshButton,
+              { backgroundColor: colors.primary },
+              pressed && { opacity: 0.8 },
+              isRefreshing && { opacity: 0.6 },
+            ]}
+          >
+            <IconSymbol
+              name="arrow.clockwise"
+              size={18}
+              color={colors.background}
+            />
+          </Pressable>
         </View>
 
         {/* Quick Actions */}
@@ -239,6 +280,13 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  refreshButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
   },

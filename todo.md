@@ -442,3 +442,9 @@
 - [x] Discovered auto-wake causes excessive reloads on web browsers
 - [x] Disabled auto-wake feature (not suitable for web)
 - Note: Auto-wake is better suited for native mobile apps with controlled lifecycle
+
+## Manual Refresh Button (New)
+
+- [x] Create server status check utility
+- [x] Add refresh button to home screen (circular refresh icon in header)
+- [x] Test refresh functionality (all 111 tests passing)
