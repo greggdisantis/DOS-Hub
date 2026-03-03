@@ -13,86 +13,111 @@ type ModuleCard = {
   color: string;
 };
 
-const MODULES: ModuleCard[] = [
+type ModuleCategory = {
+  label: string;
+  modules: ModuleCard[];
+};
+
+const MODULE_CATEGORIES: ModuleCategory[] = [
   {
-    id: "client-meeting-report",
-    title: "Client Meeting Report",
-    description: "Post-meeting reports & deal tracking",
-    icon: "doc.text.fill",
-    route: "/modules/client-meeting-report",
-    color: "#10B981",
+    label: "Utilities",
+    modules: [
+      {
+        id: "screen-ordering",
+        title: "Motorized Screens",
+        description: "Motorized screen orders",
+        icon: "rectangle.grid.2x2.fill",
+        route: "/modules/screen-ordering",
+        color: "#F59E0B",
+      },
+      {
+        id: "job-intelligence",
+        title: "Job Intelligence",
+        description: "Service Fusion insights",
+        icon: "chart.bar.fill",
+        route: "/modules/job-intelligence",
+        color: "#3B82F6",
+      },
+      {
+        id: "project-material-delivery",
+        title: "Material Delivery",
+        description: "Project material checklists & warehouse tracking",
+        icon: "shippingbox.fill",
+        route: "/modules/project-material-delivery",
+        color: "#7C3AED",
+      },
+      {
+        id: "receipt-capture",
+        title: "Receipt Capture",
+        description: "Scan and track expenses",
+        icon: "receipt",
+        route: "/modules/receipt-capture",
+        color: "#F59E0B",
+      },
+      {
+        id: "zoning-lookup",
+        title: "Zoning Lookup",
+        description: "Property & permit research",
+        icon: "map.fill",
+        route: "/modules/zoning-lookup",
+        color: "#6366F1",
+      },
+    ],
   },
   {
-    id: "receipt-capture",
-    title: "Receipt Capture",
-    description: "Scan and track expenses",
-    icon: "receipt",
-    route: "/modules/receipt-capture",
-    color: "#F59E0B",
+    label: "Sales",
+    modules: [
+      {
+        id: "client-meeting-report",
+        title: "My Client Meeting Reports",
+        description: "Post-meeting reports & deal tracking",
+        icon: "doc.text.fill",
+        route: "/modules/client-meeting-report",
+        color: "#10B981",
+      },
+      {
+        id: "sales-pipeline",
+        title: "Sales Pipeline",
+        description: "Team pipeline & deal tracking",
+        icon: "chart.line.uptrend.xyaxis",
+        route: "/modules/sales-pipeline",
+        color: "#0EA5E9",
+      },
+    ],
   },
   {
-    id: "zoning-lookup",
-    title: "Zoning Lookup",
-    description: "Property & permit research",
-    icon: "map.fill",
-    route: "/modules/zoning-lookup",
-    color: "#6366F1",
+    label: "Training",
+    modules: [
+      {
+        id: "training",
+        title: "Training Hub",
+        description: "Courses & certifications",
+        icon: "book.fill",
+        route: "/modules/training",
+        color: "#8B5CF6",
+      },
+    ],
   },
   {
-    id: "screen-ordering",
-    title: "Screen Ordering",
-    description: "Motorized screen orders",
-    icon: "rectangle.grid.2x2.fill",
-    route: "/modules/screen-ordering",
-    color: "#F59E0B",
-  },
-  {
-    id: "job-intelligence",
-    title: "Job Intelligence",
-    description: "Service Fusion insights",
-    icon: "chart.bar.fill",
-    route: "/modules/job-intelligence",
-    color: "#3B82F6",
-  },
-  {
-    id: "hubspot",
-    title: "HubSpot CRM",
-    description: "Deal & contact management",
-    icon: "link",
-    route: "/modules/hubspot",
-    color: "#EF4444",
-  },
-  {
-    id: "training",
-    title: "Training",
-    description: "Courses & certifications",
-    icon: "book.fill",
-    route: "/modules/training",
-    color: "#8B5CF6",
-  },
-  {
-    id: "dashboard",
-    title: "Dashboard",
-    description: "Order status & team metrics",
-    icon: "chart.bar.fill",
-    route: "/modules/dashboard",
-    color: "#0EA5E9",
-  },
-  {
-    id: "project-material-delivery",
-    title: "Material Delivery",
-    description: "Project material checklists & warehouse tracking",
-    icon: "shippingbox.fill",
-    route: "/modules/project-material-delivery",
-    color: "#7C3AED",
+    label: "Administration",
+    modules: [
+      {
+        id: "hubspot",
+        title: "HubSpot CRM",
+        description: "Deal & contact management",
+        icon: "link",
+        route: "/modules/hubspot",
+        color: "#EF4444",
+      },
+    ],
   },
 ];
 
 const QUICK_ACTIONS = [
-  { id: "new-receipt", label: "New Receipt", icon: "camera.fill", route: "/modules/receipt-capture" },
-  { id: "zoning", label: "Zoning", icon: "magnifyingglass", route: "/modules/zoning-lookup" },
-  { id: "new-order", label: "Screen Ordering", icon: "rectangle.grid.2x2.fill", route: "/modules/screen-ordering" },
   { id: "dashboard", label: "Dashboard", icon: "chart.bar.fill", route: "/modules/dashboard" },
+  { id: "job-intelligence", label: "Job Intelligence", icon: "chart.bar.fill", route: "/modules/job-intelligence" },
+  { id: "client-meeting-report", label: "CMR", icon: "doc.text.fill", route: "/modules/client-meeting-report" },
+  { id: "material-delivery", label: "Material Delivery", icon: "shippingbox.fill", route: "/modules/project-material-delivery" },
 ];
 
 export default function HomeScreen() {
@@ -125,7 +150,7 @@ export default function HomeScreen() {
                 <View style={[styles.quickActionIcon, { backgroundColor: colors.primary + "15" }]}>
                   <IconSymbol name={action.icon as any} size={20} color={colors.primary} />
                 </View>
-                <Text className="text-xs font-medium text-foreground mt-2" numberOfLines={1}>
+                <Text className="text-xs font-medium text-foreground mt-2 text-center" numberOfLines={2}>
                   {action.label}
                 </Text>
               </Pressable>
@@ -133,45 +158,37 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Module Cards Grid */}
-        <View className="px-5 mt-6">
-          <Text className="text-xs font-semibold text-muted uppercase tracking-wider mb-3">Modules</Text>
-          <View style={styles.moduleGrid}>
-            {MODULES.map((module) => (
-              <Pressable
-                key={module.id}
-                onPress={() => router.push(module.route as any)}
-                style={({ pressed }) => [
-                  styles.moduleCard,
-                  { backgroundColor: colors.surface, borderColor: colors.border },
-                  pressed && { transform: [{ scale: 0.97 }], opacity: 0.9 },
-                ]}
-              >
-                <View style={[styles.moduleIconContainer, { backgroundColor: module.color + "18" }]}>
-                  <IconSymbol name={module.icon as any} size={24} color={module.color} />
-                </View>
-                <Text className="text-sm font-semibold text-foreground mt-3" numberOfLines={1}>
-                  {module.title}
-                </Text>
-                <Text className="text-xs text-muted mt-1" numberOfLines={2}>
-                  {module.description}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-        </View>
-
-        {/* Recent Activity */}
-        <View className="px-5 mt-6">
-          <Text className="text-xs font-semibold text-muted uppercase tracking-wider mb-3">Recent Activity</Text>
-          <View className="bg-surface rounded-xl border border-border p-4">
-            <View className="items-center py-6">
-              <IconSymbol name="bolt.fill" size={32} color={colors.muted} />
-              <Text className="text-sm text-muted mt-2">No recent activity</Text>
-              <Text className="text-xs text-muted mt-1">Your actions will appear here</Text>
+        {/* Categorized Module Sections */}
+        {MODULE_CATEGORIES.map((category) => (
+          <View key={category.label} className="px-5 mt-6">
+            <Text className="text-xs font-semibold text-muted uppercase tracking-wider mb-3">
+              {category.label}
+            </Text>
+            <View style={styles.moduleGrid}>
+              {category.modules.map((module) => (
+                <Pressable
+                  key={module.id}
+                  onPress={() => router.push(module.route as any)}
+                  style={({ pressed }) => [
+                    styles.moduleCard,
+                    { backgroundColor: colors.surface, borderColor: colors.border },
+                    pressed && { transform: [{ scale: 0.97 }], opacity: 0.9 },
+                  ]}
+                >
+                  <View style={[styles.moduleIconContainer, { backgroundColor: module.color + "18" }]}>
+                    <IconSymbol name={module.icon as any} size={24} color={module.color} />
+                  </View>
+                  <Text className="text-sm font-semibold text-foreground mt-3" numberOfLines={2}>
+                    {module.title}
+                  </Text>
+                  <Text className="text-xs text-muted mt-1" numberOfLines={2}>
+                    {module.description}
+                  </Text>
+                </Pressable>
+              ))}
             </View>
           </View>
-        </View>
+        ))}
       </ScrollView>
     </ScreenContainer>
   );
@@ -180,13 +197,13 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   quickActionsRow: {
     flexDirection: "row",
-    gap: 12,
+    gap: 10,
   },
   quickActionButton: {
     flex: 1,
     alignItems: "center",
-    paddingVertical: 16,
-    paddingHorizontal: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 6,
     borderRadius: 14,
     borderWidth: 1,
   },

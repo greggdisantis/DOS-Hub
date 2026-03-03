@@ -415,3 +415,4 @@
 - [x] Reorganize Tools screen into categories: Utilities, Sales, Training, Administration
 - [x] Rename CMR module to "My Client Meeting Reports" and filter to show only current user's own reports
 - [x] Fix Sales Pipeline PDF export button (currently broken)
+- [x] Reorganize Home screen: correct quick actions order (Dashboard, Job Intelligence, CMR, Material Delivery) and category-grouped modules (Utilities, Sales, Training, Administration)

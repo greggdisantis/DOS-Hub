@@ -81,6 +81,7 @@ const MAPPING = {
   "safari.fill": "open-in-browser",
   "arrow.down": "download",
   "arrow.down.doc.fill": "picture-as-pdf",
+  "chart.line.uptrend.xyaxis": "trending-up",
   "folder.badge.plus": "create-new-folder",
 } as unknown as IconMapping;
 
