@@ -105,6 +105,18 @@ export default function TabLayout() {
           ),
         }}
       />
+      {/* Hide all module sub-routes from the tab bar */}
+      <Tabs.Screen name="modules/notifications" options={{ href: null }} />
+      <Tabs.Screen name="modules/notification-preferences" options={{ href: null }} />
+      <Tabs.Screen name="modules/job-intelligence" options={{ href: null }} />
+      <Tabs.Screen name="modules/job-intelligence/reports-view" options={{ href: null }} />
+      <Tabs.Screen name="modules/project-material-delivery" options={{ href: null }} />
+      <Tabs.Screen name="modules/project-material-delivery/index" options={{ href: null }} />
+      <Tabs.Screen name="modules/project-material-delivery/new" options={{ href: null }} />
+      <Tabs.Screen name="modules/project-material-delivery/detail" options={{ href: null }} />
+      <Tabs.Screen name="modules/project-material-delivery/boxed-items" options={{ href: null }} />
+      <Tabs.Screen name="modules/project-material-delivery/delivery-items" options={{ href: null }} />
+      <Tabs.Screen name="modules/project-material-delivery/project-specific-items" options={{ href: null }} />
     </Tabs>
   );
 }

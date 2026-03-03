@@ -411,3 +411,4 @@
 - [ ] Fix onboarding: users.updateName tRPC endpoint properly saves firstName/lastName
 - [x] Fix approved/role fields returned from /api/auth/me endpoint
 - [ ] Test Google OAuth login on deployed site
+- [x] Fix extra tab bar items: module screens inside (tabs)/modules/ are being auto-registered as tabs by Expo Router
