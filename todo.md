@@ -433,3 +433,12 @@
 - [x] Archive view: date-grouped layout matching main Files view
 - [x] Archive view: filter panel (same filters as Files view)
 - [x] Archive view: allow un-archiving a receipt (admin/manager only) — "Restore to Active" button
+
+
+## Auto-Wake Health Check System
+
+- [x] Add health check endpoint to backend server (already exists at /api/health)
+- [x] Implement auto-wake trigger logic in app startup (useAutoWake hook)
+- [x] Add retry mechanism with exponential backoff (auto-wake.ts with exponential backoff)
+- [x] Create reconnection loading screen UI (ReconnectionOverlay component)
+- [ ] Test auto-wake on hibernated server

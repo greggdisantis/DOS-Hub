@@ -19,6 +19,8 @@ import type { EdgeInsets, Metrics, Rect } from "react-native-safe-area-context";
 import { trpc, createTRPCClient } from "@/lib/trpc";
 import { initManusRuntime, subscribeSafeAreaInsets } from "@/lib/_core/manus-runtime";
 import { PdfPreviewContext, type PdfPreviewData } from "@/lib/screen-ordering/pdf-context";
+import { useAutoWake } from "@/hooks/use-auto-wake";
+import { ReconnectionOverlay } from "@/components/reconnection-overlay";
 
 const DEFAULT_WEB_INSETS: EdgeInsets = { top: 0, right: 0, bottom: 0, left: 0 };
 const DEFAULT_WEB_FRAME: Rect = { x: 0, y: 0, width: 0, height: 0 };
@@ -33,6 +35,9 @@ export default function RootLayout() {
 
   const [insets, setInsets] = useState<EdgeInsets>(initialInsets);
   const [frame, setFrame] = useState<Rect>(initialFrame);
+
+  // Auto-wake: check server health and wake if needed
+  const autoWakeState = useAutoWake();
 
   // Initialize Manus runtime for cookie injection from parent container
   useEffect(() => {
@@ -82,6 +87,8 @@ export default function RootLayout() {
   const [pdfPreviewData, setPdfPreviewData] = useState<PdfPreviewData | null>(null);
 
   const content = (
+    <>
+      <ReconnectionOverlay visible={autoWakeState.isReconnecting} />
     <GestureHandlerRootView style={{ flex: 1 }}>
       <PdfPreviewContext.Provider value={{ data: pdfPreviewData, setData: setPdfPreviewData }}>
       <trpc.Provider client={trpcClient} queryClient={queryClient}>
@@ -99,6 +106,7 @@ export default function RootLayout() {
       </trpc.Provider>
       </PdfPreviewContext.Provider>
     </GestureHandlerRootView>
+    </>
   );
 
   const shouldOverrideSafeArea = Platform.OS === "web";
