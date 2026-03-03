@@ -48,7 +48,7 @@ export default function ProfileScreen() {
 
   const SETTINGS_SECTIONS = [
     {
-      title: "Orders",
+      title: "Motorized Screens",
       items: [
         {
           id: "dashboard",
@@ -75,6 +75,8 @@ export default function ProfileScreen() {
         },
       ].filter((item) => !item.roles || item.roles.includes(userRole)) as SettingsRow[],
     },
+    // Future order types can be added here as separate sections, e.g.:
+    // { title: "StruXure Orders", items: [...] },
     {
       title: "Account",
       items: [
