@@ -417,3 +417,6 @@
 - [x] Fix Sales Pipeline PDF export button (currently broken)
 - [x] Reorganize Home screen: correct quick actions order (Dashboard, Job Intelligence, CMR, Material Delivery) and category-grouped modules (Utilities, Sales, Training, Administration)
 - [x] Add "Motorized Screens" section heading above Orders in screen ordering module; restructure for future order types (StruXure, etc.)
+- [x] Fix Delete Receipt button in receipt capture — replaced Alert.alert (broken on web) with inline confirm UI
+- [x] Add User Management to Administration category in Home and Tools screens
+- [ ] Fix infinite loading spinner after OAuth sign-in for new users

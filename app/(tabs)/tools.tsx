@@ -104,6 +104,15 @@ const ALL_TOOLS: ToolItem[] = [
     color: "#EF4444",
     category: "Administration",
   },
+  {
+    id: "admin-users",
+    title: "User Management",
+    description: "Approve new users, assign system roles, job roles, and module permissions.",
+    icon: "person.2.fill",
+    route: "/modules/admin-users",
+    color: "#6B7280",
+    category: "Administration",
+  },
 ];
 
 export default function ToolsScreen() {

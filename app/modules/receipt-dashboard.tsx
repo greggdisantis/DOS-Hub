@@ -349,6 +349,7 @@ function FiltersPanel({
 
 function ReceiptDetailSheet({ receipt, onClose, onDelete }: { receipt: any; onClose: () => void; onDelete: () => void }) {
   const colors = useColors();
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const lineItems: any[] = (() => {
     try {
       if (!receipt.lineItems) return [];
@@ -440,13 +441,35 @@ function ReceiptDetailSheet({ receipt, onClose, onDelete }: { receipt: any; onCl
         ) : null}
 
         {/* Delete */}
-        <Pressable
-          style={({ pressed }) => [styles.deleteReceiptBtn, { borderColor: colors.error, opacity: pressed ? 0.7 : 1 }]}
-          onPress={onDelete}
-        >
-          <IconSymbol name="trash.fill" size={16} color={colors.error} />
-          <Text style={{ color: colors.error, fontWeight: "600", marginLeft: 6 }}>Delete Receipt</Text>
-        </Pressable>
+        {confirmDelete ? (
+          <View style={[styles.confirmDeleteBox, { borderColor: colors.error, backgroundColor: colors.error + "11" }]}>
+            <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600", textAlign: "center", marginBottom: 10 }}>
+              Delete this receipt? This cannot be undone.
+            </Text>
+            <View style={{ flexDirection: "row", gap: 10 }}>
+              <Pressable
+                style={({ pressed }) => [styles.confirmBtn, { borderColor: colors.border, backgroundColor: colors.surface, opacity: pressed ? 0.7 : 1 }]}
+                onPress={() => setConfirmDelete(false)}
+              >
+                <Text style={{ color: colors.foreground, fontWeight: "600", fontSize: 13 }}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={({ pressed }) => [styles.confirmBtn, { borderColor: colors.error, backgroundColor: colors.error, opacity: pressed ? 0.7 : 1 }]}
+                onPress={onDelete}
+              >
+                <Text style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}>Delete</Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : (
+          <Pressable
+            style={({ pressed }) => [styles.deleteReceiptBtn, { borderColor: colors.error, opacity: pressed ? 0.7 : 1 }]}
+            onPress={() => setConfirmDelete(true)}
+          >
+            <IconSymbol name="trash.fill" size={16} color={colors.error} />
+            <Text style={{ color: colors.error, fontWeight: "600", marginLeft: 6 }}>Delete Receipt</Text>
+          </Pressable>
+        )}
       </ScrollView>
     </View>
   );
@@ -508,27 +531,14 @@ export function ReceiptDashboardContent() {
   }, []);
 
   const handleDelete = useCallback(async (receipt: any) => {
-    Alert.alert(
-      "Delete Receipt",
-      `Delete "${receipt.fileName || receipt.vendorName}"? This cannot be undone.`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await deleteReceiptMutation.mutateAsync({ id: receipt.id });
-              await utils.receipts.list.invalidate();
-              setSelectedReceipt(null);
-            } catch (e: any) {
-              const msg = e?.message ?? "Failed to delete receipt.";
-              Alert.alert("Delete Failed", msg);
-            }
-          },
-        },
-      ]
-    );
+    try {
+      await deleteReceiptMutation.mutateAsync({ id: receipt.id });
+      await utils.receipts.list.invalidate();
+      setSelectedReceipt(null);
+    } catch (e: any) {
+      const msg = e?.message ?? "Failed to delete receipt.";
+      Alert.alert("Delete Failed", msg);
+    }
   }, [deleteReceiptMutation, utils]);
 
   if (isLoading) {
@@ -866,6 +876,22 @@ const styles = StyleSheet.create({
     marginTop: 8,
     paddingVertical: 12,
     borderRadius: 10,
+    borderWidth: 1,
+  },
+  confirmDeleteBox: {
+    marginHorizontal: 12,
+    marginTop: 8,
+    padding: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: "center",
+  },
+  confirmBtn: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 10,
+    borderRadius: 8,
     borderWidth: 1,
   },
 });

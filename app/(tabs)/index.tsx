@@ -109,6 +109,14 @@ const MODULE_CATEGORIES: ModuleCategory[] = [
         route: "/modules/hubspot",
         color: "#EF4444",
       },
+      {
+        id: "admin-users",
+        title: "User Management",
+        description: "Approve users, assign roles & permissions",
+        icon: "person.2.fill",
+        route: "/modules/admin-users",
+        color: "#6B7280",
+      },
     ],
   },
 ];
