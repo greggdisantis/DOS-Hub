@@ -579,7 +579,7 @@
 
 - [x] BUG: Precon Checklist "Create & Open" button does nothing when pressed — fixed nested TouchableOpacity + navigation format
 - [x] BUG: Precon Checklist "Create & Open" still does nothing when logged in — rebuilt as direct + New → create → navigate flow (no inline form)
-- [ ] BUG: Sign In button redirects to oauth.manus.im which cannot be resolved — OAuth provider URL is broken
+- [x] BUG: Sign In button redirects to oauth.manus.im which cannot be resolved — fixed by overriding portal URL to https://manus.im
 
 ## Preconstruction Checklist Improvements (3/4/2026)
 
@@ -593,3 +593,11 @@
 - [x] Add archive/unarchive tRPC endpoints for preconstruction checklists
 - [x] Move "Mark Complete" button to top of Preconstruction form (next to status, not buried in Info section)
 - [x] Add "Go to Dashboard" button inside the Preconstruction form that navigates to the Preconstruction Dashboard tab
+
+## OAuth Sign-In Bug Fix (3/4/2026)
+
+- [x] BUG: Sign In in Expo Go redirects to oauth.manus.im which cannot be resolved — fixed by overriding portal URL to https://manus.im
+
+## Mobile Login Fix (3/4/2026)
+
+- [x] BUG: Mobile login broken — oauth.manus.im unreachable on device — fixed by overriding EXPO_PUBLIC_OAUTH_PORTAL_URL to https://manus.im in constants/oauth.ts

@@ -7,8 +7,13 @@ const bundleId = "space.manus.dos.hub.mobile.t20260227160338";
 const timestamp = bundleId.split(".").pop()?.replace(/^t/, "") ?? "";
 const schemeFromBundleId = `manus${timestamp}`;
 
+// EXPO_PUBLIC_OAUTH_PORTAL_URL points to oauth.manus.im which is not publicly accessible.
+// The correct public OAuth portal is https://manus.im (confirmed reachable via DNS).
+// We override it here so mobile devices can reach the login page.
+const PORTAL_URL_OVERRIDE = "https://manus.im";
+
 const env = {
-  portal: process.env.EXPO_PUBLIC_OAUTH_PORTAL_URL ?? "",
+  portal: PORTAL_URL_OVERRIDE,
   server: process.env.EXPO_PUBLIC_OAUTH_SERVER_URL ?? "",
   appId: process.env.EXPO_PUBLIC_APP_ID ?? "",
   ownerId: process.env.EXPO_PUBLIC_OWNER_OPEN_ID ?? "",
