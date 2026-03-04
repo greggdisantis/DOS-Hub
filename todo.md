@@ -623,3 +623,17 @@
 ## Dashboard Navigation Bug (3/4/2026)
 
 - [x] BUG: "Dashboard →" button in Preconstruction Checklist form shows "Unmatched Route" error — fixed by changing route from "/(tabs)/modules/dashboard" to "/modules/dashboard"
+
+## Photo Upload per Line Item (3/4/2026)
+
+- [ ] Update Preconstruction database schema to store photos per line item (by section + line index)
+- [ ] Implement photo upload UI for each checkbox line (camera/gallery picker)
+- [ ] Display photo thumbnails next to each line with remove option
+- [ ] Update PDF generation to show photos under each section heading
+- [ ] Test photo upload and PDF rendering
+
+## PDF Formatting Fixes (3/4/2026)
+
+- [x] BUG: Body text running into letterhead — fixed by setting doc.y = HEADER_H + 12 after drawHeader
+- [x] BUG: Section headers need more spacing from items below — increased moveDown from 0.3 to 0.5
+- [x] BUG: Client Initials slammed against text — moved to bottom of each page (footerY = page.height - 50) with proper spacing

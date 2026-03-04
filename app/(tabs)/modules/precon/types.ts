@@ -96,6 +96,10 @@ export interface PreconFormData {
     installationProhibitions: boolean;
   };
 
+  // Section 6b — Photo URIs per line item (keyed by section.lineIndex)
+  // Example: "photos.driveway" -> ["file://...", "file://..."]
+  photoUris: Record<string, string[]>;
+
   // Section 7 — Materials Needed
   materials: {
     ledgerBoard: boolean;
@@ -192,6 +196,7 @@ export const defaultFormData = (): PreconFormData => ({
     priorDamage: false,
     installationProhibitions: false,
   },
+  photoUris: {},
   materials: {
     ledgerBoard: false,
     downspoutPipe: false,
@@ -214,4 +219,5 @@ export const defaultFormData = (): PreconFormData => ({
   },
   projectNotes: "",
   clientRemarks: "",
+  photoUris: {},
 });

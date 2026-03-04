@@ -37,13 +37,15 @@ function drawHeader(doc: PDFKit.PDFDocument, projectName: string) {
   doc.fillColor("#FFFFFF").fontSize(9).font("Helvetica")
     .text(projectName || "—", rightX, 30, { width: 180, align: "right" });
   doc.fillColor(DARK).font("Helvetica");
+  // Position cursor below header with proper spacing
+  doc.y = HEADER_H + 12;
 }
 
 function sectionHeader(doc: PDFKit.PDFDocument, title: string) {
   const y = doc.y + 10;
   doc.rect(50, y, doc.page.width - 100, 20).fill(BRAND_BLUE);
   doc.fillColor("#FFFFFF").fontSize(9).font("Helvetica-Bold").text(title, 58, y + 5);
-  doc.fillColor(DARK).font("Helvetica").moveDown(0.3);
+  doc.fillColor(DARK).font("Helvetica").moveDown(0.5);
 }
 
 function checkRow(doc: PDFKit.PDFDocument, label: string, checked: boolean) {
@@ -119,13 +121,13 @@ function workItemBlock(
   doc.moveDown(0.4);
 }
 
-function initialsLine(doc: PDFKit.PDFDocument) {
-  const y = doc.y + 8;
-  doc.moveTo(50, y).lineTo(150, y).strokeColor(DARK).lineWidth(0.5).stroke();
-  doc.fontSize(8).fillColor(MID_GRAY).text("Client Initials", 50, y + 3);
+function pageFooter(doc: PDFKit.PDFDocument) {
+  // Position footer near bottom of page (with proper margin)
+  const footerY = doc.page.height - 50;
+  doc.moveTo(50, footerY).lineTo(150, footerY).strokeColor(DARK).lineWidth(0.5).stroke();
+  doc.fontSize(8).fillColor(MID_GRAY).text("Client Initials", 50, footerY + 3);
   const rightX = doc.page.width - 200;
-  doc.fontSize(8).fillColor(MID_GRAY).text("DOS - PRE-CONSTRUCTION MEETING CHECKLIST", rightX, y + 3, { width: 160, align: "right" });
-  doc.moveDown(1.5);
+  doc.fontSize(8).fillColor(MID_GRAY).text("DOS - PRE-CONSTRUCTION MEETING CHECKLIST", rightX, footerY + 3, { width: 160, align: "right" });
 }
 
 export async function generatePreconPdf(checklist: any): Promise<Buffer> {
@@ -185,7 +187,7 @@ export async function generatePreconPdf(checklist: any): Promise<Buffer> {
       accessoryRow(doc, "Sconce Lighting", acc.sconceLighting ?? { checked: false, qty: "", location: "" });
       accessoryRow(doc, "System Downspouts", acc.systemDownspouts ?? { checked: false, qty: "", location: "" });
     }
-    initialsLine(doc);
+    pageFooter(doc);
 
     // ── Page 2 ──────────────────────────────────────────────────────────────
     doc.addPage();
@@ -250,7 +252,7 @@ export async function generatePreconPdf(checklist: any): Promise<Buffer> {
       checkRow(doc, "Reviewed any changes or alterations to the original contract", exp.contractChangesReviewed ?? false);
       checkRow(doc, "Identified any addendums needed for additional work outside contract scope", exp.addendumsIdentified ?? false);
     }
-    initialsLine(doc);
+    pageFooter(doc);
 
     // ── Page 3 ──────────────────────────────────────────────────────────────
     doc.addPage();
@@ -271,7 +273,7 @@ export async function generatePreconPdf(checklist: any): Promise<Buffer> {
     }
     doc.moveDown(0.4);
 
-    initialsLine(doc);
+    pageFooter(doc);
 
     // ── Page 4 ──────────────────────────────────────────────────────────────
     doc.addPage();
@@ -304,7 +306,7 @@ export async function generatePreconPdf(checklist: any): Promise<Buffer> {
         doc.moveDown(0.4);
       }
     }
-    initialsLine(doc);
+    pageFooter(doc);
 
     // ── Signature Page ───────────────────────────────────────────────────────
     doc.addPage();
@@ -351,6 +353,7 @@ export async function generatePreconPdf(checklist: any): Promise<Buffer> {
     if (checklist.client2SignedName) {
       doc.fillColor(DARK).font("Helvetica-Bold").fontSize(11).text(checklist.client2SignedName, 300, sigY3 - 14, { width: 220 });
     }
+    pageFooter(doc);
 
     doc.end();
   });
