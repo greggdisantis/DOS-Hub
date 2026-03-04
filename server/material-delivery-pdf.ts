@@ -11,12 +11,8 @@
  */
 import PDFDocument from "pdfkit";
 import path from "path";
-import { fileURLToPath } from "url";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-// Resolve logo relative to this file (server/ directory -> assets/images/)
-const DOS_LOGO_PATH = path.resolve(__dirname, "../assets/images/dos-logo.jpg");
+// Resolve logo from project root (process.cwd() is always the project root when running via tsx)
+const DOS_LOGO_PATH = path.resolve(process.cwd(), "assets/images/dos-logo.jpg");
 
 const BRAND_BLUE = "#1E3A5F";
 const ACCENT = "#2563EB";

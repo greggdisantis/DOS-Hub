@@ -1,7 +1,7 @@
 import * as FileSystem from "expo-file-system/legacy";
 import { Platform } from "react-native";
 
-const API_BASE = process.env.EXPO_PUBLIC_API_URL ?? "http://127.0.0.1:3000";
+const API_BASE = process.env.EXPO_PUBLIC_API_BASE_URL ?? process.env.EXPO_PUBLIC_API_URL ?? "http://127.0.0.1:3000";
 
 /**
  * Upload a local file (image or PDF) to the material delivery S3 bucket.

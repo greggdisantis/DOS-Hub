@@ -532,3 +532,13 @@
 - [x] Bolder/colored status badges on checklist cards (solid fill instead of outline)
 - [x] Quick status change from list screen (tap status badge, managers/admins only)
 - [x] Archive button on closed cards (managers/admins only), Archived tab, Unarchive button
+
+## Upload Bugs (Reported 3/3/2026)
+
+- [ ] Photos do not attach after selecting from camera/library
+- [ ] PO PDFs do not attach after selecting a file
+
+## PDF & Upload Fixes (Reported 3/3/2026)
+
+- [x] Fix DOS logo not loading in PDF (wrong file path in server — now uses process.cwd())
+- [x] Fix photo/PDF upload failing on mobile (EXPO_PUBLIC_API_URL → EXPO_PUBLIC_API_BASE_URL)
