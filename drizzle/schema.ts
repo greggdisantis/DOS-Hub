@@ -1,4 +1,4 @@
-import { boolean, int, json, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal } from "drizzle-orm/mysql-core";
+import { boolean, int, json, mediumtext, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -310,6 +310,11 @@ export const preconChecklists = mysqlTable("preconstruction_checklists", {
    *   section8_workItems, section9_notes, section10_signatures }
    */
   formData: json("formData").$type<Record<string, unknown>>(),
+  /**
+   * Photo data stored separately as mediumtext (supports up to 16MB).
+   * Stored as JSON: Record<string, string[]> where key = photoKey, value = array of base64 data URIs.
+   */
+  photoData: mediumtext("photoData"),
   /** Supervisor signature data URL */
   supervisorSignature: text("supervisorSignature"),
   supervisorSignedName: varchar("supervisorSignedName", { length: 255 }),

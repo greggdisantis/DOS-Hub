@@ -1,0 +1,1 @@
+ALTER TABLE `preconstruction_checklists` ADD `photoData` mediumtext;

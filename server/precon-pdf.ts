@@ -170,6 +170,12 @@ function workItemBlock(
 // ─── Main export ────────────────────────────────────────────────────────────
 export async function generatePreconPdf(checklist: any): Promise<Buffer> {
   const fd: PreconFormData = { ...(checklist.formData ?? {}) } as any;
+  // Merge photoUris from dedicated photoData column (stored separately to avoid 65KB JSON limit)
+  if (checklist.photoData) {
+    try {
+      (fd as any).photoUris = JSON.parse(checklist.photoData);
+    } catch {}
+  }
   const projectName  = checklist.projectName  ?? "—";
   const projectAddress = checklist.projectAddress ?? "—";
   const supervisor   = checklist.supervisorName ?? "—";

@@ -1016,6 +1016,17 @@ export const appRouter = router({
         const { id, ...updates } = input;
         const now = new Date();
         const patch: any = { ...updates };
+        // Extract photoUris from formData and store in dedicated photoData column
+        // This avoids the 65KB JSON column limit for base64 photo data
+        if (updates.formData && typeof updates.formData === 'object') {
+          const fd = updates.formData as Record<string, unknown>;
+          if (fd.photoUris) {
+            patch.photoData = JSON.stringify(fd.photoUris);
+            // Remove photoUris from formData to keep it small
+            const { photoUris, ...restFormData } = fd;
+            patch.formData = restFormData;
+          }
+        }
         if (updates.supervisorSignature && !patch.supervisorSignedAt) patch.supervisorSignedAt = now;
         if (updates.client1Signature && !patch.client1SignedAt) patch.client1SignedAt = now;
         if (updates.client2Signature && !patch.client2SignedAt) patch.client2SignedAt = now;

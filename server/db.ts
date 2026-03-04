@@ -1039,9 +1039,7 @@ export async function updatePreconChecklist(id: number, updates: Partial<{
   client2Signature: string;
   client2SignedName: string;
   client2SignedAt: Date;
-  archived: boolean;
-  archivedAt: Date | null;
-  archivedByName: string | null;
+  photoData: string;
 }>): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");

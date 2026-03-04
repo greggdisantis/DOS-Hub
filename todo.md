@@ -669,3 +669,10 @@
 - [x] Pass photoUris from formData to PDF generator — read from fd.photoUris in precon-pdf.ts
 - [x] Fetch/decode each photo URI as a buffer on the server — photos stored as base64 data URIs, decoded with Buffer.from()
 - [x] Embed photos under each checklist item in the Photos section of the PDF — 3-per-row grid, 150x112pt each
+
+## Photos Not Appearing in PDF (3/4/2026)
+
+- [x] BUG: Photos uploaded in Photos tab are not appearing in the generated PDF
+  - Root cause: formData JSON column has 65KB limit, base64 photos exceeded it silently
+  - Fix: added photoData mediumtext column to DB, router extracts photoUris and stores in photoData
+  - PDF generator reads photoData column and merges back into fd.photoUris before rendering
