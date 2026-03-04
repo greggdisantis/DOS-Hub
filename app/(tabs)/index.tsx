@@ -64,6 +64,14 @@ const MODULE_CATEGORIES: ModuleCategory[] = [
         route: "/modules/zoning-lookup",
         color: "#6366F1",
       },
+      {
+        id: "precon",
+        title: "Precon Checklist",
+        description: "Pre-construction supervisor forms",
+        icon: "doc.text.fill",
+        route: "/modules/precon",
+        color: "#1E3A5F",
+      },
     ],
   },
   {
@@ -125,9 +133,9 @@ const MODULE_CATEGORIES: ModuleCategory[] = [
 
 const QUICK_ACTIONS = [
   { id: "dashboard", label: "Dashboard", icon: "chart.bar.fill", route: "/modules/dashboard" },
-  { id: "job-intelligence", label: "Job Intelligence", icon: "chart.bar.fill", route: "/modules/job-intelligence" },
-  { id: "client-meeting-report", label: "CMR", icon: "doc.text.fill", route: "/modules/client-meeting-report" },
   { id: "material-delivery", label: "Material Delivery", icon: "shippingbox.fill", route: "/modules/project-material-delivery" },
+  { id: "precon", label: "Precon Checklist", icon: "doc.text.fill", route: "/modules/precon" },
+  { id: "client-meeting-report", label: "CMR", icon: "doc.text.fill", route: "/modules/client-meeting-report" },
 ];
 
 export default function HomeScreen() {

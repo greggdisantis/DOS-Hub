@@ -1047,6 +1047,48 @@ export const appRouter = router({
         const base64 = pdfBuffer.toString('base64');
         return { base64, mimeType: 'application/pdf' };
       }),
+
+    /** List all checklists for dashboard (managers/admins), optionally including archived */
+    listAll: protectedProcedure
+      .input(z.object({ includeArchived: z.boolean().optional() }))
+      .query(async ({ ctx, input }) => {
+        const isManagerOrAdmin = ctx.user.role === 'admin' || ctx.user.role === 'manager';
+        return db.listPreconChecklists(
+          isManagerOrAdmin ? undefined : { userId: ctx.user.id },
+          { includeArchived: input.includeArchived ?? false }
+        );
+      }),
+
+    /** Archive a checklist (managers/admins only) */
+    archive: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== 'admin' && ctx.user.role !== 'manager') {
+          throw new Error('Only managers and admins can archive checklists');
+        }
+        const archivedByName = [ctx.user.firstName, ctx.user.lastName].filter(Boolean).join(' ') || ctx.user.name || 'Unknown';
+        await db.updatePreconChecklist(input.id, {
+          archived: true,
+          archivedAt: new Date(),
+          archivedByName,
+        } as any);
+        return { success: true };
+      }),
+
+    /** Unarchive a checklist (managers/admins only) */
+    unarchive: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== 'admin' && ctx.user.role !== 'manager') {
+          throw new Error('Only managers and admins can unarchive checklists');
+        }
+        await db.updatePreconChecklist(input.id, {
+          archived: false,
+          archivedAt: null,
+          archivedByName: null,
+        } as any);
+        return { success: true };
+      }),
   }),
 });
 export type AppRouter = typeof appRouter;

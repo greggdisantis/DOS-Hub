@@ -580,3 +580,16 @@
 - [x] BUG: Precon Checklist "Create & Open" button does nothing when pressed — fixed nested TouchableOpacity + navigation format
 - [x] BUG: Precon Checklist "Create & Open" still does nothing when logged in — rebuilt as direct + New → create → navigate flow (no inline form)
 - [ ] BUG: Sign In button redirects to oauth.manus.im which cannot be resolved — OAuth provider URL is broken
+
+## Preconstruction Checklist Improvements (3/4/2026)
+
+- [x] Add Preconstruction Checklist to Home screen quick actions
+- [x] Add Preconstruction Checklist tab to the Dashboard screen
+- [x] Dashboard tab: filter by supervisor and by checklist status
+- [x] Dashboard tab: PDF button on each checklist card (no need to open the form)
+- [x] Dashboard tab: Archive button on each card (managers/admins only)
+- [x] Dashboard tab: Archived tab/filter with Unarchive button
+- [x] Add archived/archivedAt/archivedByName fields to preconstruction_checklists DB table
+- [x] Add archive/unarchive tRPC endpoints for preconstruction checklists
+- [x] Move "Mark Complete" button to top of Preconstruction form (next to status, not buried in Info section)
+- [x] Add "Go to Dashboard" button inside the Preconstruction form that navigates to the Preconstruction Dashboard tab

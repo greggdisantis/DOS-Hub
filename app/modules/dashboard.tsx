@@ -10,7 +10,7 @@ import {
   View,
   Pressable,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { AuthGuard } from "@/components/auth-guard";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -20,6 +20,7 @@ import SalesPipelineScreen, { SalesPipelineContent } from "./sales-pipeline";
 import { ReceiptDashboardContent } from "./receipt-dashboard";
 import { CMRReportsDashboard } from "./cmr-reports-dashboard";
 import ProjectMaterialDeliveryScreen from "../(tabs)/modules/project-material-delivery/index";
+import { PreconDashboardContent } from "./precon-dashboard";
 
 // ─── Status config ──────────────────────────────────────────────────────────
 
@@ -241,7 +242,7 @@ function RecentActivity({ orders, onTapOrder }: { orders: any[]; onTapOrder: (id
 
 // ─── Module Picker ──────────────────────────────────────────────────────────
 
-type DashboardModule = 'screen-ordering' | 'sales-pipeline' | 'receipts' | 'cmr-reports' | 'material-delivery';
+type DashboardModule = 'screen-ordering' | 'sales-pipeline' | 'receipts' | 'cmr-reports' | 'material-delivery' | 'precon';
 
 const DASHBOARD_MODULES: { key: DashboardModule; label: string; icon: any }[] = [
   { key: 'screen-ordering', label: 'Screen Ordering', icon: 'rectangle.grid.2x2.fill' },
@@ -249,6 +250,7 @@ const DASHBOARD_MODULES: { key: DashboardModule; label: string; icon: any }[] = 
   { key: 'receipts', label: 'Receipts', icon: 'receipt' },
   { key: 'cmr-reports', label: 'CMR Reports', icon: 'doc.text.fill' },
   { key: 'material-delivery', label: 'Material Delivery', icon: 'shippingbox.fill' },
+  { key: 'precon', label: 'Precon Checklists', icon: 'doc.text.fill' },
 ];
 
 function ModulePicker({
@@ -316,7 +318,9 @@ const modulePickerStyles = StyleSheet.create({
 function DashboardContent() {
   const colors = useColors();
   const router = useRouter();
-  const [activeModule, setActiveModule] = useState<DashboardModule>('screen-ordering');
+  const params = useLocalSearchParams<{ module?: string }>();
+  const initialModule = (params.module as DashboardModule) ?? 'screen-ordering';
+  const [activeModule, setActiveModule] = useState<DashboardModule>(initialModule);
 
   const { data, isLoading, refetch } = trpc.dashboard.stats.useQuery();
   const [refreshing, setRefreshing] = useState(false);
@@ -398,6 +402,23 @@ function DashboardContent() {
           </View>
           <View style={{ flex: 1 }}>
             <ReceiptDashboardContent />
+          </View>
+        </View>
+      </ScreenContainer>
+    );
+  }
+
+  // ── Precon Checklists module ──────────────────────────────────────────────────────
+  if (activeModule === 'precon') {
+    return (
+      <ScreenContainer edges={['top', 'left', 'right']}>
+        <View style={{ flex: 1 }}>
+          {header}
+          <View style={{ flexShrink: 0 }}>
+            <ModulePicker active={activeModule} onChange={setActiveModule} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <PreconDashboardContent />
           </View>
         </View>
       </ScreenContainer>

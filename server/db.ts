@@ -1011,11 +1011,12 @@ export async function getPreconChecklist(id: number): Promise<any | undefined> {
   return result[0];
 }
 
-export async function listPreconChecklists(filters?: { userId?: number }): Promise<any[]> {
+export async function listPreconChecklists(filters?: { userId?: number }, options?: { includeArchived?: boolean }): Promise<any[]> {
   const db = await getDb();
   if (!db) return [];
   const conditions: any[] = [];
   if (filters?.userId) conditions.push(eq(preconChecklists.userId, filters.userId));
+  if (!options?.includeArchived) conditions.push(eq(preconChecklists.archived, false));
   const query = db.select().from(preconChecklists);
   if (conditions.length > 0) {
     return query.where(and(...conditions)).orderBy(desc(preconChecklists.createdAt));
@@ -1038,6 +1039,9 @@ export async function updatePreconChecklist(id: number, updates: Partial<{
   client2Signature: string;
   client2SignedName: string;
   client2SignedAt: Date;
+  archived: boolean;
+  archivedAt: Date | null;
+  archivedByName: string | null;
 }>): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");

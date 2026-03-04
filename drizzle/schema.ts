@@ -322,6 +322,12 @@ export const preconChecklists = mysqlTable("preconstruction_checklists", {
   client2Signature: text("client2Signature"),
   client2SignedName: varchar("client2SignedName", { length: 255 }),
   client2SignedAt: timestamp("client2SignedAt"),
+  /** Whether this checklist has been archived (managers/admins only) */
+  archived: boolean("archived").default(false).notNull(),
+  /** When the checklist was archived */
+  archivedAt: timestamp("archivedAt"),
+  /** Name of the user who archived the checklist */
+  archivedByName: varchar("archivedByName", { length: 255 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

@@ -708,6 +708,36 @@ export default function PreconDetailScreen() {
         </View>
       </View>
 
+      {/* Action bar: Mark Complete + Go to Dashboard */}
+      <View style={[styles.actionBar, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
+        {status === "draft" && (
+          <TouchableOpacity
+            style={[styles.actionBarBtn, { backgroundColor: colors.primary }]}
+            onPress={handleMarkComplete}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.actionBarBtnText}>✓ Mark Complete</Text>
+          </TouchableOpacity>
+        )}
+        {status === "completed" && (
+          <View style={[styles.actionBarStatus, { backgroundColor: colors.primary + "15" }]}>
+            <Text style={[styles.actionBarStatusText, { color: colors.primary }]}>✓ Completed</Text>
+          </View>
+        )}
+        {status === "signed" && (
+          <View style={[styles.actionBarStatus, { backgroundColor: colors.success + "15" }]}>
+            <Text style={[styles.actionBarStatusText, { color: colors.success }]}>✓ Signed</Text>
+          </View>
+        )}
+        <TouchableOpacity
+          style={[styles.actionBarBtn, { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }]}
+          onPress={() => router.push({ pathname: "/(tabs)/modules/dashboard", params: { module: "precon" } })}
+          activeOpacity={0.8}
+        >
+          <Text style={[styles.actionBarBtnText, { color: colors.foreground }]}>Dashboard →</Text>
+        </TouchableOpacity>
+      </View>
+
       {/* Tab bar */}
       <ScrollView
         horizontal
@@ -848,4 +878,9 @@ const styles = StyleSheet.create({
   sigInput: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, fontSize: 14, minHeight: 40 },
   signBtn: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8, minWidth: 60, alignItems: "center" },
   signBtnText: { color: "#fff", fontSize: 14, fontWeight: "700" },
+  actionBar: { flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 8, gap: 8, borderBottomWidth: StyleSheet.hairlineWidth, flexWrap: "wrap" },
+  actionBarBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8, alignItems: "center", justifyContent: "center" },
+  actionBarBtnText: { fontSize: 13, fontWeight: "700", color: "#fff" },
+  actionBarStatus: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8 },
+  actionBarStatusText: { fontSize: 13, fontWeight: "700" },
 });
