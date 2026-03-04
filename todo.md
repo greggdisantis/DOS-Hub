@@ -601,3 +601,7 @@
 ## Mobile Login Fix (3/4/2026)
 
 - [x] BUG: Mobile login broken — oauth.manus.im unreachable on device — fixed by overriding EXPO_PUBLIC_OAUTH_PORTAL_URL to https://manus.im in constants/oauth.ts
+
+## Preconstruction Dashboard Enhancements (3/4/2026)
+
+- [x] Add delete button to each Preconstruction Dashboard card with confirmation modal

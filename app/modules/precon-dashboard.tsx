@@ -57,6 +57,7 @@ export function PreconDashboardContent() {
   const [showArchived, setShowArchived] = useState(false);
   const [pdfLoadingId, setPdfLoadingId] = useState<number | null>(null);
   const [archiveLoadingId, setArchiveLoadingId] = useState<number | null>(null);
+  const [deleteLoadingId, setDeleteLoadingId] = useState<number | null>(null);
 
   const { data: checklists = [], isLoading, refetch } = trpc.precon.listAll.useQuery({
     includeArchived: showArchived,
@@ -65,6 +66,7 @@ export function PreconDashboardContent() {
   const generatePdfMutation = trpc.precon.generatePdf.useMutation();
   const archiveMutation = trpc.precon.archive.useMutation();
   const unarchiveMutation = trpc.precon.unarchive.useMutation();
+  const deleteMutation = trpc.precon.delete.useMutation();
 
   // Collect unique supervisor names for filter
   const supervisorNames = Array.from(
@@ -138,10 +140,33 @@ export function PreconDashboardContent() {
     }
   };
 
+  const handleDelete = async (item: Checklist) => {
+    const doDelete = async () => {
+      setDeleteLoadingId(item.id);
+      try {
+        await deleteMutation.mutateAsync({ id: item.id });
+        refetch();
+      } catch (err: any) {
+        Alert.alert("Error", err.message);
+      } finally {
+        setDeleteLoadingId(null);
+      }
+    };
+    if (Platform.OS === "web") {
+      if (window.confirm(`Delete "${item.projectName || "this checklist"}"? This cannot be undone.`)) doDelete();
+    } else {
+      Alert.alert("Delete Checklist", `Delete "${item.projectName || "this checklist"}"? This cannot be undone.`, [
+        { text: "Cancel", style: "cancel" },
+        { text: "Delete", style: "destructive", onPress: doDelete },
+      ]);
+    }
+  };
+
   const renderItem = ({ item }: { item: Checklist }) => {
     const sc = statusColor(item.status, colors);
     const isGeneratingPdf = pdfLoadingId === item.id;
     const isArchiving = archiveLoadingId === item.id;
+    const isDeleting = deleteLoadingId === item.id;
     const openDetail = () =>
       router.push({ pathname: "/(tabs)/modules/precon/detail", params: { id: String(item.id) } });
 
@@ -207,20 +232,34 @@ export function PreconDashboardContent() {
               )}
             </TouchableOpacity>
             {isManagerOrAdmin && (
-              <TouchableOpacity
-                style={[styles.actionBtn, { borderColor: item.archived ? colors.success + "80" : colors.warning + "80" }]}
-                onPress={() => item.archived ? handleUnarchive(item) : handleArchive(item)}
-                disabled={isArchiving}
-                activeOpacity={0.7}
-              >
-                {isArchiving ? (
-                  <ActivityIndicator size="small" color={colors.muted} />
-                ) : (
-                  <Text style={[styles.actionBtnText, { color: item.archived ? colors.success : colors.warning }]}>
-                    {item.archived ? "Unarchive" : "Archive"}
-                  </Text>
-                )}
-              </TouchableOpacity>
+              <>
+                <TouchableOpacity
+                  style={[styles.actionBtn, { borderColor: item.archived ? colors.success + "80" : colors.warning + "80" }]}
+                  onPress={() => item.archived ? handleUnarchive(item) : handleArchive(item)}
+                  disabled={isArchiving}
+                  activeOpacity={0.7}
+                >
+                  {isArchiving ? (
+                    <ActivityIndicator size="small" color={colors.muted} />
+                  ) : (
+                    <Text style={[styles.actionBtnText, { color: item.archived ? colors.success : colors.warning }]}>
+                      {item.archived ? "Unarchive" : "Archive"}
+                    </Text>
+                  )}
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.actionBtn, { borderColor: colors.error + "80" }]}
+                  onPress={() => handleDelete(item)}
+                  disabled={isDeleting}
+                  activeOpacity={0.7}
+                >
+                  {isDeleting ? (
+                    <ActivityIndicator size="small" color={colors.error} />
+                  ) : (
+                    <Text style={[styles.actionBtnText, { color: colors.error }]}>Delete</Text>
+                  )}
+                </TouchableOpacity>
+              </>
             )}
           </View>
         </View>
