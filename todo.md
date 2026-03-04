@@ -637,3 +637,11 @@
 - [x] BUG: Body text running into letterhead — fixed by setting doc.y = HEADER_H + 12 after drawHeader
 - [x] BUG: Section headers need more spacing from items below — increased moveDown from 0.3 to 0.5
 - [x] BUG: Client Initials slammed against text — moved to bottom of each page (footerY = page.height - 50) with proper spacing
+
+## CMR PDF Blank Issue (3/4/2026)
+
+- [ ] BUG: CMR (Client Meeting Report) PDF export is blank — need to fix PDF generation
+
+## Precon PDF Client Initials Bleed (3/4/2026)
+
+- [x] BUG: Client Initials bleeding into next page — fixed by adjusting footerY from (page.height - 50) to (page.height - 70) to respect 60pt bottom margin

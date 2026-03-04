@@ -122,8 +122,9 @@ function workItemBlock(
 }
 
 function pageFooter(doc: PDFKit.PDFDocument) {
-  // Position footer near bottom of page (with proper margin)
-  const footerY = doc.page.height - 50;
+  // Position footer near bottom of page (respecting bottom margin of 60pt)
+  // Page height is 792pt (11 inches), so footer should be at 792 - 60 - 20 = 712pt to stay within margin
+  const footerY = doc.page.height - 70;
   doc.moveTo(50, footerY).lineTo(150, footerY).strokeColor(DARK).lineWidth(0.5).stroke();
   doc.fontSize(8).fillColor(MID_GRAY).text("Client Initials", 50, footerY + 3);
   const rightX = doc.page.width - 200;
