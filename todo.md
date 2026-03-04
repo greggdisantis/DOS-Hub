@@ -619,3 +619,7 @@
 
 - [x] Remove Materials tab from Preconstruction Checklist form
 - [x] Remove Materials section from Preconstruction PDF generation
+
+## Dashboard Navigation Bug (3/4/2026)
+
+- [x] BUG: "Dashboard →" button in Preconstruction Checklist form shows "Unmatched Route" error — fixed by changing route from "/(tabs)/modules/dashboard" to "/modules/dashboard"

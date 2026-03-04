@@ -644,7 +644,7 @@ export default function PreconDetailScreen() {
         )}
         <TouchableOpacity
           style={[styles.actionBarBtn, { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }]}
-          onPress={() => router.push({ pathname: "/(tabs)/modules/dashboard", params: { module: "precon" } })}
+          onPress={() => router.push({ pathname: "/modules/dashboard", params: { module: "precon" } } as any)}
           activeOpacity={0.8}
         >
           <Text style={[styles.actionBarBtnText, { color: colors.foreground }]}>Dashboard →</Text>
