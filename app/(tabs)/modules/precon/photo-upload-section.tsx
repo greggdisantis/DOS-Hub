@@ -1,6 +1,7 @@
 import React from "react";
-import { View, Text, TouchableOpacity, Image, StyleSheet, ScrollView } from "react-native";
+import { View, Text, TouchableOpacity, Image, StyleSheet, Alert, Platform } from "react-native";
 import * as ImagePicker from "expo-image-picker";
+import * as FileSystem from "expo-file-system/legacy";
 import { useColors } from "@/hooks/use-colors";
 
 interface PhotoUploadSectionProps {
@@ -24,16 +25,44 @@ export function PhotoUploadSection({
 }: PhotoUploadSectionProps) {
   const colors = useColors();
 
+  const uriToDataUri = async (uri: string): Promise<string> => {
+    try {
+      if (Platform.OS === "web") {
+        // On web, fetch the blob and convert to base64
+        const response = await fetch(uri);
+        const blob = await response.blob();
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      } else {
+        // On native, use FileSystem to read as base64
+        const base64 = await FileSystem.readAsStringAsync(uri, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+        const ext = uri.split(".").pop()?.toLowerCase() ?? "jpeg";
+        const mime = ext === "png" ? "image/png" : "image/jpeg";
+        return `data:${mime};base64,${base64}`;
+      }
+    } catch (e) {
+      console.warn("Failed to convert photo to base64", e);
+      return uri; // fallback to URI if conversion fails
+    }
+  };
+
   const handlePickPhoto = async () => {
     const result = await ImagePicker.launchCameraAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: false,
       aspect: [4, 3],
-      quality: 0.8,
+      quality: 0.7,
     });
 
     if (!result.canceled && result.assets[0]) {
-      onPhotoAdd(photoKey, result.assets[0].uri);
+      const dataUri = await uriToDataUri(result.assets[0].uri);
+      onPhotoAdd(photoKey, dataUri);
     }
   };
 
@@ -42,11 +71,12 @@ export function PhotoUploadSection({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: false,
       aspect: [4, 3],
-      quality: 0.8,
+      quality: 0.7,
     });
 
     if (!result.canceled && result.assets[0]) {
-      onPhotoAdd(photoKey, result.assets[0].uri);
+      const dataUri = await uriToDataUri(result.assets[0].uri);
+      onPhotoAdd(photoKey, dataUri);
     }
   };
 

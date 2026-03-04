@@ -663,3 +663,9 @@
 - [x] Add delete button for each uploaded photo — X button on each thumbnail
 - [x] Display photo thumbnails in Photos tab —  80x80 grid with camera/gallery options
 - [ ] Embed photos in PDF under each section
+
+## Embed Photos in PDF (3/4/2026)
+
+- [x] Pass photoUris from formData to PDF generator — read from fd.photoUris in precon-pdf.ts
+- [x] Fetch/decode each photo URI as a buffer on the server — photos stored as base64 data URIs, decoded with Buffer.from()
+- [x] Embed photos under each checklist item in the Photos section of the PDF — 3-per-row grid, 150x112pt each

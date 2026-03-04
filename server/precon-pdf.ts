@@ -303,14 +303,51 @@ export async function generatePreconPdf(checklist: any): Promise<Buffer> {
     doc.y += 8;
 
     const ph = fd.photos;
-    if (ph) {
-      checkRow(doc, "Driveway & Access Conditions", ph.driveway ?? false, projectName);
-      checkRow(doc, "Location of Staging Area", ph.stagingArea ?? false, projectName);
-      checkRow(doc, "Location of Pergola", ph.pergolLocation ?? false, projectName);
-      checkRow(doc, "Location of Work Area", ph.workArea ?? false, projectName);
-      checkRow(doc, "Location of the Posts to be Installed", ph.postLocations ?? false, projectName);
-      checkRow(doc, "Any and all Photos of any Damage to the Property or Dwelling Prior to Starting Work", ph.priorDamage ?? false, projectName);
-      checkRow(doc, "Any Circumstance that will Prohibit the Installation of the Pergola", ph.installationProhibitions ?? false, projectName);
+    const photoUris: Record<string, string[]> = (fd as any).photoUris ?? {};
+
+    const photoItems: [string, boolean, string][] = [
+      ["Driveway & Access Conditions",  ph?.driveway               ?? false, "driveway"],
+      ["Location of Staging Area",       ph?.stagingArea            ?? false, "stagingArea"],
+      ["Location of Pergola",            ph?.pergolLocation         ?? false, "pergolLocation"],
+      ["Location of Work Area",          ph?.workArea               ?? false, "workArea"],
+      ["Location of the Posts to be Installed", ph?.postLocations   ?? false, "postLocations"],
+      ["Any and all Photos of any Damage to the Property or Dwelling Prior to Starting Work", ph?.priorDamage ?? false, "priorDamage"],
+      ["Any Circumstance that will Prohibit the Installation of the Pergola", ph?.installationProhibitions ?? false, "installationProhibitions"],
+    ];
+
+    for (const [label, checked, key] of photoItems) {
+      checkRow(doc, label, checked, projectName);
+      const uris = photoUris[key] ?? [];
+      if (uris.length > 0) {
+        // Lay out photos in a 3-per-row grid, each 150x112 pts
+        const IMG_W = 150;
+        const IMG_H = 112;
+        const GAP   = 8;
+        const COLS  = 3;
+        const rowCount = Math.ceil(uris.length / COLS);
+        const blockH = rowCount * (IMG_H + GAP) + 8;
+        ensureSpace(doc, blockH, projectName);
+        const startY = doc.y + 4;
+        uris.forEach((dataUri, idx) => {
+          const col = idx % COLS;
+          const row = Math.floor(idx / COLS);
+          const x = MARGIN_L + 26 + col * (IMG_W + GAP);
+          const y = startY + row * (IMG_H + GAP);
+          try {
+            // dataUri is "data:image/jpeg;base64,..." — strip the prefix for PDFKit
+            const base64Match = dataUri.match(/^data:image\/(jpeg|png|jpg);base64,(.+)$/);
+            if (base64Match) {
+              const imgBuffer = Buffer.from(base64Match[2], "base64");
+              doc.image(imgBuffer, x, y, { width: IMG_W, height: IMG_H, fit: [IMG_W, IMG_H] });
+            }
+          } catch (imgErr) {
+            // If image fails, draw a placeholder box
+            doc.rect(x, y, IMG_W, IMG_H).strokeColor("#E5E7EB").lineWidth(0.5).stroke();
+            doc.fontSize(8).fillColor(MID_GRAY).text("[Photo]", x + 4, y + IMG_H / 2 - 6, { width: IMG_W - 8, align: "center" });
+          }
+        });
+        doc.y = startY + rowCount * (IMG_H + GAP) + 8;
+      }
     }
 
     // ── Additional Work Items + Notes ────────────────────────────────────────
