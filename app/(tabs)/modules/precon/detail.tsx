@@ -21,6 +21,7 @@ import {
 } from "./types";
 import {
   CheckboxRow,
+  PhotoCheckboxRow,
   YNToggle,
   Field,
   SectionHeader,
@@ -108,6 +109,10 @@ export default function PreconDetailScreen() {
     },
     [scheduleAutoSave],
   );
+
+  const handlePhotoUpload = (photoKey: string) => {
+    Alert.alert("Photo Upload", `Upload photo for: ${photoKey}`);
+  };
 
   const handleGeneratePdf = async () => {
     // Save first
@@ -485,11 +490,13 @@ export default function PreconDetailScreen() {
                 { key: "installationProhibitions", label: "Any Circumstance that will Prohibit the Installation of the Pergola" },
               ] as const
             ).map(({ key, label }) => (
-              <CheckboxRow
+              <PhotoCheckboxRow
                 key={key}
                 label={label}
                 checked={formData.photos[key]}
                 onToggle={() => updateFormData((p) => ({ ...p, photos: { ...p.photos, [key]: !p.photos[key] } }))}
+                onUploadPhoto={() => handlePhotoUpload(key)}
+                hasPhoto={!!(formData.photos as any)[`${key}Uri`]}
               />
             ))}
           </ScrollView>
