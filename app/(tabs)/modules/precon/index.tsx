@@ -43,8 +43,6 @@ export default function PreconListScreen() {
   const colors = useColors();
   const [search, setSearch] = useState("");
   const [creating, setCreating] = useState(false);
-  const [newProjectName, setNewProjectName] = useState("");
-  const [showNewForm, setShowNewForm] = useState(false);
   const [pdfLoadingId, setPdfLoadingId] = useState<number | null>(null);
 
   const { data: checklists = [], isLoading, refetch } = trpc.precon.list.useQuery();
@@ -63,22 +61,21 @@ export default function PreconListScreen() {
   });
 
   const handleCreate = async () => {
-    if (!newProjectName.trim()) {
-      Alert.alert("Project Name Required", "Please enter a project name.");
-      return;
-    }
+    if (creating) return;
     setCreating(true);
     try {
-      const result = await createMutation.mutateAsync({ projectName: newProjectName.trim() });
-      setNewProjectName("");
-      setShowNewForm(false);
-      await refetch();
+      const result = await createMutation.mutateAsync({ projectName: "New Checklist" });
       router.push({
         pathname: "/(tabs)/modules/precon/detail",
         params: { id: String(result.id) },
       });
     } catch (err: any) {
-      Alert.alert("Error", err.message ?? "Could not create checklist.");
+      const msg = err?.message ?? "Could not create checklist. Please try again.";
+      if (Platform.OS === "web") {
+        window.alert(msg);
+      } else {
+        Alert.alert("Error", msg);
+      }
     } finally {
       setCreating(false);
     }
@@ -204,51 +201,20 @@ export default function PreconListScreen() {
           <Text style={styles.headerSub}>Supervisor meeting forms</Text>
         </View>
         <TouchableOpacity
-          style={[styles.newBtn, { backgroundColor: "rgba(255,255,255,0.2)" }]}
-          onPress={() => setShowNewForm(!showNewForm)}
+          style={[styles.newBtn, { backgroundColor: "rgba(255,255,255,0.2)", opacity: creating ? 0.6 : 1 }]}
+          onPress={handleCreate}
+          disabled={creating}
           activeOpacity={0.8}
         >
-          <Text style={styles.newBtnText}>+ New</Text>
+          {creating ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <Text style={styles.newBtnText}>+ New</Text>
+          )}
         </TouchableOpacity>
       </View>
 
-      {/* New checklist form */}
-      {showNewForm && (
-        <View style={[styles.newForm, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-          <Text style={[styles.newFormLabel, { color: colors.foreground }]}>New Preconstruction Checklist</Text>
-          <TextInput
-            style={[styles.newFormInput, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.background }]}
-            value={newProjectName}
-            onChangeText={setNewProjectName}
-            placeholder="Project name (required)"
-            placeholderTextColor={colors.muted}
-            returnKeyType="done"
-            onSubmitEditing={handleCreate}
-            autoFocus
-          />
-          <View style={styles.newFormButtons}>
-            <TouchableOpacity
-              style={[styles.newFormCancel, { borderColor: colors.border }]}
-              onPress={() => { setShowNewForm(false); setNewProjectName(""); }}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.newFormCancelText, { color: colors.muted }]}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.newFormCreate, { backgroundColor: colors.primary, opacity: creating ? 0.7 : 1 }]}
-              onPress={handleCreate}
-              disabled={creating}
-              activeOpacity={0.8}
-            >
-              {creating ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <Text style={styles.newFormCreateText}>Create & Open</Text>
-              )}
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
+
 
       {/* Search */}
       <View style={[styles.searchBar, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
@@ -296,14 +262,7 @@ const styles = StyleSheet.create({
   headerSub: { color: "rgba(255,255,255,0.7)", fontSize: 12, marginTop: 2 },
   newBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8 },
   newBtnText: { color: "#fff", fontSize: 14, fontWeight: "700" },
-  newForm: { padding: 16, borderBottomWidth: StyleSheet.hairlineWidth, gap: 10 },
-  newFormLabel: { fontSize: 14, fontWeight: "700" },
-  newFormInput: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15 },
-  newFormButtons: { flexDirection: "row", gap: 10 },
-  newFormCancel: { flex: 1, borderWidth: 1, borderRadius: 8, paddingVertical: 10, alignItems: "center" },
-  newFormCancelText: { fontSize: 14, fontWeight: "600" },
-  newFormCreate: { flex: 2, borderRadius: 8, paddingVertical: 10, alignItems: "center" },
-  newFormCreateText: { color: "#fff", fontSize: 14, fontWeight: "700" },
+
   searchBar: { paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth },
   searchInput: { fontSize: 14 },
   listContent: { padding: 12, gap: 10, paddingBottom: 40 },

@@ -578,3 +578,5 @@
 ## Bug Fixes (3/4/2026)
 
 - [x] BUG: Precon Checklist "Create & Open" button does nothing when pressed — fixed nested TouchableOpacity + navigation format
+- [x] BUG: Precon Checklist "Create & Open" still does nothing when logged in — rebuilt as direct + New → create → navigate flow (no inline form)
+- [ ] BUG: Sign In button redirects to oauth.manus.im which cannot be resolved — OAuth provider URL is broken
