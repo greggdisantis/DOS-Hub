@@ -495,3 +495,14 @@
 ### General
 - [x] Add PDF button on Material Delivery tool (generates PDF of current checklist at any stage)
 - [x] Database schema already had all needed fields (warehouse notes, loaded/delivered flags, PO attachments, photos)
+
+## Material Delivery Bug Fixes (Reported 3/3/2026)
+
+- [x] PDF button does nothing — fixed: on web opens PDF in new tab, on native opens in browser
+- [x] Fan toggle does not work — fixed: DeliveryItemsForm was hardcoded readOnly=true, now uses isEditable
+- [x] No way to change status to a previous status — added backward status revert buttons for managers/admins
+- [x] Add DELETE checklist button (managers/admins only) with inline confirmation
+- [x] Add/delete line items — added dynamic line items to Misc (Delivery Items) and Other Items (Project Specific Items)
+- [x] "Waiting on Supervisor" status — supervisors can now edit all fields at their stage
+- [x] Add Photos button does nothing — fixed: replaced Alert.alert multi-button with inline picker card (web-compatible)
+- [x] Add PO PDF button opens file picker but does not save — fixed: web uses hidden <input type="file">, native uses DocumentPicker

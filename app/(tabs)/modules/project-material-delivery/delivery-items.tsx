@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { useColors } from "@/hooks/use-colors";
-import { DeliveryItems } from "./types";
+import { DeliveryItems, CustomLineItem } from "./types";
 
 interface Props {
   value: DeliveryItems;
@@ -181,6 +181,24 @@ export default function DeliveryItemsForm({ value, onChange, readOnly }: Props) 
   const set = <K extends keyof DeliveryItems>(section: K, patch: Partial<DeliveryItems[K]>) => {
     if (readOnly) return;
     onChange({ ...value, [section]: { ...(value[section] as any), ...(patch as any) } });
+  };
+
+  const miscItems: CustomLineItem[] = value.misc.customItems ?? [];
+
+  const addMiscItem = () => {
+    if (readOnly) return;
+    const newItem: CustomLineItem = { id: Date.now().toString(), name: "", qty: null, note: "" };
+    onChange({ ...value, misc: { ...value.misc, customItems: [...miscItems, newItem] } });
+  };
+
+  const updateMiscItem = (id: string, patch: Partial<CustomLineItem>) => {
+    if (readOnly) return;
+    onChange({ ...value, misc: { ...value.misc, customItems: miscItems.map((item) => item.id === id ? { ...item, ...patch } : item) } });
+  };
+
+  const deleteMiscItem = (id: string) => {
+    if (readOnly) return;
+    onChange({ ...value, misc: { ...value.misc, customItems: miscItems.filter((item) => item.id !== id) } });
   };
 
   return (
@@ -380,6 +398,7 @@ export default function DeliveryItemsForm({ value, onChange, readOnly }: Props) 
 
       {/* ── Misc ── */}
       <SectionHeader title="Miscellaneous" colors={colors} />
+      {/* Legacy single misc item */}
       <View style={[styles.customItemRow, { borderBottomColor: colors.border }]}>
         <View style={{ flex: 1 }}>
           <FieldLabel label="Item" colors={colors} />
@@ -397,6 +416,44 @@ export default function DeliveryItemsForm({ value, onChange, readOnly }: Props) 
           <NumInput value={value.misc.customQty} onChange={(v) => set("misc", { customQty: v })} colors={colors} readOnly={readOnly} />
         </View>
       </View>
+      {/* Dynamic misc line items */}
+      {miscItems.map((item) => (
+        <View key={item.id} style={[styles.dynamicItemRow, { borderBottomColor: colors.border }]}>
+          <View style={{ flex: 1 }}>
+            <FieldLabel label="Item" colors={colors} />
+            <TextFieldInput
+              value={item.name}
+              onChange={(t) => updateMiscItem(item.id, { name: t })}
+              placeholder="Item name..."
+              colors={colors}
+              readOnly={readOnly}
+              flex={1}
+            />
+          </View>
+          <View style={{ marginLeft: 10 }}>
+            <FieldLabel label="Qty" colors={colors} />
+            <NumInput value={item.qty} onChange={(v) => updateMiscItem(item.id, { qty: v })} colors={colors} readOnly={readOnly} />
+          </View>
+          {!readOnly && (
+            <TouchableOpacity
+              style={styles.deleteItemBtn}
+              onPress={() => deleteMiscItem(item.id)}
+              activeOpacity={0.7}
+            >
+              <Text style={{ color: colors.error, fontSize: 18, fontWeight: "700" }}>−</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      ))}
+      {!readOnly && (
+        <TouchableOpacity
+          style={[styles.addItemBtn, { borderColor: colors.primary }]}
+          onPress={addMiscItem}
+          activeOpacity={0.8}
+        >
+          <Text style={[styles.addItemBtnText, { color: colors.primary }]}>+ Add Misc Item</Text>
+        </TouchableOpacity>
+      )}
 
       {/* ── Notes ── */}
       <SectionHeader title="Notes" colors={colors} />
@@ -533,4 +590,29 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     minHeight: 60,
   },
+  dynamicItemRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    gap: 10,
+  },
+  deleteItemBtn: {
+    width: 32,
+    height: 36,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 2,
+  },
+  addItemBtn: {
+    marginHorizontal: 16,
+    marginVertical: 10,
+    borderWidth: 1.5,
+    borderStyle: "dashed",
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  addItemBtnText: { fontSize: 14, fontWeight: "600" },
 });

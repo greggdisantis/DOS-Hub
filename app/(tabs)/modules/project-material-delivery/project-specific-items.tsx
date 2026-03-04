@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { useColors } from "@/hooks/use-colors";
-import { ProjectSpecificItems } from "./types";
+import { ProjectSpecificItems, CustomLineItem } from "./types";
 
 interface Props {
   value: ProjectSpecificItems;
@@ -234,6 +234,24 @@ export default function ProjectSpecificItemsForm({ value, onChange, readOnly }: 
     onChange({ ...value, [section]: { ...(value[section] as any), ...(patch as any) } });
   };
 
+  const customItems: CustomLineItem[] = value.otherItems.customItems ?? [];
+
+  const addCustomItem = () => {
+    if (readOnly) return;
+    const newItem: CustomLineItem = { id: Date.now().toString(), name: "", qty: null, note: "" };
+    onChange({ ...value, otherItems: { ...value.otherItems, customItems: [...customItems, newItem] } });
+  };
+
+  const updateCustomItem = (id: string, patch: Partial<CustomLineItem>) => {
+    if (readOnly) return;
+    onChange({ ...value, otherItems: { ...value.otherItems, customItems: customItems.map((item) => item.id === id ? { ...item, ...patch } : item) } });
+  };
+
+  const deleteCustomItem = (id: string) => {
+    if (readOnly) return;
+    onChange({ ...value, otherItems: { ...value.otherItems, customItems: customItems.filter((item) => item.id !== id) } });
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
 
@@ -348,6 +366,56 @@ export default function ProjectSpecificItemsForm({ value, onChange, readOnly }: 
         colors={colors}
         readOnly={readOnly}
       />
+
+      {/* Dynamic custom line items */}
+      {customItems.map((item) => (
+        <View key={item.id} style={[styles.dynamicItemRow, { borderBottomColor: colors.border }]}>
+          <View style={{ flex: 1 }}>
+            <FieldLabel label="Item" colors={colors} />
+            <TextFieldInput
+              value={item.name}
+              onChange={(t) => updateCustomItem(item.id, { name: t })}
+              placeholder="Item name..."
+              colors={colors}
+              readOnly={readOnly}
+              flex={1}
+            />
+          </View>
+          <View style={{ marginLeft: 10 }}>
+            <FieldLabel label="Qty" colors={colors} />
+            <NumInput value={item.qty} onChange={(v) => updateCustomItem(item.id, { qty: v })} colors={colors} readOnly={readOnly} />
+          </View>
+          <View style={{ flex: 1, marginLeft: 10 }}>
+            <FieldLabel label="Note" colors={colors} />
+            <TextFieldInput
+              value={item.note}
+              onChange={(t) => updateCustomItem(item.id, { note: t })}
+              placeholder="Color, size..."
+              colors={colors}
+              readOnly={readOnly}
+              flex={1}
+            />
+          </View>
+          {!readOnly && (
+            <TouchableOpacity
+              style={styles.deleteItemBtn}
+              onPress={() => deleteCustomItem(item.id)}
+              activeOpacity={0.7}
+            >
+              <Text style={{ color: colors.error, fontSize: 18, fontWeight: "700" }}>−</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      ))}
+      {!readOnly && (
+        <TouchableOpacity
+          style={[styles.addItemBtn, { borderColor: colors.primary }]}
+          onPress={addCustomItem}
+          activeOpacity={0.8}
+        >
+          <Text style={[styles.addItemBtnText, { color: colors.primary }]}>+ Add Line Item</Text>
+        </TouchableOpacity>
+      )}
 
       {/* ── Notes ── */}
       <SectionHeader title="Notes" colors={colors} />
@@ -480,4 +548,29 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     minHeight: 60,
   },
+  dynamicItemRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    gap: 8,
+  },
+  deleteItemBtn: {
+    width: 32,
+    height: 36,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 2,
+  },
+  addItemBtn: {
+    marginHorizontal: 16,
+    marginVertical: 10,
+    borderWidth: 1.5,
+    borderStyle: "dashed",
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  addItemBtnText: { fontSize: 14, fontWeight: "600" },
 });

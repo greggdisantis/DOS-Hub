@@ -752,6 +752,13 @@ export async function addProjectMaterialAttachment(
     .where(eq(projectMaterialChecklists.id, id));
 }
 
+/** Delete a project material checklist by ID */
+export async function deleteProjectMaterialChecklist(id: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error('Database not available');
+  await db.delete(projectMaterialChecklists).where(eq(projectMaterialChecklists.id, id));
+}
+
 // ─── PUSH NOTIFICATIONS ──────────────────────────────────────────────────────
 
 /** Save or update the Expo push token for a user */

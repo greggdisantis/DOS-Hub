@@ -142,6 +142,7 @@ export interface WireItem {
 export interface MiscItem {
   custom: string;
   customQty: number | null;
+  customItems?: CustomLineItem[];
 }
 
 export interface DeliveryItems {
@@ -163,6 +164,13 @@ export interface HeatersItem {
   relayPanelNeeded: boolean;
 }
 
+export interface CustomLineItem {
+  id: string;
+  name: string;
+  qty: number | null;
+  note: string;
+}
+
 export interface OtherProjectItem {
   jChannelQty: number | null;
   jChannelNote: string;
@@ -176,6 +184,7 @@ export interface OtherProjectItem {
   custom2: string;
   custom2Qty: number | null;
   custom2Note: string;
+  customItems?: CustomLineItem[];
 }
 
 export interface ProjectSpecificItems {
@@ -228,12 +237,12 @@ export const DEFAULT_DELIVERY_ITEMS: DeliveryItems = {
   pvc: { pipe3_10ft: null, pipe2_10ft: null, custom: "", customQty: null },
   azek: { size5_4: null, size3_4: null, other: "", otherQty: null },
   wire: { wire18_5_sizeRoll: "", wire18_5_qty: null, wire12_2_sizeRoll: "", wire12_2_qty: null, wire10_2_sizeRoll: "", wire10_2_qty: null, custom: "", customSizeRoll: "", customQty: null },
-  misc: { custom: "", customQty: null },
+  misc: { custom: "", customQty: null, customItems: [] },
   notes: "",
 };
 
 export const DEFAULT_PROJECT_SPECIFIC_ITEMS: ProjectSpecificItems = {
   heaters: { hasHeaters: false, type: "", color: "", qty: null, relayPanelNeeded: false },
-  otherItems: { jChannelQty: null, jChannelNote: "", lumberQty: null, lumberNote: "", trimCoilQty: null, trimCoilNote: "", custom1: "", custom1Qty: null, custom1Note: "", custom2: "", custom2Qty: null, custom2Note: "" },
+  otherItems: { jChannelQty: null, jChannelNote: "", lumberQty: null, lumberNote: "", trimCoilQty: null, trimCoilNote: "", custom1: "", custom1Qty: null, custom1Note: "", custom2: "", custom2Qty: null, custom2Note: "", customItems: [] },
   notes: "",
 };
