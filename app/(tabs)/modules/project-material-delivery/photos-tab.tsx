@@ -54,6 +54,7 @@ export default function PhotosTab({
   const [activeTab, setActiveTab] = useState<PhotoTab>("loading");
   const [uploading, setUploading] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
+  const [removingIndex, setRemovingIndex] = useState<number | null>(null);
   const fileInputRef = useRef<any>(null);
   const updateMutation = trpc.projectMaterial.update.useMutation();
 
@@ -104,6 +105,42 @@ export default function PhotosTab({
     }
   };
 
+  const handleRemovePhoto = async (index: number) => {
+    const doRemove = async () => {
+      setRemovingIndex(index);
+      try {
+        const updatedLoaded = activeTab === "loading"
+          ? loadedPhotos.filter((_, i) => i !== index)
+          : loadedPhotos;
+        const updatedDelivered = activeTab === "delivery"
+          ? deliveredPhotos.filter((_, i) => i !== index)
+          : deliveredPhotos;
+
+        await updateMutation.mutateAsync({
+          id: checklistId,
+          materialsLoadedPhotos: updatedLoaded,
+          materialsDeliveredPhotos: updatedDelivered,
+        });
+        onUpdate();
+      } catch (err: any) {
+        Alert.alert("Error", err.message ?? "Could not remove photo.");
+      } finally {
+        setRemovingIndex(null);
+      }
+    };
+
+    if (Platform.OS === "web") {
+      if (window.confirm("Remove this photo?")) {
+        doRemove();
+      }
+    } else {
+      Alert.alert("Remove Photo", "Are you sure you want to remove this photo?", [
+        { text: "Cancel", style: "cancel" },
+        { text: "Remove", style: "destructive", onPress: doRemove },
+      ]);
+    }
+  };
+
   const handleTakePhoto = async () => {
     setShowPicker(false);
     if (Platform.OS !== "web") {
@@ -122,7 +159,6 @@ export default function PhotosTab({
   const handleChooseFromLibrary = async () => {
     setShowPicker(false);
     if (Platform.OS === "web") {
-      // On web, use a hidden file input
       if (fileInputRef.current) {
         fileInputRef.current.click();
       }
@@ -149,7 +185,6 @@ export default function PhotosTab({
       await uploadPhoto(uri, file.type || "image/jpeg");
       URL.revokeObjectURL(uri);
     }
-    // Reset the input so the same file can be re-selected
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -226,6 +261,20 @@ export default function PhotosTab({
             {photos.map((uri, i) => (
               <View key={i} style={[styles.photoThumb, { borderColor: colors.border }]}>
                 <Image source={{ uri }} style={styles.photoImage} resizeMode="cover" />
+                {/* Remove button — shown for all users (not readOnly-gated, since removing wrong photo should always be allowed) */}
+                {removingIndex === i ? (
+                  <View style={styles.removeOverlay}>
+                    <ActivityIndicator size="small" color="#fff" />
+                  </View>
+                ) : (
+                  <TouchableOpacity
+                    style={styles.removeBtn}
+                    onPress={() => handleRemovePhoto(i)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.removeBtnText}>✕</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             ))}
           </View>
@@ -345,8 +394,42 @@ const styles = StyleSheet.create({
   emptyIcon: { fontSize: 40 },
   emptyText: { fontSize: 15, fontWeight: "500" },
   photoGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 16 },
-  photoThumb: { width: 100, height: 100, borderRadius: 10, borderWidth: 1, overflow: "hidden" },
+  photoThumb: {
+    width: 100,
+    height: 100,
+    borderRadius: 10,
+    borderWidth: 1,
+    overflow: "hidden",
+    position: "relative",
+  },
   photoImage: { width: "100%", height: "100%" },
+  removeOverlay: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  removeBtn: {
+    position: "absolute",
+    top: 4,
+    right: 4,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: "rgba(0,0,0,0.65)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  removeBtnText: {
+    color: "#fff",
+    fontSize: 11,
+    fontWeight: "700",
+    lineHeight: 14,
+  },
   addPhotoBtn: { borderWidth: 1.5, borderStyle: "dashed", borderRadius: 12, paddingVertical: 16, alignItems: "center" },
   addPhotoBtnText: { fontSize: 15, fontWeight: "600" },
   pickerCard: {

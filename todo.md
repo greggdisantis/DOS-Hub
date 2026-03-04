@@ -549,3 +549,9 @@
 - [x] Fix PO attachment layout overlap in PDF (text overlapping due to rect/y positioning bug)
 - [x] Include loading photos and delivery photos in the generated PDF
 - [x] Add Save PDF button directly on each checklist card in the list screen
+
+## Remove Photo / Remove PO PDF (Reported 3/4/2026)
+
+- [x] Add "Remove" button on each photo thumbnail in Photos tab (loading and delivery photos)
+- [x] Add "Remove" button on each PO PDF row in PO Files tab
+- [x] Simplify PDF header logo to plain "Distinctive Outdoor Structures" text only (no box, no tagline)

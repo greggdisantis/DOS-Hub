@@ -44,29 +44,20 @@ function fetchBuffer(url: string): Promise<Buffer> {
 
 function drawHeader(doc: PDFKit.PDFDocument, title: string) {
   // Header background
-  const HEADER_H = 88;
+  const HEADER_H = 72;
   doc.rect(0, 0, doc.page.width, HEADER_H).fill(BRAND_BLUE);
 
-  // Left side: Company branding (text-based, no image dependency)
-  // "DOS" box
-  doc.roundedRect(40, 14, 52, 52, 4).fill("#4A5568");
-  doc.fillColor("#FFFFFF").fontSize(22).font("Helvetica-Bold").text("DOS", 44, 28, { width: 44, align: "center" });
-
-  // Vertical divider
-  doc.moveTo(102, 18).lineTo(102, 74).strokeColor("#FFFFFF").lineWidth(1).stroke();
-
-  // Company name text
-  doc.fillColor("#FFFFFF").fontSize(14).font("Helvetica-Bold").text("Distinctive", 112, 20);
-  doc.fillColor("#FFFFFF").fontSize(14).font("Helvetica-Bold").text("Outdoor Structures", 112, 38);
-  doc.fillColor("#93C5FD").fontSize(7).font("Helvetica").text("BE UNIQUE. BE DISTINCTIVE", 112, 60);
+  // Left side: plain company name text only
+  doc.fillColor("#FFFFFF").fontSize(18).font("Helvetica-Bold")
+    .text("Distinctive Outdoor Structures", 40, 24, { width: 300 });
 
   // Right side: document title and project name
   const rightX = doc.page.width - 260;
   const rightW = 220;
   doc.fillColor("#FFFFFF").fontSize(10).font("Helvetica-Bold")
-    .text("Material Delivery Checklist", rightX, 22, { width: rightW, align: "right" });
+    .text("Material Delivery Checklist", rightX, 18, { width: rightW, align: "right" });
   doc.fillColor("#93C5FD").fontSize(9).font("Helvetica")
-    .text(title, rightX, 40, { width: rightW, align: "right", lineBreak: false, ellipsis: true });
+    .text(title, rightX, 36, { width: rightW, align: "right", lineBreak: false, ellipsis: true });
 
   doc.fillColor(DARK).font("Helvetica");
 }

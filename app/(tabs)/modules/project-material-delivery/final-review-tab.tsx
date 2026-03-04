@@ -33,8 +33,10 @@ interface Props {
 export default function FinalReviewTab({ checklistId, attachments, onAttachmentsChange, readOnly }: Props) {
   const colors = useColors();
   const [uploading, setUploading] = useState(false);
+  const [removingIndex, setRemovingIndex] = useState<number | null>(null);
   const fileInputRef = useRef<any>(null);
   const uploadFileMutation = trpc.projectMaterial.uploadFile.useMutation();
+  const updateMutation = trpc.projectMaterial.update.useMutation();
 
   const uploadPdfFile = async (uri: string, name: string, mimeType = "application/pdf") => {
     const url = await uploadMaterialFile(uri, mimeType, name);
@@ -48,7 +50,6 @@ export default function FinalReviewTab({ checklistId, attachments, onAttachments
 
   const handlePickPDF = async () => {
     if (Platform.OS === "web") {
-      // On web, use a hidden file input — DocumentPicker on web doesn't reliably return readable URIs
       if (fileInputRef.current) fileInputRef.current.click();
       return;
     }
@@ -102,6 +103,32 @@ export default function FinalReviewTab({ checklistId, attachments, onAttachments
     }
   };
 
+  const handleRemoveAttachment = async (index: number) => {
+    const doRemove = async () => {
+      setRemovingIndex(index);
+      try {
+        const updated = attachments.filter((_, i) => i !== index);
+        await updateMutation.mutateAsync({ id: checklistId, attachments: updated });
+        onAttachmentsChange();
+      } catch (err: any) {
+        Alert.alert("Error", err.message ?? "Could not remove file.");
+      } finally {
+        setRemovingIndex(null);
+      }
+    };
+
+    if (Platform.OS === "web") {
+      if (window.confirm(`Remove "${attachments[index]?.name}"?`)) {
+        doRemove();
+      }
+    } else {
+      Alert.alert("Remove File", `Remove "${attachments[index]?.name}"?`, [
+        { text: "Cancel", style: "cancel" },
+        { text: "Remove", style: "destructive", onPress: doRemove },
+      ]);
+    }
+  };
+
   const pdfAttachments = attachments.filter((a) => a.type === "application/pdf" || a.name?.endsWith(".pdf"));
 
   return (
@@ -138,27 +165,53 @@ export default function FinalReviewTab({ checklistId, attachments, onAttachments
           )}
         </View>
       ) : (
-        pdfAttachments.map((attachment, i) => (
-          <TouchableOpacity
-            key={i}
-            style={[styles.attachmentRow, { borderBottomColor: colors.border, backgroundColor: colors.surface }]}
-            onPress={() => handleOpenAttachment(attachment.url)}
-            activeOpacity={0.7}
-          >
-            <View style={[styles.pdfIcon, { backgroundColor: colors.error + "20" }]}>
-              <Text style={[styles.pdfIconText, { color: colors.error }]}>PDF</Text>
+        pdfAttachments.map((attachment, i) => {
+          const isRemoving = removingIndex === i;
+          return (
+            <View
+              key={i}
+              style={[styles.attachmentRow, { borderBottomColor: colors.border, backgroundColor: colors.surface }]}
+            >
+              {/* PDF icon */}
+              <View style={[styles.pdfIcon, { backgroundColor: colors.error + "20" }]}>
+                <Text style={[styles.pdfIconText, { color: colors.error }]}>PDF</Text>
+              </View>
+
+              {/* File info — tappable to open */}
+              <TouchableOpacity
+                style={{ flex: 1 }}
+                onPress={() => handleOpenAttachment(attachment.url)}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.attachmentName, { color: colors.foreground }]} numberOfLines={2}>
+                  {attachment.name}
+                </Text>
+                <Text style={[styles.attachmentMeta, { color: colors.muted }]}>
+                  Uploaded by {attachment.uploadedByName} · {new Date(attachment.uploadedAt).toLocaleDateString()}
+                </Text>
+              </TouchableOpacity>
+
+              {/* Open link */}
+              <TouchableOpacity onPress={() => handleOpenAttachment(attachment.url)} activeOpacity={0.7}>
+                <Text style={[styles.openLink, { color: colors.primary }]}>Open</Text>
+              </TouchableOpacity>
+
+              {/* Remove button */}
+              <TouchableOpacity
+                style={[styles.removeBtn, { borderColor: colors.error + "60", opacity: isRemoving ? 0.5 : 1 }]}
+                onPress={() => handleRemoveAttachment(i)}
+                disabled={isRemoving}
+                activeOpacity={0.7}
+              >
+                {isRemoving ? (
+                  <ActivityIndicator size="small" color={colors.error} />
+                ) : (
+                  <Text style={[styles.removeBtnText, { color: colors.error }]}>Remove</Text>
+                )}
+              </TouchableOpacity>
             </View>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.attachmentName, { color: colors.foreground }]} numberOfLines={2}>
-                {attachment.name}
-              </Text>
-              <Text style={[styles.attachmentMeta, { color: colors.muted }]}>
-                Uploaded by {attachment.uploadedByName} · {new Date(attachment.uploadedAt).toLocaleDateString()}
-              </Text>
-            </View>
-            <Text style={[styles.openLink, { color: colors.primary }]}>Open</Text>
-          </TouchableOpacity>
-        ))
+          );
+        })
       )}
 
       {/* Upload button */}
@@ -210,6 +263,15 @@ const styles = StyleSheet.create({
   attachmentName: { fontSize: 14, fontWeight: "500", lineHeight: 20 },
   attachmentMeta: { fontSize: 12, marginTop: 2 },
   openLink: { fontSize: 13, fontWeight: "600" },
+  removeBtn: {
+    borderWidth: 1,
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    minWidth: 64,
+    alignItems: "center",
+  },
+  removeBtnText: { fontSize: 12, fontWeight: "600" },
   uploadBtn: {
     margin: 16,
     borderWidth: 1.5,
