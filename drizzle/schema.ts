@@ -178,6 +178,38 @@ export const receipts = mysqlTable("receipts", {
 });
 
 /**
+ * AquaClean Receipts table — separate from standard Receipt Capture for AquaClean-specific expense tracking.
+ * Same schema as receipts but stores in a separate table for data isolation.
+ */
+export const aquacleanReceipts = mysqlTable("aquaclean_receipts", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  companyId: int("companyId"),
+  projectId: int("projectId"),
+  submitterName: varchar("submitterName", { length: 255 }),
+  vendorName: varchar("vendorName", { length: 255 }),
+  vendorLocation: text("vendorLocation"),
+  purchaseDate: varchar("purchaseDate", { length: 10 }),
+  subtotal: decimal("subtotal", { precision: 10, scale: 2 }),
+  tax: decimal("tax", { precision: 10, scale: 2 }),
+  total: decimal("total", { precision: 10, scale: 2 }),
+  imageUrl: text("imageUrl"),
+  lineItems: json("lineItems").$type<Array<{ description: string; quantity: number; unitPrice: number; lineTotal: number }>>(),
+  workOrderNumber: varchar("workOrderNumber", { length: 64 }),
+  jobName: varchar("jobName", { length: 255 }),
+  poNumber: varchar("poNumber", { length: 64 }),
+  materialCategory: varchar("materialCategory", { length: 64 }).default("Miscellaneous"),
+  expenseType: mysqlEnum("expenseType", ["JOB", "OVERHEAD"]).default("JOB"),
+  overheadCategory: varchar("overheadCategory", { length: 128 }),
+  notes: text("notes"),
+  fileName: varchar("fileName", { length: 255 }),
+  archived: boolean("archived").default(false).notNull(),
+  archivedAt: timestamp("archivedAt"),
+  archivedBy: int("archivedBy"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+/**
  * Client Meeting Reports table — synced from device AsyncStorage to allow
  * admin/manager cross-user reporting in the CMR Reports dashboard.
  */

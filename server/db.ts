@@ -14,6 +14,7 @@ import {
   orderRevisions,
   modulePermissions,
   receipts,
+  aquacleanReceipts,
   cmrReports,
   projectMaterialChecklists,
   notifications,
@@ -510,6 +511,81 @@ export async function deleteReceipt(id: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.delete(receipts).where(eq(receipts.id, id));
+}
+
+// ─── AQUACLEAN RECEIPTS ──────────────────────────────────────────────────────
+
+export async function createAquacleanReceipt(data: typeof aquacleanReceipts.$inferInsert): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const [result] = await db.insert(aquacleanReceipts).values(data).$returningId();
+  return result.id;
+}
+
+export async function getAquacleanReceipt(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(aquacleanReceipts).where(eq(aquacleanReceipts.id, id)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getUserAquacleanReceipts(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(aquacleanReceipts)
+    .where(and(eq(aquacleanReceipts.userId, userId), or(eq(aquacleanReceipts.archived, false), isNull(aquacleanReceipts.archived))))
+    .orderBy(desc(aquacleanReceipts.createdAt));
+}
+
+export async function getAllAquacleanReceipts() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(aquacleanReceipts)
+    .where(or(eq(aquacleanReceipts.archived, false), isNull(aquacleanReceipts.archived)))
+    .orderBy(desc(aquacleanReceipts.createdAt));
+}
+
+export async function getAquacleanReceiptsWithFilters(filters: {
+  userId?: number;
+  vendorName?: string;
+  startDate?: string;
+  endDate?: string;
+}) {
+  const db = await getDb();
+  if (!db) return [];
+
+  const conditions: any[] = [or(eq(aquacleanReceipts.archived, false), isNull(aquacleanReceipts.archived))];
+  if (filters.userId) conditions.push(eq(aquacleanReceipts.userId, filters.userId));
+  if (filters.vendorName) conditions.push(like(aquacleanReceipts.vendorName, `%${filters.vendorName}%`));
+  if (filters.startDate) conditions.push(gte(aquacleanReceipts.purchaseDate, filters.startDate));
+  if (filters.endDate) conditions.push(lte(aquacleanReceipts.purchaseDate, filters.endDate));
+
+  return db.select().from(aquacleanReceipts)
+    .where(and(...conditions))
+    .orderBy(desc(aquacleanReceipts.createdAt));
+}
+
+export async function deleteAquacleanReceipt(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(aquacleanReceipts).where(eq(aquacleanReceipts.id, id));
+}
+
+export async function getAquacleanReceiptAnalytics() {
+  const db = await getDb();
+  if (!db) return { totalReceipts: 0, totalSpent: 0, byCategory: {} };
+
+  const receipts = await db.select().from(aquacleanReceipts)
+    .where(or(eq(aquacleanReceipts.archived, false), isNull(aquacleanReceipts.archived)));
+
+  const totalSpent = receipts.reduce((sum, r) => sum + (Number(r.total) || 0), 0);
+  const byCategory: Record<string, number> = {};
+  receipts.forEach(r => {
+    const cat = r.materialCategory || "Miscellaneous";
+    byCategory[cat] = (byCategory[cat] || 0) + (Number(r.total) || 0);
+  });
+
+  return { totalReceipts: receipts.length, totalSpent, byCategory };
 }
 
 // ─── CMR REPORTS ────────────────────────────────────────────────────────────

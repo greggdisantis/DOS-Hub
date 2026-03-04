@@ -682,3 +682,14 @@
 - [x] BUG: Photos still not saving/appearing in PDF — fixed: (1) precon get router now merges photoData back into formData.photoUris; (2) detail.tsx useEffect now reads photoUris from merged formData; (3) duplicate photoUris in defaultFormData removed; (4) PDF generator now tries both "photos.key" and bare "key" lookup formats
 - [x] Add dedicated photo pages at end of PDF — one page per section that has photos, 2-column grid layout
 - [x] Label each photo: "[Section Name] — Photo #N" (e.g. "Driveway & Access Conditions — Photo #1")
+
+## AquaClean Receipt Capture Module (3/4/2026)
+
+- [ ] Create aquaclean_receipts database table (same schema as receipts but separate)
+- [ ] Create tRPC endpoints for AquaClean receipts (analyze, create, list, get, delete, generatePDF)
+- [ ] Create AquaClean Receipt Capture form screen (app/modules/aquaclean-receipt-capture.tsx)
+- [ ] Create AquaClean Receipt Capture dashboard screen (app/modules/aquaclean-receipt-dashboard.tsx)
+- [ ] Create AquaClean Receipt Capture PDF generator (server/aquaclean-receipt-pdf.ts)
+- [ ] Add AquaClean Receipt Capture to home screen quick actions and module cards
+- [ ] Add AquaClean Receipt Capture to Tools screen module grid
+- [ ] Test both Receipt Capture modules end-to-end with separate data
