@@ -800,6 +800,37 @@ export const appRouter = router({
         });
         return { success: true };
       }),
+
+    /** Generate a PDF for a material delivery checklist */
+    generatePdf: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        const checklist = await db.getProjectMaterialChecklist(input.id);
+        if (!checklist) throw new Error('Checklist not found');
+        const { generateMaterialDeliveryPDF } = await import('./material-delivery-pdf');
+        const { storagePut } = await import('./storage');
+        const pdfBuffer = await generateMaterialDeliveryPDF({
+          projectName: checklist.projectName,
+          clientName: checklist.clientName,
+          projectLocation: checklist.projectLocation,
+          supervisorName: checklist.supervisorName,
+          createdByName: checklist.createdByName,
+          createdAt: checklist.createdAt,
+          status: checklist.status,
+          boxedItems: checklist.boxedItems,
+          deliveryItems: checklist.deliveryItems,
+          projectSpecificItems: checklist.projectSpecificItems,
+          warehouseCheckoffs: checklist.warehouseCheckoffs as Record<string, boolean> | undefined,
+          materialsLoaded: checklist.materialsLoaded ?? false,
+          materialsDelivered: checklist.materialsDelivered ?? false,
+          attachments: checklist.attachments as any,
+          auditTrail: checklist.auditTrail as any,
+        });
+        const safeProjectName = (checklist.projectName || 'checklist').replace(/[^a-z0-9]/gi, '-').toLowerCase();
+        const fileKey = `material-delivery/pdf/${safeProjectName}-${input.id}-${Date.now()}.pdf`;
+        const { url } = await storagePut(fileKey, pdfBuffer, 'application/pdf');
+        return { url, fileName: `${safeProjectName}-checklist.pdf` };
+      }),
   }),
 
   // ─── DASHBOARD ANALYTICS ─────────────────────────────────────────────────────

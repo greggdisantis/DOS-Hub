@@ -448,3 +448,50 @@
 - [x] Create server status check utility
 - [x] Add refresh button to home screen (circular refresh icon in header)
 - [x] Test refresh functionality (all 111 tests passing)
+
+## Material Delivery Module — Full Redesign
+
+### Line Item Editing (Boxed Items, Delivery Items, Project Items)
+- [x] Add "Add Line Item" button per section in all 3 tabs
+- [x] Add "Delete" button per individual line item in all 3 tabs
+- [x] Redesign item row layout — compact, clearly labeled fields (name + qty side by side with labels)
+- [x] Redesign LED lights / Fan / Heater toggles — more visible, clearly labeled on/off state
+
+### Misc UI Fixes
+- [x] Move Current Status to top of page next to project name
+- [x] Move "Submit to" button to top of page next to project name
+- [x] Fix back button — should go to Material Delivery module list, not home page
+- [x] Allow managers/admins to move status backwards
+
+### Warehouse Tab
+- [x] Hide Warehouse tab until checklist reaches "Awaiting Warehouse" stage
+
+### Awaiting Warehouse Stage
+- [x] Replace tabbed layout with single scrolling list
+- [x] Show section headers: Info, Boxed Items, Delivery Items, Project Items
+- [x] Boxed Items: show Qty Needed (locked) and Qty Boxed (editable)
+- [x] Delivery Items: fully locked
+- [x] Project Items: item name and qty locked, warehouse notes editable per item
+
+### Final Review Needed Stage
+- [x] Make all fields editable
+- [x] Show combination of Qty Needed and Qty Pulled
+- [x] Add multiple PO PDF upload (office uploads PO PDFs, stored on server)
+- [x] Status advances to "Checklist Complete" after office review
+
+### Checklist Complete Stage
+- [x] Lock all selections
+- [x] Add "Loaded" checkbox per item (except Boxed Items section)
+- [x] Add "Delivered" checkbox per item (except Boxed Items section)
+- [x] Boxed Items: single "Loaded" and "Delivered" checkbox at section header level only
+- [x] Add Loading Photos tab (camera + upload)
+- [x] Add Delivery Photos tab (camera + upload)
+- [x] Status advances to "Closed" when complete
+
+### Closed Stage
+- [x] Generate combined PDF: full checklist + all PO PDFs + loading/delivery photos
+- [x] All fields locked
+
+### General
+- [x] Add PDF button on Material Delivery tool (generates PDF of current checklist at any stage)
+- [x] Database schema already had all needed fields (warehouse notes, loaded/delivered flags, PO attachments, photos)

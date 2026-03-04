@@ -72,6 +72,22 @@ async function startServer() {
     }
   });
 
+  // Material delivery file upload (photos + PDFs)
+  app.post("/api/upload-material-file", async (req, res) => {
+    try {
+      const { base64, mimeType = "image/jpeg", fileName = "file" } = req.body;
+      if (!base64) { res.status(400).json({ error: "base64 required" }); return; }
+      const { storagePut } = await import("../storage");
+      const ext = mimeType === "application/pdf" ? "pdf" : mimeType === "image/png" ? "png" : "jpg";
+      const key = `material-delivery/${Date.now()}-${fileName.replace(/[^a-zA-Z0-9._-]/g, "_")}.${ext}`;
+      const buf = Buffer.from(base64, "base64");
+      const { url } = await storagePut(key, buf, mimeType);
+      res.json({ url });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || "Upload failed" });
+    }
+  });
+
   app.get("/api/health", (_req, res) => {
     res.json({ ok: true, timestamp: Date.now() });
   });
