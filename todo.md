@@ -645,3 +645,8 @@
 ## Precon PDF Client Initials Bleed (3/4/2026)
 
 - [x] BUG: Client Initials bleeding into next page — fixed by adjusting footerY from (page.height - 50) to (page.height - 70) to respect 60pt bottom margin
+
+## Blank PDF Generation (3/4/2026)
+
+- [x] BUG: CMR (Client Meeting Report) PDF export is blank — fixed by adding 100ms render delay and allowTaint option to html2canvas
+- [x] BUG: Sales Pipeline PDF export is blank — same fix applied (both use exportMeetingReportPDF)

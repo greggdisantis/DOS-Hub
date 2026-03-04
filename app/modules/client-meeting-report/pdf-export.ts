@@ -105,10 +105,14 @@ async function exportWebPDFFallback(html: string, filename: string): Promise<voi
   container.style.top = '0';
   container.style.width = '800px';
   container.style.background = '#ffffff';
+  container.style.visibility = 'hidden';
   container.innerHTML = html;
   document.body.appendChild(container);
 
   try {
+    // Wait for DOM to render before capturing
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
     await (html2pdf() as any).set({
       margin: [10, 10, 10, 10],
       filename,
@@ -118,12 +122,15 @@ async function exportWebPDFFallback(html: string, filename: string): Promise<voi
         useCORS: true,
         backgroundColor: '#ffffff',
         logging: false,
+        allowTaint: true,
       },
       jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' as const },
       pagebreak: { mode: ['css', 'legacy'] },
     }).from(container).save();
   } finally {
-    document.body.removeChild(container);
+    if (document.body.contains(container)) {
+      document.body.removeChild(container);
+    }
   }
 }
 
