@@ -244,6 +244,14 @@ export const projectMaterialChecklists = mysqlTable("project_material_checklists
   materialsLoaded: boolean("materialsLoaded").default(false).notNull(),
   /** Whether materials have been delivered */
   materialsDelivered: boolean("materialsDelivered").default(false).notNull(),
+  /** Name of the user who checked off Materials Loaded */
+  materialsLoadedByName: varchar("materialsLoadedByName", { length: 255 }),
+  /** Timestamp when Materials Loaded was checked off */
+  materialsLoadedAt: timestamp("materialsLoadedAt"),
+  /** Name of the user who checked off Materials Delivered */
+  materialsDeliveredByName: varchar("materialsDeliveredByName", { length: 255 }),
+  /** Timestamp when Materials Delivered was checked off */
+  materialsDeliveredAt: timestamp("materialsDeliveredAt"),
   companyId: int("companyId"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),

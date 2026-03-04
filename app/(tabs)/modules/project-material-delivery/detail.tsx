@@ -362,6 +362,10 @@ export default function DetailScreen() {
             deliveredPhotos={checklist.materialsDeliveredPhotos ?? []}
             materialsLoaded={checklist.materialsLoaded ?? false}
             materialsDelivered={checklist.materialsDelivered ?? false}
+            materialsLoadedByName={(checklist as any).materialsLoadedByName ?? null}
+            materialsLoadedAt={(checklist as any).materialsLoadedAt ?? null}
+            materialsDeliveredByName={(checklist as any).materialsDeliveredByName ?? null}
+            materialsDeliveredAt={(checklist as any).materialsDeliveredAt ?? null}
             onUpdate={() => {
               utils.projectMaterial.get.invalidate({ id: checklistId });
               refetch();

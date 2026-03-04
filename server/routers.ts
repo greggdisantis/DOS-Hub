@@ -850,6 +850,10 @@ export const appRouter = router({
           warehouseCheckoffs: checklist.warehouseCheckoffs as Record<string, boolean> | undefined,
           materialsLoaded: checklist.materialsLoaded ?? false,
           materialsDelivered: checklist.materialsDelivered ?? false,
+          materialsLoadedByName: (checklist as any).materialsLoadedByName ?? null,
+          materialsLoadedAt: (checklist as any).materialsLoadedAt ?? null,
+          materialsDeliveredByName: (checklist as any).materialsDeliveredByName ?? null,
+          materialsDeliveredAt: (checklist as any).materialsDeliveredAt ?? null,
           attachments: checklist.attachments as any,
           auditTrail: checklist.auditTrail as any,
         });

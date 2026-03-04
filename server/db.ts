@@ -704,10 +704,41 @@ export async function updateProjectMaterialChecklist(
   // Append to audit trail
   const current = await getProjectMaterialChecklist(id);
   const existingAudit: any[] = current?.auditTrail ?? [];
-  const newAudit = [
-    ...existingAudit,
-    { userId: actor.userId, userName: actor.userName, action: "Updated checklist", timestamp: new Date().toISOString() },
-  ];
+  const auditEntries: any[] = [];
+
+  const now = new Date();
+
+  // Auto-capture who/when toggled materialsLoaded
+  if (updates.materialsLoaded !== undefined && updates.materialsLoaded !== current?.materialsLoaded) {
+    const action = updates.materialsLoaded ? "Marked Materials Loaded" : "Unmarked Materials Loaded";
+    auditEntries.push({ userId: actor.userId, userName: actor.userName, action, timestamp: now.toISOString() });
+    if (updates.materialsLoaded) {
+      updates.materialsLoadedByName = actor.userName;
+      updates.materialsLoadedAt = now;
+    } else {
+      updates.materialsLoadedByName = null as any;
+      updates.materialsLoadedAt = null as any;
+    }
+  }
+
+  // Auto-capture who/when toggled materialsDelivered
+  if (updates.materialsDelivered !== undefined && updates.materialsDelivered !== current?.materialsDelivered) {
+    const action = updates.materialsDelivered ? "Marked Materials Delivered" : "Unmarked Materials Delivered";
+    auditEntries.push({ userId: actor.userId, userName: actor.userName, action, timestamp: now.toISOString() });
+    if (updates.materialsDelivered) {
+      updates.materialsDeliveredByName = actor.userName;
+      updates.materialsDeliveredAt = now;
+    } else {
+      updates.materialsDeliveredByName = null as any;
+      updates.materialsDeliveredAt = null as any;
+    }
+  }
+
+  if (auditEntries.length === 0) {
+    auditEntries.push({ userId: actor.userId, userName: actor.userName, action: "Updated checklist", timestamp: now.toISOString() });
+  }
+
+  const newAudit = [...existingAudit, ...auditEntries];
 
   await db
     .update(projectMaterialChecklists)

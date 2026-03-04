@@ -506,3 +506,23 @@
 - [x] "Waiting on Supervisor" status — supervisors can now edit all fields at their stage
 - [x] Add Photos button does nothing — fixed: replaced Alert.alert multi-button with inline picker card (web-compatible)
 - [x] Add PO PDF button opens file picker but does not save — fixed: web uses hidden <input type="file">, native uses DocumentPicker
+
+## Material Delivery PDF Logo (Reported 3/3/2026)
+
+- [x] Add Distinctive Outdoor Structures logo to Material Delivery Checklist PDF header
+- [x] Fix status text being cut off in PDF header
+
+## Materials Loaded/Delivered Checkoff Logging (Reported 3/3/2026)
+
+- [x] Add materialsLoadedByName, materialsLoadedAt, materialsDeliveredByName, materialsDeliveredAt fields to DB schema
+- [x] Update server router to record who/when checked off Materials Loaded and Delivered
+- [x] Update detail screen to display who/when checked off each field
+- [x] Show loaded/delivered checkoff info (name + timestamp) in PDF
+
+## Material Delivery Archive Feature (Reported 3/3/2026)
+
+- [ ] Add archived boolean + archivedAt + archivedByName fields to project_material_checklists DB table
+- [ ] Add archive/unarchive endpoints to server router
+- [ ] Show Archive button on closed checklist cards in the list screen (managers/admins only)
+- [ ] Add Archived tab/filter to the list screen
+- [ ] Show Unarchive button on archived checklist cards

@@ -21,11 +21,21 @@ interface Props {
   deliveredPhotos: string[];
   materialsLoaded: boolean;
   materialsDelivered: boolean;
+  materialsLoadedByName?: string | null;
+  materialsLoadedAt?: string | Date | null;
+  materialsDeliveredByName?: string | null;
+  materialsDeliveredAt?: string | Date | null;
   onUpdate: () => void;
   readOnly?: boolean;
 }
 
 type PhotoTab = "loading" | "delivery";
+
+function fmtDateTime(d?: string | Date | null): string {
+  if (!d) return "";
+  const dt = new Date(d);
+  return isNaN(dt.getTime()) ? String(d) : dt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" });
+}
 
 export default function PhotosTab({
   checklistId,
@@ -33,6 +43,10 @@ export default function PhotosTab({
   deliveredPhotos,
   materialsLoaded,
   materialsDelivered,
+  materialsLoadedByName,
+  materialsLoadedAt,
+  materialsDeliveredByName,
+  materialsDeliveredAt,
   onUpdate,
   readOnly,
 }: Props) {
@@ -157,7 +171,9 @@ export default function PhotosTab({
       <View style={[styles.checkboxSection, { borderBottomColor: colors.border }]}>
         <CheckboxRow
           label="All Materials Loaded"
-          description="Confirm all items have been loaded onto the truck"
+          description={materialsLoadedByName && isLoaded
+            ? `Checked by ${materialsLoadedByName}${materialsLoadedAt ? " on " + fmtDateTime(materialsLoadedAt) : ""}`
+            : "Confirm all items have been loaded onto the truck"}
           checked={isLoaded}
           onToggle={handleToggleLoaded}
           colors={colors}
@@ -165,7 +181,9 @@ export default function PhotosTab({
         />
         <CheckboxRow
           label="All Materials Delivered"
-          description="Confirm all items have been delivered to the site"
+          description={materialsDeliveredByName && isDelivered
+            ? `Checked by ${materialsDeliveredByName}${materialsDeliveredAt ? " on " + fmtDateTime(materialsDeliveredAt) : ""}`
+            : "Confirm all items have been delivered to the site"}
           checked={isDelivered}
           onToggle={handleToggleDelivered}
           colors={colors}
