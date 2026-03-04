@@ -17,6 +17,7 @@ import {
   cmrReports,
   projectMaterialChecklists,
   notifications,
+  preconChecklists,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
@@ -976,4 +977,75 @@ export async function updateNotificationPrefs(
   const db = await getDb();
   if (!db) return;
   await db.update(users).set({ notificationPrefs: prefs }).where(eq(users.id, userId));
+}
+
+// ─── PRECONSTRUCTION CHECKLIST QUERIES ───────────────────────────────────────
+
+export async function createPreconChecklist(data: {
+  userId: number;
+  supervisorName: string;
+  companyId?: number | null;
+  projectName: string;
+  projectAddress?: string;
+  meetingDate?: string;
+}): Promise<{ id: number }> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const [result] = await db.insert(preconChecklists).values({
+    userId: data.userId,
+    supervisorName: data.supervisorName,
+    companyId: data.companyId ?? null,
+    projectName: data.projectName,
+    projectAddress: data.projectAddress ?? null,
+    meetingDate: data.meetingDate ?? null,
+    status: "draft",
+    formData: {},
+  }).$returningId();
+  return { id: result.id };
+}
+
+export async function getPreconChecklist(id: number): Promise<any | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(preconChecklists).where(eq(preconChecklists.id, id)).limit(1);
+  return result[0];
+}
+
+export async function listPreconChecklists(filters?: { userId?: number }): Promise<any[]> {
+  const db = await getDb();
+  if (!db) return [];
+  const conditions: any[] = [];
+  if (filters?.userId) conditions.push(eq(preconChecklists.userId, filters.userId));
+  const query = db.select().from(preconChecklists);
+  if (conditions.length > 0) {
+    return query.where(and(...conditions)).orderBy(desc(preconChecklists.createdAt));
+  }
+  return query.orderBy(desc(preconChecklists.createdAt));
+}
+
+export async function updatePreconChecklist(id: number, updates: Partial<{
+  projectName: string;
+  projectAddress: string;
+  meetingDate: string;
+  status: string;
+  formData: Record<string, unknown>;
+  supervisorSignature: string;
+  supervisorSignedName: string;
+  supervisorSignedAt: Date;
+  client1Signature: string;
+  client1SignedName: string;
+  client1SignedAt: Date;
+  client2Signature: string;
+  client2SignedName: string;
+  client2SignedAt: Date;
+}>): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(preconChecklists).set(updates as any).where(eq(preconChecklists.id, id));
+}
+
+export async function deletePreconChecklist(id: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(preconChecklists).where(eq(preconChecklists.id, id));
 }

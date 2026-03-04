@@ -48,6 +48,15 @@ const ALL_TOOLS: ToolItem[] = [
     category: "Utilities",
   },
   {
+    id: "precon-checklist",
+    title: "Preconstruction Checklist",
+    description: "Digital pre-construction meeting forms. Supervisors complete and clients sign off on-site.",
+    icon: "checklist",
+    route: "/modules/precon",
+    color: "#1E3A5F",
+    category: "Utilities",
+  },
+  {
     id: "receipt-capture",
     title: "Receipt Capture",
     description: "AI-powered expense tracking. Scan receipts and extract data automatically.",

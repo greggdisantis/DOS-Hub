@@ -85,6 +85,7 @@ const MAPPING = {
   "arrow.down.doc.fill": "picture-as-pdf",
   "chart.line.uptrend.xyaxis": "trending-up",
   "folder.badge.plus": "create-new-folder",
+  "checklist": "checklist",
 } as unknown as IconMapping;
 
 /**

@@ -288,6 +288,45 @@ export const notifications = mysqlTable("notifications", {
 });
 
 /**
+ * Pre-Construction Meeting Checklists table.
+ * Supervisors fill this out during the pre-construction meeting with the client.
+ */
+export const preconChecklists = mysqlTable("preconstruction_checklists", {
+  id: int("id").autoincrement().primaryKey(),
+  /** The supervisor who created this checklist */
+  userId: int("userId").notNull(),
+  supervisorName: varchar("supervisorName", { length: 255 }),
+  companyId: int("companyId"),
+  /** Project info */
+  projectName: varchar("projectName", { length: 255 }),
+  projectAddress: text("projectAddress"),
+  meetingDate: varchar("meetingDate", { length: 10 }),
+  /** Status: draft | completed | signed */
+  status: varchar("status", { length: 32 }).default("draft").notNull(),
+  /**
+   * All form data stored as JSON:
+   * { section1, section2_struxure, section3_decorative, section4_pergola,
+   *   section5_expectations, section6_photos, section7_materials,
+   *   section8_workItems, section9_notes, section10_signatures }
+   */
+  formData: json("formData").$type<Record<string, unknown>>(),
+  /** Supervisor signature data URL */
+  supervisorSignature: text("supervisorSignature"),
+  supervisorSignedName: varchar("supervisorSignedName", { length: 255 }),
+  supervisorSignedAt: timestamp("supervisorSignedAt"),
+  /** Client 1 signature */
+  client1Signature: text("client1Signature"),
+  client1SignedName: varchar("client1SignedName", { length: 255 }),
+  client1SignedAt: timestamp("client1SignedAt"),
+  /** Client 2 signature (optional) */
+  client2Signature: text("client2Signature"),
+  client2SignedName: varchar("client2SignedName", { length: 255 }),
+  client2SignedAt: timestamp("client2SignedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+/**
  * Zoning lookups table for property research history.
  */
 export const zoningLookups = mysqlTable("zoning_lookups", {
@@ -330,6 +369,8 @@ export type ModulePermission = typeof modulePermissions.$inferSelect;
 export type InsertModulePermission = typeof modulePermissions.$inferInsert;
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = typeof notifications.$inferInsert;
+export type PreconChecklist = typeof preconChecklists.$inferSelect;
+export type InsertPreconChecklist = typeof preconChecklists.$inferInsert;
 
 // System role type
 export type SystemRole = 'pending' | 'guest' | 'member' | 'manager' | 'admin';

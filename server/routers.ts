@@ -952,7 +952,7 @@ export const appRouter = router({
       return prefs ?? {};
     }),
 
-    /** Update notification preferences for the current user */
+     /** Update notification preferences for the current user */
     updatePrefs: protectedProcedure
       .input(z.object({ prefs: z.record(z.string(), z.boolean()) }))
       .mutation(async ({ ctx, input }) => {
@@ -960,6 +960,93 @@ export const appRouter = router({
         return { success: true };
       }),
   }),
-});
 
+  // ─── PRECONSTRUCTION CHECKLISTS ────────────────────────────────────────────
+  precon: router({
+    /** Create a new preconstruction checklist */
+    create: protectedProcedure
+      .input(z.object({
+        projectName: z.string(),
+        projectAddress: z.string().optional(),
+        meetingDate: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const supervisorName = [ctx.user.firstName, ctx.user.lastName].filter(Boolean).join(' ') || ctx.user.name || ctx.user.email || 'Unknown';
+        const result = await db.createPreconChecklist({
+          userId: ctx.user.id,
+          supervisorName,
+          companyId: (ctx.user as any).companyId ?? null,
+          projectName: input.projectName,
+          projectAddress: input.projectAddress,
+          meetingDate: input.meetingDate,
+        });
+        return result;
+      }),
+
+    /** Get a single checklist by ID */
+    get: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ ctx, input }) => {
+        return db.getPreconChecklist(input.id);
+      }),
+
+    /** List all checklists (managers/admins see all, others see own) */
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const isManagerOrAdmin = ctx.user.role === 'admin' || ctx.user.role === 'manager';
+      return db.listPreconChecklists(isManagerOrAdmin ? undefined : { userId: ctx.user.id });
+    }),
+
+    /** Update form data and/or status */
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        projectName: z.string().optional(),
+        projectAddress: z.string().optional(),
+        meetingDate: z.string().optional(),
+        status: z.string().optional(),
+        formData: z.record(z.string(), z.unknown()).optional(),
+        supervisorSignature: z.string().optional(),
+        supervisorSignedName: z.string().optional(),
+        client1Signature: z.string().optional(),
+        client1SignedName: z.string().optional(),
+        client2Signature: z.string().optional(),
+        client2SignedName: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const { id, ...updates } = input;
+        const now = new Date();
+        const patch: any = { ...updates };
+        if (updates.supervisorSignature && !patch.supervisorSignedAt) patch.supervisorSignedAt = now;
+        if (updates.client1Signature && !patch.client1SignedAt) patch.client1SignedAt = now;
+        if (updates.client2Signature && !patch.client2SignedAt) patch.client2SignedAt = now;
+        await db.updatePreconChecklist(id, patch);
+        return { success: true };
+      }),
+
+    /** Delete a checklist (manager/admin or owner) */
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const checklist = await db.getPreconChecklist(input.id);
+        if (!checklist) throw new Error('Not found');
+        if (ctx.user.role !== 'admin' && ctx.user.role !== 'manager' && checklist.userId !== ctx.user.id) {
+          throw new Error('Unauthorized');
+        }
+        await db.deletePreconChecklist(input.id);
+        return { success: true };
+      }),
+
+    /** Generate PDF for a checklist */
+    generatePdf: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const checklist = await db.getPreconChecklist(input.id);
+        if (!checklist) throw new Error('Checklist not found');
+        const { generatePreconPdf } = await import('./precon-pdf.js');
+        const pdfBuffer = await generatePreconPdf(checklist);
+        const base64 = pdfBuffer.toString('base64');
+        return { base64, mimeType: 'application/pdf' };
+      }),
+  }),
+});
 export type AppRouter = typeof appRouter;

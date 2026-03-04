@@ -555,3 +555,22 @@
 - [x] Add "Remove" button on each photo thumbnail in Photos tab (loading and delivery photos)
 - [x] Add "Remove" button on each PO PDF row in PO Files tab
 - [x] Simplify PDF header logo to plain "Distinctive Outdoor Structures" text only (no box, no tagline)
+
+## Preconstruction Checklist Module (New - 3/4/2026)
+
+- [x] Add preconstruction_checklists DB table to drizzle schema
+- [x] Add server endpoints: create, get, list, update, delete, generatePdf
+- [x] Build Preconstruction list screen (saved by date + supervisor, searchable)
+- [x] Build Preconstruction form - Section 1: Project Info (name, address, supervisor)
+- [x] Build Preconstruction form - Section 2: StruXure Details (zones, control box, sensors, accessories with qty/location)
+- [x] Build Preconstruction form - Section 3: Decorative Features (Y/N toggles for post bases, capitals, wraps, cornices, TRAX, LED strips)
+- [x] Build Preconstruction form - Section 4: Pergola Review (location, height, slope, drain lines, wire diagram, wire footage)
+- [x] Build Preconstruction form - Section 5: Client Expectations (construction time, aluminum shavings, minor leaks, contract changes, addendums)
+- [x] Build Preconstruction form - Section 6: Photos Taken checklist
+- [x] Build Preconstruction form - Section 7: Materials Needed (ledger board, downspout, J-channel, flashing, deck blocking, wire types)
+- [x] Build Preconstruction form - Section 8: Work Items (Electrical, Footings, Patio Alterations, Deck Alterations, House Gutter Alterations - each with needed/cost/addendum/responsible party/contractor/scope)
+- [x] Build Preconstruction form - Section 9: Project Notes + Client Remarks
+- [x] Build Preconstruction form - Section 10: Signatures (supervisor + up to 2 client signatures with name/date + digital signature pad)
+- [x] Build PDF export matching original DOS form layout
+- [x] Add module card to Tools screen
+- [x] Add navigation routes for list and detail/form screens
