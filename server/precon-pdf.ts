@@ -321,39 +321,74 @@ export async function generatePreconPdf(checklist: any): Promise<Buffer> {
       ["Any Circumstance that will Prohibit the Installation of the Pergola", ph?.installationProhibitions ?? false, "installationProhibitions"],
     ];
 
-    for (const [label, checked, key] of photoItems) {
+    // Render checkbox list (no inline photos here)
+    for (const [label, checked] of photoItems) {
       checkRow(doc, label, checked, projectName);
-      const uris = photoUris[key] ?? [];
-      if (uris.length > 0) {
-        // Lay out photos in a 3-per-row grid, each 150x112 pts
-        const IMG_W = 150;
-        const IMG_H = 112;
-        const GAP   = 8;
-        const COLS  = 3;
-        const rowCount = Math.ceil(uris.length / COLS);
-        const blockH = rowCount * (IMG_H + GAP) + 8;
-        ensureSpace(doc, blockH, projectName);
-        const startY = doc.y + 4;
-        uris.forEach((dataUri, idx) => {
-          const col = idx % COLS;
-          const row = Math.floor(idx / COLS);
-          const x = MARGIN_L + 26 + col * (IMG_W + GAP);
-          const y = startY + row * (IMG_H + GAP);
-          try {
-            // dataUri is "data:image/jpeg;base64,..." — strip the prefix for PDFKit
-            const base64Match = dataUri.match(/^data:image\/(jpeg|png|jpg);base64,(.+)$/);
-            if (base64Match) {
-              const imgBuffer = Buffer.from(base64Match[2], "base64");
-              doc.image(imgBuffer, x, y, { width: IMG_W, height: IMG_H, fit: [IMG_W, IMG_H] });
-            }
-          } catch (imgErr) {
-            // If image fails, draw a placeholder box
-            doc.rect(x, y, IMG_W, IMG_H).strokeColor("#E5E7EB").lineWidth(0.5).stroke();
-            doc.fontSize(8).fillColor(MID_GRAY).text("[Photo]", x + 4, y + IMG_H / 2 - 6, { width: IMG_W - 8, align: "center" });
+    }
+
+    // ── Dedicated Photo Pages: one page per section that has photos ──────────
+    // Photos are stored with key "photos.driveway", "photos.stagingArea", etc.
+    const IMG_W = 240;
+    const IMG_H = 180;
+    const GAP_X = 24;
+    const GAP_Y = 32; // extra gap for label above each photo
+    const COLS  = 2;
+    const LABEL_H = 16;
+
+    for (const [label, , key] of photoItems) {
+      // Try both "photos.key" (client format) and bare "key" (legacy format)
+      const uris = photoUris[`photos.${key}`] ?? photoUris[key] ?? [];
+      if (uris.length === 0) continue;
+
+      // Each photo gets its own labeled block; multiple photos per section flow down
+      newPage(doc, projectName);
+      sectionHeader(doc, `Photos: ${label}`, projectName);
+      doc.y += 8;
+
+      uris.forEach((dataUri, idx) => {
+        const col = idx % COLS;
+        const row = Math.floor(idx / COLS);
+        const x = MARGIN_L + col * (IMG_W + GAP_X);
+        const y = doc.y + row * (IMG_H + LABEL_H + GAP_Y);
+
+        // If this row would overflow, start a new page
+        if (y + IMG_H + LABEL_H > BOTTOM_LIMIT) {
+          newPage(doc, projectName);
+          sectionHeader(doc, `Photos: ${label} (cont.)`, projectName);
+          doc.y += 8;
+        }
+
+        const labelY = doc.y + row * (IMG_H + LABEL_H + GAP_Y);
+        const imgY   = labelY + LABEL_H;
+
+        // Photo label
+        doc.fontSize(9).fillColor(MID_GRAY).font("Helvetica-Bold")
+          .text(`${label} — Photo #${idx + 1}`, x, labelY, { width: IMG_W });
+        doc.fillColor(DARK).font("Helvetica");
+
+        // Photo image
+        try {
+          const base64Match = dataUri.match(/^data:image\/(jpeg|png|jpg);base64,(.+)$/);
+          if (base64Match) {
+            const imgBuffer = Buffer.from(base64Match[2], "base64");
+            doc.image(imgBuffer, x, imgY, { width: IMG_W, height: IMG_H, fit: [IMG_W, IMG_H] });
+          } else {
+            // Not a valid data URI — draw placeholder
+            doc.rect(x, imgY, IMG_W, IMG_H).strokeColor("#E5E7EB").lineWidth(0.5).stroke();
+            doc.fontSize(8).fillColor(MID_GRAY)
+              .text("[Photo unavailable]", x + 4, imgY + IMG_H / 2 - 6, { width: IMG_W - 8, align: "center" });
           }
-        });
-        doc.y = startY + rowCount * (IMG_H + GAP) + 8;
-      }
+        } catch (imgErr) {
+          doc.rect(x, imgY, IMG_W, IMG_H).strokeColor("#E5E7EB").lineWidth(0.5).stroke();
+          doc.fontSize(8).fillColor(MID_GRAY)
+            .text("[Photo error]", x + 4, imgY + IMG_H / 2 - 6, { width: IMG_W - 8, align: "center" });
+        }
+
+        // After the last column in a row, advance doc.y
+        if (col === COLS - 1 || idx === uris.length - 1) {
+          doc.y = imgY + IMG_H + 16;
+        }
+      });
     }
 
     // ── Additional Work Items + Notes ────────────────────────────────────────

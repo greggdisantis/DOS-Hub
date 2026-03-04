@@ -71,9 +71,12 @@ export default function PreconDetailScreen() {
       setProjectName(checklist.projectName ?? "");
       setProjectAddress(checklist.projectAddress ?? "");
       setMeetingDate(checklist.meetingDate ?? "");
-      if (checklist.formData && typeof checklist.formData === "object") {
-        setFormData({ ...defaultFormData(), ...(checklist.formData as any) });
-      }
+      const base = checklist.formData && typeof checklist.formData === "object"
+        ? (checklist.formData as any)
+        : {};
+      // Merge photoUris from the dedicated photoData column (server merges it back into formData)
+      const photoUris = base.photoUris ?? {};
+      setFormData({ ...defaultFormData(), ...base, photoUris });
     }
   }, [checklist]);
 

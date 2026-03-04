@@ -219,5 +219,4 @@ export const defaultFormData = (): PreconFormData => ({
   },
   projectNotes: "",
   clientRemarks: "",
-  photoUris: {},
 });

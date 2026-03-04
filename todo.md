@@ -676,3 +676,9 @@
   - Root cause: formData JSON column has 65KB limit, base64 photos exceeded it silently
   - Fix: added photoData mediumtext column to DB, router extracts photoUris and stores in photoData
   - PDF generator reads photoData column and merges back into fd.photoUris before rendering
+
+## Photo Pipeline Fix + Labeled Photo Pages (3/4/2026)
+
+- [x] BUG: Photos still not saving/appearing in PDF — fixed: (1) precon get router now merges photoData back into formData.photoUris; (2) detail.tsx useEffect now reads photoUris from merged formData; (3) duplicate photoUris in defaultFormData removed; (4) PDF generator now tries both "photos.key" and bare "key" lookup formats
+- [x] Add dedicated photo pages at end of PDF — one page per section that has photos, 2-column grid layout
+- [x] Label each photo: "[Section Name] — Photo #N" (e.g. "Driveway & Access Conditions — Photo #1")

@@ -987,7 +987,16 @@ export const appRouter = router({
     get: protectedProcedure
       .input(z.object({ id: z.number() }))
       .query(async ({ ctx, input }) => {
-        return db.getPreconChecklist(input.id);
+        const checklist = await db.getPreconChecklist(input.id);
+        if (!checklist) return undefined;
+        // Merge photoData back into formData.photoUris so the client can display photos
+        if (checklist.photoData) {
+          try {
+            const photoUris = JSON.parse(checklist.photoData as string);
+            checklist.formData = { ...(checklist.formData ?? {}), photoUris } as any;
+          } catch {}
+        }
+        return checklist;
       }),
 
     /** List all checklists (managers/admins see all, others see own) */
