@@ -73,7 +73,10 @@ export default function PreconListScreen() {
       setNewProjectName("");
       setShowNewForm(false);
       await refetch();
-      router.push(`/(tabs)/modules/precon/detail?id=${result.id}`);
+      router.push({
+        pathname: "/(tabs)/modules/precon/detail",
+        params: { id: String(result.id) },
+      });
     } catch (err: any) {
       Alert.alert("Error", err.message ?? "Could not create checklist.");
     } finally {
@@ -123,45 +126,46 @@ export default function PreconListScreen() {
   const renderItem = ({ item }: { item: Checklist }) => {
     const sc = statusColor(item.status, colors);
     const isGeneratingPdf = pdfLoadingId === item.id;
+    const openDetail = () => router.push({ pathname: "/(tabs)/modules/precon/detail", params: { id: String(item.id) } });
     return (
-      <TouchableOpacity
-        style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
-        onPress={() => router.push(`/(tabs)/modules/precon/detail?id=${item.id}`)}
-        activeOpacity={0.8}
-      >
-        {/* Status stripe */}
+      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        {/* Left status stripe */}
         <View style={[styles.statusStripe, { backgroundColor: sc }]} />
 
-        <View style={styles.cardBody}>
-          <View style={styles.cardTop}>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.cardTitle, { color: colors.foreground }]} numberOfLines={1}>
-                {item.projectName || "Untitled Project"}
-              </Text>
-              {item.projectAddress ? (
-                <Text style={[styles.cardAddress, { color: colors.muted }]} numberOfLines={1}>
-                  {item.projectAddress}
+        {/* Card content — tappable header area + action buttons below */}
+        <View style={{ flex: 1 }}>
+          {/* Tappable header: title, address, meta */}
+          <TouchableOpacity style={styles.cardBody} onPress={openDetail} activeOpacity={0.8}>
+            <View style={styles.cardTop}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.cardTitle, { color: colors.foreground }]} numberOfLines={1}>
+                  {item.projectName || "Untitled Project"}
                 </Text>
-              ) : null}
+                {item.projectAddress ? (
+                  <Text style={[styles.cardAddress, { color: colors.muted }]} numberOfLines={1}>
+                    {item.projectAddress}
+                  </Text>
+                ) : null}
+              </View>
+              <View style={[styles.statusPill, { backgroundColor: sc + "20" }]}>
+                <Text style={[styles.statusPillText, { color: sc }]}>{statusLabel(item.status)}</Text>
+              </View>
             </View>
-            <View style={[styles.statusPill, { backgroundColor: sc + "20" }]}>
-              <Text style={[styles.statusPillText, { color: sc }]}>{statusLabel(item.status)}</Text>
+            <View style={styles.cardMeta}>
+              <Text style={[styles.metaText, { color: colors.muted }]}>
+                👤 {item.supervisorName || "—"}
+              </Text>
+              <Text style={[styles.metaText, { color: colors.muted }]}>
+                📅 {item.meetingDate || new Date(item.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+              </Text>
             </View>
-          </View>
+          </TouchableOpacity>
 
-          <View style={styles.cardMeta}>
-            <Text style={[styles.metaText, { color: colors.muted }]}>
-              👤 {item.supervisorName || "—"}
-            </Text>
-            <Text style={[styles.metaText, { color: colors.muted }]}>
-              📅 {item.meetingDate || new Date(item.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-            </Text>
-          </View>
-
+          {/* Action buttons — NOT nested inside the tappable area */}
           <View style={styles.cardActions}>
             <TouchableOpacity
               style={[styles.actionBtn, { borderColor: colors.primary }]}
-              onPress={() => router.push(`/(tabs)/modules/precon/detail?id=${item.id}`)}
+              onPress={openDetail}
               activeOpacity={0.7}
             >
               <Text style={[styles.actionBtnText, { color: colors.primary }]}>Open</Text>
@@ -187,7 +191,7 @@ export default function PreconListScreen() {
             </TouchableOpacity>
           </View>
         </View>
-      </TouchableOpacity>
+      </View>
     );
   };
 

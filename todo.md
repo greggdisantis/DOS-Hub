@@ -574,3 +574,7 @@
 - [x] Build PDF export matching original DOS form layout
 - [x] Add module card to Tools screen
 - [x] Add navigation routes for list and detail/form screens
+
+## Bug Fixes (3/4/2026)
+
+- [x] BUG: Precon Checklist "Create & Open" button does nothing when pressed — fixed nested TouchableOpacity + navigation format
