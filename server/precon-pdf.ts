@@ -193,6 +193,7 @@ export async function generatePreconPdf(checklist: any): Promise<Buffer> {
     // ── Page 2 ──────────────────────────────────────────────────────────────
     doc.addPage();
     drawHeader(doc, projectName);
+    doc.y = 90 + 12;  // Ensure cursor is below header
     doc.moveDown(0.5);
 
     // Decorative Features
@@ -258,6 +259,7 @@ export async function generatePreconPdf(checklist: any): Promise<Buffer> {
     // ── Page 3 ──────────────────────────────────────────────────────────────
     doc.addPage();
     drawHeader(doc, projectName);
+    doc.y = 90 + 12;  // Ensure cursor is below header
     doc.moveDown(0.5);
 
     // Photos
@@ -279,6 +281,7 @@ export async function generatePreconPdf(checklist: any): Promise<Buffer> {
     // ── Page 4 ──────────────────────────────────────────────────────────────
     doc.addPage();
     drawHeader(doc, projectName);
+    doc.y = 90 + 12;  // Ensure cursor is below header
     doc.moveDown(0.5);
 
     // Work Items
@@ -312,6 +315,7 @@ export async function generatePreconPdf(checklist: any): Promise<Buffer> {
     // ── Signature Page ───────────────────────────────────────────────────────
     doc.addPage();
     drawHeader(doc, projectName);
+    doc.y = 90 + 12;  // Ensure cursor is below header
     doc.moveDown(1);
 
     doc.fontSize(10).fillColor(DARK).font("Helvetica")
