@@ -25,39 +25,6 @@ export function CheckboxRow({ label, checked, onToggle, indent }: CheckboxRowPro
   );
 }
 
-// Photo Checkbox Row with upload button
-interface PhotoCheckboxRowProps {
-  label: string;
-  checked: boolean;
-  onToggle: () => void;
-  onUploadPhoto: () => void;
-  hasPhoto: boolean;
-}
-export function PhotoCheckboxRow({ label, checked, onToggle, onUploadPhoto, hasPhoto }: PhotoCheckboxRowProps) {
-  const colors = useColors();
-  return (
-    <View style={styles.photoCheckboxRow}>
-      <TouchableOpacity
-        style={[styles.checkboxRow, { flex: 1 }]}
-        onPress={onToggle}
-        activeOpacity={0.7}
-      >
-        <View style={[styles.checkbox, { borderColor: checked ? colors.primary : colors.border, backgroundColor: checked ? colors.primary : "transparent" }]}>
-          {checked && <Text style={styles.checkmark}>✓</Text>}
-        </View>
-        <Text style={[styles.checkboxLabel, { color: colors.foreground, flex: 1 }]}>{label}</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.uploadPhotoBtn, { backgroundColor: hasPhoto ? colors.success : colors.primary }]}
-        onPress={onUploadPhoto}
-        activeOpacity={0.7}
-      >
-        <Text style={styles.uploadPhotoBtnText}>{hasPhoto ? "📷" : "📸"}</Text>
-      </TouchableOpacity>
-    </View>
-  );
-}
-
 // ─── Y/N Toggle ───────────────────────────────────────────────────────────────
 interface YNToggleProps {
   label: string;
@@ -245,9 +212,6 @@ const styles = StyleSheet.create({
   checkbox: { width: 22, height: 22, borderRadius: 4, borderWidth: 2, alignItems: "center", justifyContent: "center" },
   checkmark: { color: "#fff", fontSize: 13, fontWeight: "700" },
   checkboxLabel: { fontSize: 14, flex: 1, lineHeight: 20 },
-  photoCheckboxRow: { flexDirection: "row", alignItems: "center", paddingVertical: 10, paddingHorizontal: 16, gap: 8 },
-  uploadPhotoBtn: { width: 40, height: 40, borderRadius: 8, alignItems: "center", justifyContent: "center" },
-  uploadPhotoBtnText: { fontSize: 18 },
   ynRow: { flexDirection: "row", alignItems: "center", paddingVertical: 8, paddingHorizontal: 16, gap: 8 },
   ynLabel: { fontSize: 13, flex: 1 },
   ynButtons: { flexDirection: "row", gap: 6 },
