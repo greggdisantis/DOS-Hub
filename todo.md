@@ -654,3 +654,12 @@
 ## Precon PDF Blank Pages 2-3 (3/4/2026)
 
 - [x] BUG: Pages 2 and 3 are blank in Preconstruction PDF — fixed by explicitly setting doc.y = 90 + 12 after drawHeader() on each new page to ensure cursor is positioned below header
+
+## Photo Picker Implementation (3/4/2026)
+
+- [x] Implement expo-image-picker integration for photo upload — PhotoUploadSection component created
+- [x] Support multiple photos per section with array storage — photoUris Record<string, string[]>
+- [x] Add "Add More" button to upload additional photos — up to 5 photos per section
+- [x] Add delete button for each uploaded photo — X button on each thumbnail
+- [x] Display photo thumbnails in Photos tab —  80x80 grid with camera/gallery options
+- [ ] Embed photos in PDF under each section

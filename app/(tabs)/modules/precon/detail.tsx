@@ -9,7 +9,9 @@ import {
   Platform,
   ActivityIndicator,
   TextInput,
+  Image,
 } from "react-native";
+import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
@@ -27,6 +29,7 @@ import {
   AccessoryRow,
   WorkItemBlock,
 } from "./components";
+import { PhotoUploadSection } from "./photo-upload-section";
 
 const TABS = [
   { key: "info", label: "Info" },
@@ -107,6 +110,32 @@ export default function PreconDetailScreen() {
       });
     },
     [scheduleAutoSave],
+  );
+
+  const handlePhotoAdd = useCallback(
+    (photoKey: string, uri: string) => {
+      updateFormData((p) => ({
+        ...p,
+        photoUris: {
+          ...p.photoUris,
+          [photoKey]: [...(p.photoUris?.[photoKey] || []), uri],
+        },
+      }));
+    },
+    [updateFormData],
+  );
+
+  const handlePhotoDelete = useCallback(
+    (photoKey: string, index: number) => {
+      updateFormData((p) => ({
+        ...p,
+        photoUris: {
+          ...p.photoUris,
+          [photoKey]: (p.photoUris?.[photoKey] || []).filter((_: any, i: number) => i !== index),
+        },
+      }));
+    },
+    [updateFormData],
   );
 
   const handleGeneratePdf = async () => {
@@ -484,14 +513,21 @@ export default function PreconDetailScreen() {
                 { key: "priorDamage", label: "Any and all Photos of any Damage to the Property or Dwelling Prior to Starting Work" },
                 { key: "installationProhibitions", label: "Any Circumstance that will Prohibit the Installation of the Pergola" },
               ] as const
-            ).map(({ key, label }) => (
-              <CheckboxRow
-                key={key}
-                label={label}
-                checked={formData.photos[key]}
-                onToggle={() => updateFormData((p) => ({ ...p, photos: { ...p.photos, [key]: !p.photos[key] } }))}
-              />
-            ))}
+            ).map(({ key, label }) => {
+              const photoKey = `photos.${key}`;
+              return (
+                <PhotoUploadSection
+                  key={key}
+                  photoKey={photoKey}
+                  label={label}
+                  checked={formData.photos[key]}
+                  onToggle={() => updateFormData((p) => ({ ...p, photos: { ...p.photos, [key]: !p.photos[key] } }))}
+                  photos={formData.photoUris?.[photoKey] || []}
+                  onPhotoAdd={handlePhotoAdd}
+                  onPhotoDelete={handlePhotoDelete}
+                />
+              );
+            })}
           </ScrollView>
         );
 
