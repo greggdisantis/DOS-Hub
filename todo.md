@@ -605,3 +605,4 @@
 ## Preconstruction Dashboard Enhancements (3/4/2026)
 
 - [x] Add delete button to each Preconstruction Dashboard card with confirmation modal
+- [x] Add "New Checklist" button to Preconstruction Dashboard header

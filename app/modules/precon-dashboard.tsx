@@ -269,6 +269,18 @@ export function PreconDashboardContent() {
 
   return (
     <View style={{ flex: 1 }}>
+      {/* Header with New Checklist button */}
+      <View style={[styles.header, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
+        <Text style={[styles.headerTitle, { color: colors.foreground }]}>Preconstruction Checklists</Text>
+        <TouchableOpacity
+          style={[styles.newButton, { backgroundColor: colors.primary }]}
+          onPress={() => router.push("/(tabs)/modules/precon/detail?isNew=true")}
+          activeOpacity={0.7}
+        >
+          <Text style={[styles.newButtonText, { color: colors.background }]}>+ New</Text>
+        </TouchableOpacity>
+      </View>
+
       {/* Search */}
       <View style={[styles.searchBar, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <TextInput
@@ -397,6 +409,10 @@ export function PreconDashboardContent() {
 }
 
 const styles = StyleSheet.create({
+  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth },
+  headerTitle: { fontSize: 18, fontWeight: "700" },
+  newButton: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
+  newButtonText: { fontSize: 13, fontWeight: "600" },
   searchBar: { paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth },
   searchInput: { fontSize: 14 },
   filtersRow: { borderBottomWidth: StyleSheet.hairlineWidth },
@@ -419,7 +435,7 @@ const styles = StyleSheet.create({
   cardActions: { flexDirection: "row", gap: 8, marginTop: 4, paddingHorizontal: 12, paddingBottom: 10, flexWrap: "wrap" },
   actionBtn: { borderWidth: 1, borderRadius: 6, paddingHorizontal: 12, paddingVertical: 5, minWidth: 52, alignItems: "center" },
   actionBtnText: { fontSize: 12, fontWeight: "600" },
-  centered: { flex: 1, alignItems: "center", justifyContent: "center", gap: 10, padding: 32 },
+  centered: { flex: 1, alignItems: "center", justifyContent: "center", gap: 10, padding: 32, paddingTop: 60 },
   emptyIcon: { fontSize: 48 },
   emptyTitle: { fontSize: 18, fontWeight: "700" },
   emptyHint: { fontSize: 13, textAlign: "center" },
