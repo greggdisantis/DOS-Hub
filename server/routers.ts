@@ -878,6 +878,8 @@ export const appRouter = router({
           materialsLoadedAt: (checklist as any).materialsLoadedAt ?? null,
           materialsDeliveredByName: (checklist as any).materialsDeliveredByName ?? null,
           materialsDeliveredAt: (checklist as any).materialsDeliveredAt ?? null,
+          materialsLoadedPhotos: (checklist.materialsLoadedPhotos as string[] | null) ?? null,
+          materialsDeliveredPhotos: (checklist.materialsDeliveredPhotos as string[] | null) ?? null,
           attachments: checklist.attachments as any,
           auditTrail: checklist.auditTrail as any,
         });

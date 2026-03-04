@@ -10,6 +10,7 @@ import {
   Alert,
   Modal,
   Platform,
+  Linking,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
@@ -46,6 +47,9 @@ export default function ProjectMaterialDeliveryScreen() {
   // Status change modal state
   const [statusModalItem, setStatusModalItem] = useState<any | null>(null);
 
+  // PDF generation loading state (keyed by checklist id)
+  const [pdfLoadingId, setPdfLoadingId] = useState<number | null>(null);
+
   const { data: checklists, isLoading, refetch } = trpc.projectMaterial.list.useQuery(undefined, {
     refetchOnMount: true,
   });
@@ -56,6 +60,7 @@ export default function ProjectMaterialDeliveryScreen() {
   const archiveMutation = trpc.projectMaterial.archive.useMutation();
   const unarchiveMutation = trpc.projectMaterial.unarchive.useMutation();
   const updateStatusMutation = trpc.projectMaterial.revertStatus.useMutation();
+  const generatePdfMutation = trpc.projectMaterial.generatePdf.useMutation();
   const utils = trpc.useUtils();
 
   const onRefresh = useCallback(async () => {
@@ -152,6 +157,32 @@ export default function ProjectMaterialDeliveryScreen() {
     }
   };
 
+  // ── Save to PDF ────────────────────────────────────────────────────────────
+
+  const handleSavePdf = async (item: any) => {
+    if (pdfLoadingId !== null) return; // prevent double-tap
+    setPdfLoadingId(item.id);
+    try {
+      const result = await generatePdfMutation.mutateAsync({ id: item.id });
+      if (Platform.OS === "web") {
+        window.open(result.url, "_blank");
+      } else {
+        Alert.alert(
+          "PDF Ready",
+          `"${item.projectName}" checklist PDF has been generated.`,
+          [
+            { text: "Cancel", style: "cancel" },
+            { text: "Open PDF", onPress: () => Linking.openURL(result.url) },
+          ],
+        );
+      }
+    } catch (e: any) {
+      Alert.alert("PDF Error", e.message ?? "Could not generate PDF.");
+    } finally {
+      setPdfLoadingId(null);
+    }
+  };
+
   // ── Render ─────────────────────────────────────────────────────────────────
 
   const renderStatusBadge = (status: string, item?: any, tappable = false) => {
@@ -181,6 +212,7 @@ export default function ProjectMaterialDeliveryScreen() {
   const renderItem = ({ item }: { item: any }) => {
     const isArchived = !!item.archived;
     const isClosed = item.status === "closed";
+    const isPdfLoading = pdfLoadingId === item.id;
 
     return (
       <TouchableOpacity
@@ -210,12 +242,33 @@ export default function ProjectMaterialDeliveryScreen() {
           {new Date(item.createdAt).toLocaleDateString()}
         </Text>
 
-        {/* Archive / Unarchive row — managers/admins only */}
-        {isManagerOrAdmin && (
-          <View style={styles.cardActions}>
-            {isArchived ? (
+        {/* Card action row — PDF + Archive/Unarchive */}
+        <View style={styles.cardActions}>
+          {/* Save to PDF button — available to all users */}
+          <TouchableOpacity
+            onPress={(e) => {
+              e.stopPropagation?.();
+              handleSavePdf(item);
+            }}
+            style={[styles.actionBtn, { borderColor: colors.primary, backgroundColor: isPdfLoading ? colors.primary + "18" : "transparent" }]}
+            activeOpacity={0.7}
+            disabled={isPdfLoading}
+          >
+            {isPdfLoading ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : (
+              <Text style={[styles.actionBtnText, { color: colors.primary }]}>⬇ Save PDF</Text>
+            )}
+          </TouchableOpacity>
+
+          {/* Archive / Unarchive — managers/admins only */}
+          {isManagerOrAdmin && (
+            isArchived ? (
               <TouchableOpacity
-                onPress={() => handleUnarchive(item)}
+                onPress={(e) => {
+                  e.stopPropagation?.();
+                  handleUnarchive(item);
+                }}
                 style={[styles.actionBtn, { borderColor: colors.primary }]}
                 activeOpacity={0.7}
               >
@@ -223,15 +276,18 @@ export default function ProjectMaterialDeliveryScreen() {
               </TouchableOpacity>
             ) : isClosed ? (
               <TouchableOpacity
-                onPress={() => handleArchive(item)}
+                onPress={(e) => {
+                  e.stopPropagation?.();
+                  handleArchive(item);
+                }}
                 style={[styles.actionBtn, { borderColor: colors.muted }]}
                 activeOpacity={0.7}
               >
                 <Text style={[styles.actionBtnText, { color: colors.muted }]}>Archive</Text>
               </TouchableOpacity>
-            ) : null}
-          </View>
-        )}
+            ) : null
+          )}
+        </View>
       </TouchableOpacity>
     );
   };
@@ -491,12 +547,17 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     marginTop: 8,
     gap: 8,
+    flexWrap: "wrap",
   },
   actionBtn: {
     paddingHorizontal: 12,
     paddingVertical: 5,
     borderRadius: 8,
     borderWidth: 1,
+    minWidth: 80,
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 30,
   },
   actionBtnText: {
     fontSize: 12,

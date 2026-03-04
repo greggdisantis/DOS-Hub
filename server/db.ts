@@ -493,7 +493,7 @@ export async function archiveReceipt(id: number, archivedBy: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.update(receipts)
-    .set({ archived: true, archivedAt: new Date(), archivedBy })
+    .set({ archived: true, archivedAt: new Date(), archivedBy } as any)
     .where(eq(receipts.id, id));
 }
 
@@ -501,7 +501,7 @@ export async function unarchiveReceipt(id: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.update(receipts)
-    .set({ archived: false, archivedAt: null, archivedBy: null })
+    .set({ archived: false, archivedAt: null, archivedBy: null } as any)
     .where(eq(receipts.id, id));
 }
 

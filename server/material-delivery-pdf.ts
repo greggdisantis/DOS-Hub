@@ -10,9 +10,8 @@
  *   - Attached PO PDFs appended at the end
  */
 import PDFDocument from "pdfkit";
-import path from "path";
-// Resolve logo from project root (process.cwd() is always the project root when running via tsx)
-const DOS_LOGO_PATH = path.resolve(process.cwd(), "assets/images/dos-logo.jpg");
+import https from "https";
+import http from "http";
 
 const BRAND_BLUE = "#1E3A5F";
 const ACCENT = "#2563EB";
@@ -27,30 +26,45 @@ function fmtDate(d?: string | Date | null): string {
   return isNaN(dt.getTime()) ? String(d) : dt.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" });
 }
 
+/** Download a remote URL to a Buffer */
+function fetchBuffer(url: string): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const lib = url.startsWith("https") ? https : http;
+    lib.get(url, (res) => {
+      if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        return fetchBuffer(res.headers.location).then(resolve).catch(reject);
+      }
+      const chunks: Buffer[] = [];
+      res.on("data", (c: Buffer) => chunks.push(c));
+      res.on("end", () => resolve(Buffer.concat(chunks)));
+      res.on("error", reject);
+    }).on("error", reject);
+  });
+}
+
 function drawHeader(doc: PDFKit.PDFDocument, title: string) {
-  // Header background — taller to fit logo + two lines of text
+  // Header background
   const HEADER_H = 88;
   doc.rect(0, 0, doc.page.width, HEADER_H).fill(BRAND_BLUE);
 
-  // DOS logo (white background area on left side)
-  try {
-    // Logo is 2048×471 px — scale to fit height 64 px inside header
-    const logoH = 60;
-    const logoW = Math.round((2048 / 471) * logoH); // ≈ 261 px
-    // Draw a white pill behind the logo so it reads on the dark blue
-    doc.roundedRect(40, 14, logoW + 12, logoH + 4, 4).fill("#FFFFFF");
-    doc.image(DOS_LOGO_PATH, 46, 16, { height: logoH });
-  } catch {
-    // Fallback: just show text if logo fails to load
-    doc.fillColor("#FFFFFF").fontSize(22).font("Helvetica-Bold").text("DOS Hub", 50, 18);
-  }
+  // Left side: Company branding (text-based, no image dependency)
+  // "DOS" box
+  doc.roundedRect(40, 14, 52, 52, 4).fill("#4A5568");
+  doc.fillColor("#FFFFFF").fontSize(22).font("Helvetica-Bold").text("DOS", 44, 28, { width: 44, align: "center" });
 
-  // Right side: document title (project name) and subtitle
+  // Vertical divider
+  doc.moveTo(102, 18).lineTo(102, 74).strokeColor("#FFFFFF").lineWidth(1).stroke();
+
+  // Company name text
+  doc.fillColor("#FFFFFF").fontSize(14).font("Helvetica-Bold").text("Distinctive", 112, 20);
+  doc.fillColor("#FFFFFF").fontSize(14).font("Helvetica-Bold").text("Outdoor Structures", 112, 38);
+  doc.fillColor("#93C5FD").fontSize(7).font("Helvetica").text("BE UNIQUE. BE DISTINCTIVE", 112, 60);
+
+  // Right side: document title and project name
   const rightX = doc.page.width - 260;
   const rightW = 220;
   doc.fillColor("#FFFFFF").fontSize(10).font("Helvetica-Bold")
     .text("Material Delivery Checklist", rightX, 22, { width: rightW, align: "right" });
-  // Status / project name — wrap if long
   doc.fillColor("#93C5FD").fontSize(9).font("Helvetica")
     .text(title, rightX, 40, { width: rightW, align: "right", lineBreak: false, ellipsis: true });
 
@@ -100,11 +114,34 @@ export interface MaterialDeliveryPDFData {
   materialsLoadedAt?: Date | string | null;
   materialsDeliveredByName?: string | null;
   materialsDeliveredAt?: Date | string | null;
+  materialsLoadedPhotos?: string[] | null;
+  materialsDeliveredPhotos?: string[] | null;
   attachments?: Array<{ url: string; name: string; type: string; uploadedByName: string; uploadedAt: string }>;
   auditTrail?: Array<{ userName: string; action: string; timestamp: string }>;
 }
 
 export async function generateMaterialDeliveryPDF(data: MaterialDeliveryPDFData): Promise<Buffer> {
+  // Pre-download all photos so we can embed them synchronously in the PDF
+  const loadingPhotoBuffers: Buffer[] = [];
+  const deliveryPhotoBuffers: Buffer[] = [];
+
+  if (data.materialsLoadedPhotos?.length) {
+    for (const url of data.materialsLoadedPhotos) {
+      try {
+        const buf = await fetchBuffer(url);
+        loadingPhotoBuffers.push(buf);
+      } catch { /* skip failed downloads */ }
+    }
+  }
+  if (data.materialsDeliveredPhotos?.length) {
+    for (const url of data.materialsDeliveredPhotos) {
+      try {
+        const buf = await fetchBuffer(url);
+        deliveryPhotoBuffers.push(buf);
+      } catch { /* skip failed downloads */ }
+    }
+  }
+
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ margin: 50, size: "LETTER", autoFirstPage: true });
     const chunks: Buffer[] = [];
@@ -141,7 +178,6 @@ export async function generateMaterialDeliveryPDF(data: MaterialDeliveryPDFData)
       const loadedColor = data.materialsLoaded ? SUCCESS : "#DC2626";
       const deliveredColor = data.materialsDelivered ? SUCCESS : "#DC2626";
 
-      // Materials Loaded
       doc.fontSize(9).fillColor(MID_GRAY).font("Helvetica").text("Materials Loaded: ", { continued: true });
       doc.fillColor(loadedColor).font("Helvetica-Bold").text(data.materialsLoaded ? "YES ✓" : "NO",
         { continued: !!data.materialsLoadedByName });
@@ -151,7 +187,6 @@ export async function generateMaterialDeliveryPDF(data: MaterialDeliveryPDFData)
           .text(`  — by ${data.materialsLoadedByName}${loadedAt ? " on " + loadedAt : ""}`);
       }
 
-      // Materials Delivered
       doc.fontSize(9).fillColor(MID_GRAY).font("Helvetica").text("Materials Delivered: ", { continued: true });
       doc.fillColor(deliveredColor).font("Helvetica-Bold").text(data.materialsDelivered ? "YES ✓" : "NO",
         { continued: !!data.materialsDeliveredByName });
@@ -222,7 +257,6 @@ export async function generateMaterialDeliveryPDF(data: MaterialDeliveryPDFData)
       sectionHeader(doc, "Project Specific Items");
       doc.moveDown(0.4);
 
-      // Motorized screens
       if (ps.motorizedScreens?.items?.length > 0) {
         doc.fontSize(10).font("Helvetica-Bold").fillColor(ACCENT).text("Motorized Screens").moveDown(0.2);
         for (const item of ps.motorizedScreens.items) {
@@ -230,7 +264,6 @@ export async function generateMaterialDeliveryPDF(data: MaterialDeliveryPDFData)
         }
       }
 
-      // Fans
       if (ps.fans?.hasFans) {
         doc.fontSize(10).font("Helvetica-Bold").fillColor(ACCENT).text("Fans").moveDown(0.2);
         doc.fillColor(DARK).font("Helvetica");
@@ -241,7 +274,6 @@ export async function generateMaterialDeliveryPDF(data: MaterialDeliveryPDFData)
         }
       }
 
-      // Heaters
       if (ps.heaters?.hasHeaters) {
         doc.fontSize(10).font("Helvetica-Bold").fillColor(ACCENT).text("Heaters").moveDown(0.2);
         doc.fillColor(DARK).font("Helvetica");
@@ -252,13 +284,87 @@ export async function generateMaterialDeliveryPDF(data: MaterialDeliveryPDFData)
         }
       }
 
-      // Custom items
       if (ps.customItems?.items?.length > 0) {
         doc.fontSize(10).font("Helvetica-Bold").fillColor(ACCENT).text("Additional Items").moveDown(0.2);
         doc.fillColor(DARK).font("Helvetica");
         for (const item of ps.customItems.items) {
           itemRow(doc, item.name || "Item", item.qty, item.notes);
         }
+      }
+    }
+
+    // ── Loading Photos ────────────────────────────────────────────────────────
+    if (loadingPhotoBuffers.length > 0) {
+      doc.addPage();
+      drawHeader(doc, data.projectName);
+      doc.y = 90 + 14;
+      sectionHeader(doc, "Loading Photos");
+      doc.moveDown(0.6);
+
+      const PHOTO_W = (doc.page.width - 140) / 2; // 2 columns
+      const PHOTO_H = 160;
+      let col = 0;
+      let rowY = doc.y;
+
+      for (const buf of loadingPhotoBuffers) {
+        try {
+          const x = 50 + col * (PHOTO_W + 20);
+          // Check if we need a new page
+          if (rowY + PHOTO_H + 20 > doc.page.height - 60) {
+            doc.addPage();
+            drawHeader(doc, data.projectName);
+            doc.y = 90 + 14;
+            rowY = doc.y;
+            col = 0;
+          }
+          doc.image(buf, x, rowY, { width: PHOTO_W, height: PHOTO_H, fit: [PHOTO_W, PHOTO_H] });
+          col++;
+          if (col >= 2) {
+            col = 0;
+            rowY += PHOTO_H + 12;
+            doc.y = rowY;
+          }
+        } catch { /* skip unreadable images */ }
+      }
+      if (col > 0) {
+        doc.y = rowY + PHOTO_H + 12;
+      }
+    }
+
+    // ── Delivery Photos ───────────────────────────────────────────────────────
+    if (deliveryPhotoBuffers.length > 0) {
+      doc.addPage();
+      drawHeader(doc, data.projectName);
+      doc.y = 90 + 14;
+      sectionHeader(doc, "Delivery Photos");
+      doc.moveDown(0.6);
+
+      const PHOTO_W = (doc.page.width - 140) / 2;
+      const PHOTO_H = 160;
+      let col = 0;
+      let rowY = doc.y;
+
+      for (const buf of deliveryPhotoBuffers) {
+        try {
+          const x = 50 + col * (PHOTO_W + 20);
+          if (rowY + PHOTO_H + 20 > doc.page.height - 60) {
+            doc.addPage();
+            drawHeader(doc, data.projectName);
+            doc.y = 90 + 14;
+            rowY = doc.y;
+            col = 0;
+          }
+          doc.image(buf, x, rowY, { width: PHOTO_W, height: PHOTO_H, fit: [PHOTO_W, PHOTO_H] });
+          col++;
+          if (col >= 2) {
+            col = 0;
+            rowY += PHOTO_H + 12;
+            doc.y = rowY;
+          }
+        } catch { /* skip unreadable images */ }
+      }
+      if (col > 0) {
+        doc.y = rowY + PHOTO_H + 12;
       }
     }
 
@@ -274,15 +380,17 @@ export async function generateMaterialDeliveryPDF(data: MaterialDeliveryPDFData)
         "The following purchase orders are attached to this checklist. Print and include with delivery.",
       ).moveDown(0.6);
       for (const po of pdfs) {
-        doc.rect(50, doc.y, doc.page.width - 100, 36).fill(LIGHT_GRAY);
-        const y = doc.y - 36;
-        doc.fillColor(DARK).fontSize(10).font("Helvetica-Bold").text(po.name, 60, y + 8, { width: 340 });
-        doc.fillColor(MID_GRAY).fontSize(8).font("Helvetica").text(
-          `Uploaded by ${po.uploadedByName} on ${fmtDate(po.uploadedAt)}`,
-          60, y + 22, { width: 340 },
-        );
-        doc.fillColor(ACCENT).fontSize(8).text(po.url, 60, y + 22, { width: 340, align: "right" });
-        doc.fillColor(DARK).moveDown(0.2);
+        // Capture y BEFORE drawing the rect
+        const rowY = doc.y;
+        doc.rect(50, rowY, doc.page.width - 100, 40).fill(LIGHT_GRAY);
+        doc.fillColor(DARK).fontSize(10).font("Helvetica-Bold")
+          .text(po.name, 60, rowY + 8, { width: doc.page.width - 140 });
+        doc.fillColor(MID_GRAY).fontSize(8).font("Helvetica")
+          .text(`Uploaded by ${po.uploadedByName} on ${fmtDate(po.uploadedAt)}`, 60, rowY + 24, { width: 260 });
+        doc.fillColor(ACCENT).fontSize(8)
+          .text(po.url, 60, rowY + 24, { width: doc.page.width - 140, align: "right" });
+        doc.y = rowY + 44;
+        doc.fillColor(DARK).moveDown(0.3);
       }
     }
 

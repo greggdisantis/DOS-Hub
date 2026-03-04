@@ -542,3 +542,10 @@
 
 - [x] Fix DOS logo not loading in PDF (wrong file path in server — now uses process.cwd())
 - [x] Fix photo/PDF upload failing on mobile (EXPO_PUBLIC_API_URL → EXPO_PUBLIC_API_BASE_URL)
+
+## PDF Fixes Round 2 (Reported 3/3/2026)
+
+- [x] Replace blank logo box in PDF header with "Distinctive Outdoor Structures" text
+- [x] Fix PO attachment layout overlap in PDF (text overlapping due to rect/y positioning bug)
+- [x] Include loading photos and delivery photos in the generated PDF
+- [x] Add Save PDF button directly on each checklist card in the list screen
