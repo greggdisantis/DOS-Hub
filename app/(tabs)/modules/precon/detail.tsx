@@ -35,7 +35,6 @@ const TABS = [
   { key: "pergola", label: "Pergola" },
   { key: "expectations", label: "Expectations" },
   { key: "photos", label: "Photos" },
-  { key: "materials", label: "Materials" },
   { key: "work", label: "Work Items" },
   { key: "notes", label: "Notes" },
   { key: "signatures", label: "Signatures" },
@@ -493,92 +492,6 @@ export default function PreconDetailScreen() {
                 onToggle={() => updateFormData((p) => ({ ...p, photos: { ...p.photos, [key]: !p.photos[key] } }))}
               />
             ))}
-          </ScrollView>
-        );
-
-      case "materials":
-        return (
-          <ScrollView contentContainerStyle={styles.tabContent}>
-            <SectionHeader title="List of Items Needed for This Project" />
-            {(
-              [
-                { key: "ledgerBoard", label: '5/4" x 12" Ledger Board (or similar)' },
-                { key: "jChannel", label: '"J" Channel' },
-                { key: "flashing", label: "Flashing" },
-                { key: "deckBlocking", label: "Deck Blocking" },
-              ] as const
-            ).map(({ key, label }) => (
-              <YNToggle
-                key={key}
-                label={label}
-                value={formData.materials[key] === true ? true : formData.materials[key] === false ? false : null}
-                onChange={(v) => updateFormData((p) => ({ ...p, materials: { ...p.materials, [key]: v } }))}
-              />
-            ))}
-            <View style={styles.downspoutRow}>
-              <View style={{ flex: 1 }}>
-                <YNToggle
-                  label='3" Downspout Pipe'
-                  value={formData.materials.downspoutPipe === true ? true : formData.materials.downspoutPipe === false ? false : null}
-                  onChange={(v) => updateFormData((p) => ({ ...p, materials: { ...p.materials, downspoutPipe: v } }))}
-                />
-              </View>
-              <TextInput
-                style={[styles.qtyInput, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.surface }]}
-                value={formData.materials.downspoutQty}
-                onChangeText={(v) => updateFormData((p) => ({ ...p, materials: { ...p.materials, downspoutQty: v } }))}
-                placeholder="Qty"
-                placeholderTextColor={colors.muted}
-                keyboardType="numeric"
-                returnKeyType="done"
-              />
-            </View>
-
-            <SectionHeader title="Wire" />
-            {(
-              [
-                { key: "wire14_2", label: "14/2" },
-                { key: "wire12_2", label: "12/2" },
-                { key: "wireMotor", label: "Motor" },
-                { key: "wire10_3", label: "10/3" },
-              ] as const
-            ).map(({ key, label }) => (
-              <View key={key} style={styles.wireRow}>
-                <View style={{ flex: 1 }}>
-                  <YNToggle
-                    label={label}
-                    value={formData.materials[key].checked === true ? true : formData.materials[key].checked === false ? false : null}
-                    onChange={(v) =>
-                      updateFormData((p) => ({
-                        ...p,
-                        materials: { ...p.materials, [key]: { ...p.materials[key], checked: v } },
-                      }))
-                    }
-                  />
-                </View>
-                <TextInput
-                  style={[styles.qtyInput, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.surface }]}
-                  value={formData.materials[key].qty}
-                  onChangeText={(v) =>
-                    updateFormData((p) => ({
-                      ...p,
-                      materials: { ...p.materials, [key]: { ...p.materials[key], qty: v } },
-                    }))
-                  }
-                  placeholder="Qty"
-                  placeholderTextColor={colors.muted}
-                  keyboardType="numeric"
-                  returnKeyType="done"
-                />
-              </View>
-            ))}
-            <Field
-              label="Other Items"
-              value={formData.materials.otherItems}
-              onChangeText={(v) => updateFormData((p) => ({ ...p, materials: { ...p.materials, otherItems: v } }))}
-              placeholder="List any other required materials..."
-              multiline
-            />
           </ScrollView>
         );
 

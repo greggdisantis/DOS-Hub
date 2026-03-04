@@ -614,3 +614,8 @@
 ## Preconstruction PDF Formatting (3/4/2026)
 
 - [x] BUG: PDF formatting issues — fixed checkboxes, table alignment, date formatting, and spacing
+
+## Materials Tab Removal (3/4/2026)
+
+- [x] Remove Materials tab from Preconstruction Checklist form
+- [x] Remove Materials section from Preconstruction PDF generation

@@ -271,40 +271,6 @@ export async function generatePreconPdf(checklist: any): Promise<Buffer> {
     }
     doc.moveDown(0.4);
 
-    // Materials Needed
-    sectionHeader(doc, "List of Items Needed for This Project");
-    const mat = fd.materials;
-    if (mat) {
-      ynRow(doc, '5/4" x 12" Ledger Board (or similar)', mat.ledgerBoard);
-      const dsRow = `3" Downspout Pipe${mat.downspoutQty ? "  Qty: " + mat.downspoutQty : ""}`;
-      ynRow(doc, dsRow, mat.downspoutPipe);
-      ynRow(doc, '"J" Channel', mat.jChannel);
-      ynRow(doc, "Flashing", mat.flashing);
-      ynRow(doc, "Deck Blocking", mat.deckBlocking);
-      doc.moveDown(0.3);
-      doc.fontSize(9).fillColor(MID_GRAY).text("Wire:", 58, doc.y);
-      const wireItems = [
-        ["14/2", mat.wire14_2],
-        ["12/2", mat.wire12_2],
-        ["Motor", mat.wireMotor],
-        ["10/3", mat.wire10_3],
-      ] as [string, { checked: boolean; qty: string }][];
-      for (let i = 0; i < wireItems.length; i += 2) {
-        const y = doc.y;
-        const [l1, w1] = wireItems[i];
-        const [l2, w2] = wireItems[i + 1] ?? ["", null];
-        const b1 = w1.checked ? "[Y]" : "[N]";
-        doc.fontSize(9).fillColor(w1.checked ? SUCCESS : DARK).text(b1, 58, y, { width: 28 });
-        doc.fillColor(DARK).text(`${l1}  Qty: ${w1.qty || "—"}`, 90, y, { width: 140 });
-        if (l2 && w2) {
-          const b2 = w2.checked ? "[Y]" : "[N]";
-          doc.fillColor(w2.checked ? SUCCESS : DARK).text(b2, 250, y, { width: 28 });
-          doc.fillColor(DARK).text(`${l2}  Qty: ${w2.qty || "—"}`, 282, y, { width: 140 });
-        }
-        doc.moveDown(0.2);
-      }
-      if (mat.otherItems) labelValue(doc, "Other Items", mat.otherItems);
-    }
     initialsLine(doc);
 
     // ── Page 4 ──────────────────────────────────────────────────────────────
