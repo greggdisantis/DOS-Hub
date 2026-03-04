@@ -13,6 +13,16 @@ const SUCCESS = "#16A34A";
 
 function fmtDate(d?: string | null): string {
   if (!d) return "—";
+  // Parse and format date as MM/DD/YYYY
+  if (d.length === 4 && /^\d{4}$/.test(d)) {
+    // If it's just 4 digits (like "1212"), assume MMDD format
+    return `${d.substring(0, 2)}/${d.substring(2, 4)}`;
+  }
+  if (d.includes("-")) {
+    // If it's ISO format (YYYY-MM-DD), convert to MM/DD/YYYY
+    const [year, month, day] = d.split("-");
+    return `${month}/${day}/${year}`;
+  }
   return d;
 }
 
@@ -38,19 +48,19 @@ function sectionHeader(doc: PDFKit.PDFDocument, title: string) {
 
 function checkRow(doc: PDFKit.PDFDocument, label: string, checked: boolean) {
   const y = doc.y;
-  const box = checked ? "☑" : "☐";
-  doc.fontSize(10).fillColor(checked ? SUCCESS : DARK).text(box, 58, y, { width: 16 });
-  doc.fillColor(DARK).text(label, 78, y, { width: doc.page.width - 140 });
-  doc.moveDown(0.1);
+  const box = checked ? "&" : "&";
+  doc.fontSize(10).fillColor(checked ? SUCCESS : DARK).font("Helvetica-Bold").text(box, 58, y, { width: 16 });
+  doc.fillColor(DARK).font("Helvetica").text(label, 78, y, { width: doc.page.width - 140 });
+  doc.moveDown(0.15);
 }
 
 function ynRow(doc: PDFKit.PDFDocument, label: string, value: boolean | null | undefined) {
   const y = doc.y;
   const yn = value === true ? "Y" : value === false ? "N" : "—";
   const color = value === true ? SUCCESS : value === false ? "#EF4444" : MID_GRAY;
-  doc.fontSize(10).fillColor(color).font("Helvetica-Bold").text(`[${yn}]`, 58, y, { width: 28 });
+  doc.fontSize(9).fillColor(color).font("Helvetica-Bold").text(`[${yn}]`, 58, y, { width: 28 });
   doc.fillColor(DARK).font("Helvetica").text(label, 90, y, { width: doc.page.width - 150 });
-  doc.moveDown(0.1);
+  doc.moveDown(0.15);
 }
 
 function labelValue(doc: PDFKit.PDFDocument, label: string, value: string | null | undefined) {
@@ -65,15 +75,15 @@ function accessoryRow(
   item: { checked: boolean; qty: string; location: string; switchLocation?: string },
 ) {
   const y = doc.y;
-  const box = item.checked ? "☑" : "☐";
-  doc.fontSize(10).fillColor(item.checked ? SUCCESS : DARK).text(box, 58, y, { width: 16 });
-  doc.fillColor(DARK).font("Helvetica").text(label, 78, y, { width: 160 });
-  doc.fillColor(MID_GRAY).font("Helvetica").fontSize(9).text(`Qty: ${item.qty || "—"}`, 250, y, { width: 60 });
-  doc.text(`Loc: ${item.location || "—"}`, 320, y, { width: 150 });
+  const box = item.checked ? "&" : "&";
+  doc.fontSize(10).fillColor(item.checked ? SUCCESS : DARK).font("Helvetica-Bold").text(box, 58, y, { width: 14 });
+  doc.fillColor(DARK).font("Helvetica").fontSize(10).text(label, 76, y, { width: 140 });
+  doc.fillColor(MID_GRAY).font("Helvetica").fontSize(8).text(`Qty: ${item.qty || "—"}`, 230, y, { width: 50 });
+  doc.text(`Loc: ${item.location || "—"}`, 290, y, { width: 110 });
   if (item.switchLocation !== undefined) {
-    doc.text(`Switch: ${item.switchLocation || "—"}`, 480, y, { width: 80 });
+    doc.text(`Switch: ${item.switchLocation || "—"}`, 410, y, { width: 80 });
   }
-  doc.fillColor(DARK).fontSize(10).moveDown(0.15);
+  doc.fillColor(DARK).fontSize(10).moveDown(0.18);
 }
 
 function workItemBlock(
@@ -141,7 +151,7 @@ export async function generatePreconPdf(checklist: any): Promise<Buffer> {
     labelValue(doc, "Project Name", projectName);
     labelValue(doc, "Address", projectAddress);
     labelValue(doc, "Project Supervisor", supervisor);
-    labelValue(doc, "Meeting Date", meetingDate);
+    labelValue(doc, "Meeting Date", fmtDate(meetingDate));
     doc.moveDown(0.4);
 
     // General Checklist
@@ -202,15 +212,15 @@ export async function generatePreconPdf(checklist: any): Promise<Buffer> {
         const y = doc.y;
         const [l1, v1] = features[i];
         const [l2, v2] = features[i + 1] ?? ["", null];
-        const b1 = v1 ? "☑" : "☐";
-        const b2 = v2 === null ? "" : v2 ? "☑" : "☐";
-        doc.fontSize(10).fillColor(v1 ? SUCCESS : DARK).text(b1, 58, y, { width: 16 });
-        doc.fillColor(DARK).font("Helvetica").text(l1, 78, y, { width: 180 });
+        const b1 = v1 ? "&" : "&";
+        const b2 = v2 === null ? "" : v2 ? "&" : "&";
+        doc.fontSize(10).fillColor(v1 ? SUCCESS : DARK).font("Helvetica-Bold").text(b1, 58, y, { width: 14 });
+        doc.fillColor(DARK).font("Helvetica").fontSize(10).text(l1, 76, y, { width: 170 });
         if (l2) {
-          doc.fillColor(v2 ? SUCCESS : DARK).text(b2, 280, y, { width: 16 });
-          doc.fillColor(DARK).text(l2, 300, y, { width: 180 });
+          doc.fillColor(v2 ? SUCCESS : DARK).font("Helvetica-Bold").text(b2, 270, y, { width: 14 });
+          doc.fillColor(DARK).font("Helvetica").fontSize(10).text(l2, 288, y, { width: 170 });
         }
-        doc.moveDown(0.2);
+        doc.moveDown(0.22);
       }
       if (dec.other) labelValue(doc, "Other", dec.other);
     }

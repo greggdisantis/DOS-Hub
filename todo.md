@@ -606,3 +606,11 @@
 
 - [x] Add delete button to each Preconstruction Dashboard card with confirmation modal
 - [x] Add "New Checklist" button to Preconstruction Dashboard header
+
+## Preconstruction Save Bug (3/4/2026)
+
+- [x] BUG: Preconstruction checklists are not saving to the database — resolved (auto-save with 1.2s debounce working correctly)
+
+## Preconstruction PDF Formatting (3/4/2026)
+
+- [x] BUG: PDF formatting issues — fixed checkboxes, table alignment, date formatting, and spacing
