@@ -790,6 +790,42 @@ export async function deleteProjectMaterialChecklist(id: number): Promise<void> 
   await db.delete(projectMaterialChecklists).where(eq(projectMaterialChecklists.id, id));
 }
 
+/** Archive a project material checklist */
+export async function archiveProjectMaterialChecklist(
+  id: number,
+  actor: { userName: string },
+): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error('Database not available');
+  const current = await getProjectMaterialChecklist(id);
+  const existingAudit: any[] = current?.auditTrail ?? [];
+  const newAudit = [
+    ...existingAudit,
+    { userId: 0, userName: actor.userName, action: 'Archived checklist', timestamp: new Date().toISOString() },
+  ];
+  await db.update(projectMaterialChecklists)
+    .set({ archived: true, archivedAt: new Date(), archivedByName: actor.userName, auditTrail: newAudit } as any)
+    .where(eq(projectMaterialChecklists.id, id));
+}
+
+/** Unarchive a project material checklist */
+export async function unarchiveProjectMaterialChecklist(
+  id: number,
+  actor: { userName: string },
+): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error('Database not available');
+  const current = await getProjectMaterialChecklist(id);
+  const existingAudit: any[] = current?.auditTrail ?? [];
+  const newAudit = [
+    ...existingAudit,
+    { userId: 0, userName: actor.userName, action: 'Unarchived checklist', timestamp: new Date().toISOString() },
+  ];
+  await db.update(projectMaterialChecklists)
+    .set({ archived: false, archivedAt: null, archivedByName: null, auditTrail: newAudit } as any)
+    .where(eq(projectMaterialChecklists.id, id));
+}
+
 // ─── PUSH NOTIFICATIONS ──────────────────────────────────────────────────────
 
 /** Save or update the Expo push token for a user */

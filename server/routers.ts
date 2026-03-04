@@ -828,6 +828,30 @@ export const appRouter = router({
         return { success: true };
       }),
 
+    /** Archive a checklist (manager/admin only) */
+    archive: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== 'admin' && ctx.user.role !== 'manager') {
+          throw new Error('Unauthorized: manager or admin role required');
+        }
+        const userName = [ctx.user.firstName, ctx.user.lastName].filter(Boolean).join(' ') || ctx.user.name || ctx.user.email || 'Unknown';
+        await db.archiveProjectMaterialChecklist(input.id, { userName });
+        return { success: true };
+      }),
+
+    /** Unarchive a checklist (manager/admin only) */
+    unarchive: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== 'admin' && ctx.user.role !== 'manager') {
+          throw new Error('Unauthorized: manager or admin role required');
+        }
+        const userName = [ctx.user.firstName, ctx.user.lastName].filter(Boolean).join(' ') || ctx.user.name || ctx.user.email || 'Unknown';
+        await db.unarchiveProjectMaterialChecklist(input.id, { userName });
+        return { success: true };
+      }),
+
     /** Generate a PDF for a material delivery checklist */
     generatePdf: protectedProcedure
       .input(z.object({ id: z.number() }))

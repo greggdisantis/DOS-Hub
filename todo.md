@@ -521,8 +521,14 @@
 
 ## Material Delivery Archive Feature (Reported 3/3/2026)
 
-- [ ] Add archived boolean + archivedAt + archivedByName fields to project_material_checklists DB table
-- [ ] Add archive/unarchive endpoints to server router
-- [ ] Show Archive button on closed checklist cards in the list screen (managers/admins only)
-- [ ] Add Archived tab/filter to the list screen
-- [ ] Show Unarchive button on archived checklist cards
+- [x] Add archived boolean + archivedAt + archivedByName fields to project_material_checklists DB table
+- [x] Add archive/unarchive endpoints to server router
+- [x] Show Archive button on closed checklist cards in the list screen (managers/admins only)
+- [x] Add Archived tab/filter to the list screen
+- [x] Show Unarchive button on archived checklist cards
+
+## Material Delivery List Screen Improvements (Reported 3/3/2026)
+
+- [x] Bolder/colored status badges on checklist cards (solid fill instead of outline)
+- [x] Quick status change from list screen (tap status badge, managers/admins only)
+- [x] Archive button on closed cards (managers/admins only), Archived tab, Unarchive button

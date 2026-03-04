@@ -252,6 +252,12 @@ export const projectMaterialChecklists = mysqlTable("project_material_checklists
   materialsDeliveredByName: varchar("materialsDeliveredByName", { length: 255 }),
   /** Timestamp when Materials Delivered was checked off */
   materialsDeliveredAt: timestamp("materialsDeliveredAt"),
+  /** Whether this checklist has been archived (managers/admins only) */
+  archived: boolean("archived").default(false).notNull(),
+  /** When the checklist was archived */
+  archivedAt: timestamp("archivedAt"),
+  /** Name of the user who archived the checklist */
+  archivedByName: varchar("archivedByName", { length: 255 }),
   companyId: int("companyId"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
