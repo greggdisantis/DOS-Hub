@@ -390,6 +390,26 @@ export default function TimeOffAdminScreen() {
 
   const utils = trpc.useUtils();
 
+  const deleteRequest = trpc.timeOff.deleteRequest.useMutation({
+    onSuccess: () => utils.timeOff.getAllRequests.invalidate(),
+    onError: (err) => Alert.alert("Error", err.message),
+  });
+
+  const handleDeleteRequest = useCallback((req: any) => {
+    Alert.alert(
+      "Delete Request",
+      `Delete ${req.userName}'s ${req.requestType} request? This cannot be undone.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => deleteRequest.mutate({ id: req.id }),
+        },
+      ]
+    );
+  }, [deleteRequest]);
+
   const { data: policies = [], isLoading: policiesLoading } = trpc.timeOff.getAllPolicies.useQuery();
   const { data: allRequests = [], isLoading: requestsLoading } = trpc.timeOff.getAllRequests.useQuery(
     selectedUser
@@ -533,8 +553,17 @@ export default function TimeOffAdminScreen() {
                   >
                     <View style={styles.requestCardHeader}>
                       <Text style={[styles.requestEmployee, { color: colors.foreground }]}>{req.userName}</Text>
-                      <View style={[styles.statusBadge, { backgroundColor: statusColor + "20" }]}>
-                        <Text style={[styles.statusText, { color: statusColor }]}>{req.status.toUpperCase()}</Text>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                        <View style={[styles.statusBadge, { backgroundColor: statusColor + "20" }]}>
+                          <Text style={[styles.statusText, { color: statusColor }]}>{req.status.toUpperCase()}</Text>
+                        </View>
+                        <TouchableOpacity
+                          onPress={(e) => { e.stopPropagation?.(); handleDeleteRequest(req); }}
+                          style={{ padding: 4 }}
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        >
+                          <Text style={{ color: "#EF4444", fontSize: 16 }}>🗑</Text>
+                        </TouchableOpacity>
                       </View>
                     </View>
                     <View style={styles.requestCardRow}>

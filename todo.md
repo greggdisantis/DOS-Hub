@@ -729,3 +729,8 @@
 - [x] Add "AquaClean" to job role dropdown in admin-users.tsx (user management)
 - [x] Add "AquaClean" to any other role picker/selector in the app
 - [x] Move "Time Off" module card from Utilities to Administration section on home screen and Tools screen
+
+## Time Off Admin: Delete Request (3/5/2026)
+- [x] Add deleteRequest tRPC endpoint (admin/manager only)
+- [x] Add delete button (trash icon) to each request card in Time Off Admin dashboard
+- [x] Confirm before delete with alert dialog
