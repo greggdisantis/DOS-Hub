@@ -913,7 +913,8 @@ export const appRouter = router({
         });
         const safeName = (report.clientName ?? 'CMR').replace(/[^a-zA-Z0-9_-]/g, '_');
         const dateStr = new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }).replace(/\//g, '-');
-        const fileKey = `cmr/pdf/${safeName}_${dateStr}_${report.id}.pdf`;
+        const ts = Date.now();
+        const fileKey = `cmr/pdf/${safeName}_${dateStr}_${report.id}_${ts}.pdf`;
         const { url } = await storagePut(fileKey, pdfBuffer, 'application/pdf');
         const fileName = `DOS_Hub_CMR_${safeName}_${dateStr}.pdf`;
         return { url, fileName };
