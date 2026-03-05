@@ -809,3 +809,6 @@
 
 ## BUG: My Time Off shows soft-deleted requests (3/5/2026)
 - [x] Fix getUserRequests DB function to exclude soft-deleted records (deletedAt IS NULL)
+
+## BUG: PTO balance "Used" still counts soft-deleted requests (3/5/2026)
+- [x] Fix getUsedPTODays DB function to exclude soft-deleted records (deletedAt IS NULL)

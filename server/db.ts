@@ -1268,6 +1268,7 @@ export async function getUsedPTODays(userId: number, periodYear?: string): Promi
   const conditions: any[] = [
     eq(timeOffRequests.userId, userId),
     eq(timeOffRequests.status, "approved"),
+    isNull(timeOffRequests.deletedAt),
   ];
   if (periodYear) conditions.push(eq(timeOffRequests.periodYear, periodYear));
   const approved = await db.select().from(timeOffRequests).where(and(...conditions));
