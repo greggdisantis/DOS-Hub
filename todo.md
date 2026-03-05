@@ -821,3 +821,6 @@
 - [x] Wire "Open" button on CMR report cards to navigate to a full CMR detail/edit screen
 - [x] Build CMR detail screen showing all report fields (customer, products, pricing, notes, status, etc.)
 - [ ] Allow editing key fields from the detail screen (status, PC%, notes, est. value) — deferred, view-only for now
+
+## BUG: CMR Detail Modal PDF export produces blank PDF (3/5/2026)
+- [x] Fix exportMeetingReportPDF called from CMR detail modal to generate a populated PDF (not blank)

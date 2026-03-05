@@ -98,21 +98,27 @@ async function exportWebPDFFromElement(el: HTMLElement, filename: string): Promi
 async function exportWebPDFFallback(html: string, filename: string): Promise<void> {
   const html2pdf = (await import('html2pdf.js')).default;
 
-  // Create a hidden container to render the HTML
+  // Use opacity:0 + pointer-events:none so html2canvas CAN capture it
+  // (visibility:hidden / display:none cause blank output)
   const container = document.createElement('div');
-  container.style.position = 'fixed';
-  container.style.left = '-9999px';
+  container.style.position = 'absolute';
+  container.style.left = '0';
   container.style.top = '0';
   container.style.width = '800px';
+  container.style.minHeight = '1000px';
   container.style.background = '#ffffff';
-  container.style.visibility = 'hidden';
+  container.style.opacity = '0.01'; // near-invisible but still rendered by browser
+  container.style.pointerEvents = 'none';
+  container.style.zIndex = '9999';
+  container.style.overflow = 'visible';
   container.innerHTML = html;
   document.body.appendChild(container);
 
   try {
-    // Wait for DOM to render before capturing
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
+    // Give browser two full paint cycles to lay out and render the content
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    await new Promise(resolve => setTimeout(resolve, 400));
+
     await (html2pdf() as any).set({
       margin: [10, 10, 10, 10],
       filename,
@@ -123,6 +129,7 @@ async function exportWebPDFFallback(html: string, filename: string): Promise<voi
         backgroundColor: '#ffffff',
         logging: false,
         allowTaint: true,
+        removeContainer: false,
       },
       jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' as const },
       pagebreak: { mode: ['css', 'legacy'] },
