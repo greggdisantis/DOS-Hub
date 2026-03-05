@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   StyleSheet,
   Platform,
+  Animated,
 } from "react-native";
 import { Stack } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
@@ -581,41 +582,137 @@ function EmployeeRow({
   );
 }
 
-// ─── Request Card (self-contained with its own delete mutation) ──────────────
+// ─── Request Card (self-contained with its own delete mutation + undo toast) ──
+
+const UNDO_SECONDS = 30;
 
 function RequestCard({
   req,
   colors,
   onReview,
   onDeleted,
+  onStatusChanged,
 }: {
   req: any;
   colors: ReturnType<typeof useColors>;
   onReview: (req: any) => void;
   onDeleted: () => void;
+  onStatusChanged: () => void;
 }) {
   const typeColor = REQUEST_TYPE_COLORS[req.requestType] || "#3B82F6";
   const statusColor = STATUS_COLORS[req.status] || "#9CA3AF";
 
-  const deleteMutation = trpc.timeOff.deleteRequest.useMutation({
+  // ── Undo-delete state ──
+  const [pendingDelete, setPendingDelete] = useState(false);
+  const [countdown, setCountdown] = useState(UNDO_SECONDS);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const toastOpacity = useRef(new Animated.Value(0)).current;
+
+  // ── Status-change picker state ──
+  const [showStatusPicker, setShowStatusPicker] = useState(false);
+
+  const hardDeleteMutation = trpc.timeOff.deleteRequest.useMutation({
     onSuccess: onDeleted,
-    onError: (err) => Alert.alert("Delete Failed", err.message),
+    onError: (err) => {
+      setPendingDelete(false);
+      Alert.alert("Delete Failed", err.message);
+    },
   });
 
+  const softDeleteMutation = trpc.timeOff.softDelete.useMutation({
+    onError: (err) => {
+      setPendingDelete(false);
+      Alert.alert("Delete Failed", err.message);
+    },
+  });
+
+  const restoreMutation = trpc.timeOff.restoreRequest.useMutation({
+    onSuccess: () => {
+      setPendingDelete(false);
+      setCountdown(UNDO_SECONDS);
+      if (timerRef.current) clearInterval(timerRef.current);
+      Animated.timing(toastOpacity, { toValue: 0, duration: 200, useNativeDriver: true }).start();
+    },
+    onError: (err) => Alert.alert("Restore Failed", err.message),
+  });
+
+  const changeStatusMutation = trpc.timeOff.changeStatus.useMutation({
+    onSuccess: () => {
+      setShowStatusPicker(false);
+      onStatusChanged();
+    },
+    onError: (err) => Alert.alert("Status Change Failed", err.message),
+  });
+
+  // Start the 30-second countdown when pendingDelete becomes true
+  useEffect(() => {
+    if (!pendingDelete) return;
+    setCountdown(UNDO_SECONDS);
+    Animated.timing(toastOpacity, { toValue: 1, duration: 250, useNativeDriver: true }).start();
+    timerRef.current = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timerRef.current!);
+          // Hard delete after countdown expires
+          hardDeleteMutation.mutate({ id: req.id });
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [pendingDelete]);
+
   const handleDelete = () => {
-    Alert.alert(
-      "Delete Request",
-      `Delete ${req.userName}'s ${req.requestType} request? This cannot be undone.`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: () => deleteMutation.mutate({ id: req.id }),
-        },
-      ]
-    );
+    // Soft-delete immediately, show undo toast
+    softDeleteMutation.mutate({ id: req.id }, {
+      onSuccess: () => setPendingDelete(true),
+    });
   };
+
+  const handleUndo = () => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    restoreMutation.mutate({ id: req.id });
+  };
+
+  const STATUS_OPTIONS = [
+    { label: "Pending", value: "pending", color: "#F59E0B" },
+    { label: "Approved", value: "approved", color: "#22C55E" },
+    { label: "Denied", value: "denied", color: "#EF4444" },
+    { label: "Cancelled", value: "cancelled", color: "#9CA3AF" },
+  ];
+
+  if (pendingDelete) {
+    return (
+      <Animated.View style={[
+        styles.requestCard,
+        { backgroundColor: "#FEF2F2", borderColor: "#FECACA", opacity: toastOpacity }
+      ]}>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: "#DC2626", fontWeight: "700", fontSize: 14 }}>Request deleted</Text>
+            <Text style={{ color: "#EF4444", fontSize: 12, marginTop: 2 }}>
+              Permanently deleting in {countdown}s…
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={[styles.actionBtn, { borderColor: "#DC2626", paddingHorizontal: 16 }]}
+            onPress={handleUndo}
+            disabled={restoreMutation.isPending}
+            activeOpacity={0.7}
+          >
+            {restoreMutation.isPending ? (
+              <ActivityIndicator size="small" color="#DC2626" />
+            ) : (
+              <Text style={[styles.actionBtnText, { color: "#DC2626" }]}>Undo</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      </Animated.View>
+    );
+  }
 
   return (
     <View style={[styles.requestCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -625,28 +722,23 @@ function RequestCard({
           <Text style={[styles.statusText, { color: statusColor }]}>{req.status.toUpperCase()}</Text>
         </View>
       </View>
-      <TouchableOpacity activeOpacity={0.7} onPress={() => onReview(req)}>
-        <View style={styles.requestCardRow}>
-          <View style={[styles.typeBadge, { backgroundColor: typeColor + "20", borderColor: typeColor }]}>
-            <Text style={[styles.typeBadgeText, { color: typeColor }]}>
-              {req.requestType.charAt(0).toUpperCase() + req.requestType.slice(1)}
-            </Text>
-          </View>
-          <Text style={[styles.requestDates, { color: colors.muted }]}>
-            {formatDate(req.startDate)}{req.startDate !== req.endDate ? ` – ${formatDate(req.endDate)}` : ""}
+      <View style={styles.requestCardRow}>
+        <View style={[styles.typeBadge, { backgroundColor: typeColor + "20", borderColor: typeColor }]}>
+          <Text style={[styles.typeBadgeText, { color: typeColor }]}>
+            {req.requestType.charAt(0).toUpperCase() + req.requestType.slice(1)}
           </Text>
         </View>
-        <Text style={[styles.requestDuration, { color: colors.muted }]}>
-          {parseFloat(String(req.totalDays ?? "0")).toFixed(1)} days
-          {req.periodYear ? ` · ${req.periodYear}` : ""}
+        <Text style={[styles.requestDates, { color: colors.muted }]}>
+          {formatDate(req.startDate)}{req.startDate !== req.endDate ? ` – ${formatDate(req.endDate)}` : ""}
         </Text>
-        {req.reason ? (
-          <Text style={[styles.requestReason, { color: colors.muted }]} numberOfLines={1}>{req.reason}</Text>
-        ) : null}
-        {req.status === "pending" && (
-          <Text style={{ color: "#3B82F6", fontSize: 13, fontWeight: "600", marginTop: 6 }}>Tap to review →</Text>
-        )}
-      </TouchableOpacity>
+      </View>
+      <Text style={[styles.requestDuration, { color: colors.muted }]}>
+        {parseFloat(String(req.totalDays ?? "0")).toFixed(1)} days
+        {req.periodYear ? ` · ${req.periodYear}` : ""}
+      </Text>
+      {req.reason ? (
+        <Text style={[styles.requestReason, { color: colors.muted }]} numberOfLines={1}>{req.reason}</Text>
+      ) : null}
       {/* Action buttons row */}
       <View style={{ flexDirection: "row", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
         {req.status === "pending" && (
@@ -658,19 +750,70 @@ function RequestCard({
             <Text style={[styles.actionBtnText, { color: colors.primary }]}>Review</Text>
           </TouchableOpacity>
         )}
+        {/* Change Status button — visible for all statuses */}
+        <TouchableOpacity
+          style={[styles.actionBtn, { borderColor: statusColor }]}
+          onPress={() => setShowStatusPicker(true)}
+          activeOpacity={0.7}
+        >
+          <Text style={[styles.actionBtnText, { color: statusColor }]}>Change Status</Text>
+        </TouchableOpacity>
         <TouchableOpacity
           style={[styles.actionBtn, { borderColor: "#EF4444" }]}
           onPress={handleDelete}
-          disabled={deleteMutation.isPending}
+          disabled={softDeleteMutation.isPending}
           activeOpacity={0.7}
         >
-          {deleteMutation.isPending ? (
+          {softDeleteMutation.isPending ? (
             <ActivityIndicator size="small" color="#EF4444" />
           ) : (
             <Text style={[styles.actionBtnText, { color: "#EF4444" }]}>Delete</Text>
           )}
         </TouchableOpacity>
       </View>
+      {/* Status picker modal */}
+      <Modal visible={showStatusPicker} transparent animationType="fade">
+        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "center", alignItems: "center", padding: 24 }}>
+          <View style={[styles.modalContainer, { backgroundColor: colors.surface, maxWidth: 340, width: "100%" }]}>
+            <Text style={[styles.modalTitle, { color: colors.foreground }]}>Change Status</Text>
+            <Text style={[styles.modalSubtitle, { color: colors.muted, marginBottom: 16 }]}>
+              {req.userName} · {req.requestType}
+            </Text>
+            {STATUS_OPTIONS.map((opt) => (
+              <TouchableOpacity
+                key={opt.value}
+                style={[
+                  styles.actionBtn,
+                  {
+                    borderColor: opt.color,
+                    marginBottom: 10,
+                    paddingVertical: 12,
+                    backgroundColor: req.status === opt.value ? opt.color + "15" : "transparent",
+                  }
+                ]}
+                onPress={() => changeStatusMutation.mutate({ id: req.id, status: opt.value as any })}
+                disabled={changeStatusMutation.isPending || req.status === opt.value}
+                activeOpacity={0.7}
+              >
+                {changeStatusMutation.isPending && changeStatusMutation.variables?.status === opt.value ? (
+                  <ActivityIndicator size="small" color={opt.color} />
+                ) : (
+                  <Text style={[styles.actionBtnText, { color: req.status === opt.value ? opt.color : colors.foreground }]}>
+                    {opt.label}{req.status === opt.value ? " (current)" : ""}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity
+              style={[styles.actionBtn, { borderColor: colors.border, marginTop: 4 }]}
+              onPress={() => setShowStatusPicker(false)}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.actionBtnText, { color: colors.muted }]}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -861,6 +1004,7 @@ export default function TimeOffAdminScreen() {
                   colors={colors}
                   onReview={setReviewingRequest}
                   onDeleted={() => utils.timeOff.getAllRequests.invalidate()}
+                  onStatusChanged={() => utils.timeOff.getAllRequests.invalidate()}
                 />
               ))
             )}

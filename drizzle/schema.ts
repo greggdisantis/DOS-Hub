@@ -472,10 +472,11 @@ export const timeOffRequests = mysqlTable("time_off_requests", {
   reviewNotes: text("reviewNotes"),
   /** Which PTO period year this request belongs to (e.g. "2025-2026") */
   periodYear: varchar("periodYear", { length: 20 }),
-  createdAt: timestamp("createdAt").defaultNow(),
+   createdAt: timestamp("createdAt").defaultNow(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow(),
+  /** Soft-delete timestamp — set when admin deletes, null means active. Hard-delete runs after 30s undo window. */
+  deletedAt: timestamp("deletedAt"),
 });
-
 export type TimeOffPolicy = typeof timeOffPolicies.$inferSelect;
 export type InsertTimeOffPolicy = typeof timeOffPolicies.$inferInsert;
 export type TimeOffRequest = typeof timeOffRequests.$inferSelect;

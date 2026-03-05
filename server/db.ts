@@ -1214,14 +1214,12 @@ export async function getUserTimeOffRequestsByPeriod(userId: number, periodYear:
 export async function getAllTimeOffRequests(filters?: { userId?: number; status?: string; periodYear?: string }) {
   const db = await getDb();
   if (!db) return [];
-  const conditions: any[] = [];
+  // Always exclude soft-deleted records
+  const conditions: any[] = [isNull(timeOffRequests.deletedAt)];
   if (filters?.userId) conditions.push(eq(timeOffRequests.userId, filters.userId));
   if (filters?.status) conditions.push(eq(timeOffRequests.status, filters.status));
   if (filters?.periodYear) conditions.push(eq(timeOffRequests.periodYear, filters.periodYear));
-  if (conditions.length > 0) {
-    return db.select().from(timeOffRequests).where(and(...conditions)).orderBy(desc(timeOffRequests.createdAt));
-  }
-  return db.select().from(timeOffRequests).orderBy(desc(timeOffRequests.createdAt));
+  return db.select().from(timeOffRequests).where(and(...conditions)).orderBy(desc(timeOffRequests.createdAt));
 }
 
 /** Approve or deny a time off request */
@@ -1246,7 +1244,18 @@ export async function deleteTimeOffRequest(id: number) {
   if (!db) throw new Error("Database not available");
   await db.delete(timeOffRequests).where(eq(timeOffRequests.id, id));
 }
-
+/** Soft-delete: sets deletedAt so the record is hidden but restorable within the undo window */
+export async function softDeleteTimeOffRequest(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(timeOffRequests).set({ deletedAt: new Date() } as any).where(eq(timeOffRequests.id, id));
+}
+/** Restore a soft-deleted request (clears deletedAt) */
+export async function restoreTimeOffRequest(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(timeOffRequests).set({ deletedAt: null } as any).where(eq(timeOffRequests.id, id));
+}
 /**
  * Calculate used PTO days for a user in a given period.
  * Only counts approved requests.

@@ -781,3 +781,16 @@
 - [x] Audit DB deleteTimeOffRequest function (correct, uses Drizzle delete with eq filter)
 - [x] Audit tRPC timeOff.deleteRequest endpoint (correct, passes id to DB function)
 - [x] Rebuild client delete mutation and button - extracted RequestCard component with its own isolated useMutation hook; each card now manages its own delete state independently, eliminating shared isPending bug
+
+## Undo Delete Toast - Time Off Admin All Requests (3/5/2026)
+- [x] Add deletedAt column to timeOffRequests schema for soft-delete
+- [x] Add softDeleteTimeOffRequest and restoreTimeOffRequest DB functions
+- [x] Add timeOff.softDelete and timeOff.restoreRequest tRPC endpoints
+- [x] Build undo-toast in RequestCard (30s countdown, fade-in animation, hard-delete on expiry)
+- [x] Wire undo toast into RequestCard: soft-delete on confirm, show toast, hard-delete after 30s or restore on Undo tap
+- [x] Filter out soft-deleted requests from getAllRequests query
+
+## Change Status After Approval - Time Off Admin (3/5/2026)
+- [x] Add "Change Status" action button on all request cards in All Requests tab
+- [x] Show status picker (Pending / Approved / Denied / Cancelled) for any request regardless of current status
+- [x] Add timeOff.changeStatus tRPC endpoint

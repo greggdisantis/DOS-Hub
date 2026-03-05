@@ -1467,7 +1467,7 @@ export const appRouter = router({
         const used = await db.getUsedPTODays(input.userId, input.periodYear);
         return { usedDays: used };
       }),
-    /** Admin/manager/Owner only: permanently delete a time off request */
+     /** Admin/manager/Owner only: permanently delete a time off request */
     deleteRequest: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {
@@ -1484,7 +1484,54 @@ export const appRouter = router({
         await db.deleteTimeOffRequest(input.id);
         return { success: true };
       }),
+    /** Soft-delete: marks deletedAt so the record is hidden but restorable within 30s */
+    softDelete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const dosRoles = (ctx.user.dosRoles as string[]) ?? [];
+        const isAuthorized =
+          ctx.user.role === 'admin' ||
+          ctx.user.role === 'manager' ||
+          dosRoles.includes('Owner') ||
+          dosRoles.includes('Operations Manager') ||
+          dosRoles.includes('Project Manager');
+        if (!isAuthorized) throw new Error('Not authorized');
+        await db.softDeleteTimeOffRequest(input.id);
+        return { success: true };
+      }),
+    /** Restore a soft-deleted request (undo delete within 30s window) */
+    restoreRequest: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const dosRoles = (ctx.user.dosRoles as string[]) ?? [];
+        const isAuthorized =
+          ctx.user.role === 'admin' ||
+          ctx.user.role === 'manager' ||
+          dosRoles.includes('Owner') ||
+          dosRoles.includes('Operations Manager') ||
+          dosRoles.includes('Project Manager');
+        if (!isAuthorized) throw new Error('Not authorized');
+        await db.restoreTimeOffRequest(input.id);
+        return { success: true };
+      }),
+    /** Admin/manager: change the status of any request at any time (override after approval) */
+    changeStatus: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        status: z.enum(['pending', 'approved', 'denied', 'cancelled']),
+        reviewNotes: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const dosRoles = (ctx.user.dosRoles as string[]) ?? [];
+        const isAuthorized =
+          ctx.user.role === 'admin' ||
+          ctx.user.role === 'manager' ||
+          dosRoles.includes('Owner') ||
+          dosRoles.includes('Operations Manager');
+        if (!isAuthorized) throw new Error('Not authorized');
+        await db.reviewTimeOffRequest(input.id, input.status as any, ctx.user.id, input.reviewNotes);
+        return { success: true };
+      }),
   }),
-
 });
 export type AppRouter = typeof appRouter;
