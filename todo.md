@@ -824,3 +824,8 @@
 
 ## BUG: CMR Detail Modal PDF export produces blank PDF (3/5/2026)
 - [x] Fix exportMeetingReportPDF called from CMR detail modal to generate a populated PDF (not blank)
+
+## REBUILD: PDF Export - Sales Pipeline & CMR Reports (3/5/2026)
+- [x] Audit all PDF export entry points (Sales Pipeline list, CMR list, CMR detail modal)
+- [x] Rebuild PDF export using reliable server-side approach (PDFKit, no html2canvas DOM capture)
+- [x] Wire all PDF buttons to new trpc.cmr.exportPDF endpoint and verify they produce correct PDFs

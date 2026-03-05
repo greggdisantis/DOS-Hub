@@ -18,7 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColors } from '@/hooks/use-colors';
 import { useAuth } from '@/hooks/use-auth';
 import { trpc } from '@/lib/trpc';
-import { exportMeetingReportPDF } from './client-meeting-report/pdf-export';
+import { Linking } from 'react-native';
 import {
   ClientMeetingReport, DEAL_STATUS_LABELS,
   LEAD_SOURCE_OPTIONS, PROJECT_TYPE_OPTIONS,
@@ -50,11 +50,12 @@ function fmt$(n?: number | string | null): string {
   return `$${(num as number).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 }
 
-function toClientMeetingReport(row: any): ClientMeetingReport {
+function toClientMeetingReport(row: any): ClientMeetingReport & { dbId: number } {
   const data = row.reportData as ClientMeetingReport;
   return {
     ...data,
     id: row.localId ?? data?.id ?? String(row.id),
+    dbId: row.id as number,
     consultantName: row.consultantName ?? data?.consultantName ?? '',
     consultantUserId: row.consultantUserId ?? data?.consultantUserId ?? '',
     clientName: row.clientName ?? data?.clientName ?? '',
@@ -848,7 +849,8 @@ export function CMRReportsDashboard() {
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [showFilters, setShowFilters] = useState(false);
   const [exportingId, setExportingId] = useState<string | null>(null);
-  const [detailReport, setDetailReport] = useState<ClientMeetingReport | null>(null);
+  const [detailReport, setDetailReport] = useState<(ClientMeetingReport & { dbId: number }) | null>(null);
+  const exportPDFMutation = trpc.cmr.exportPDF.useMutation();
 
   // Fetch reports from database
   const { data: rawReports = [], isLoading, refetch } = trpc.cmr.list.useQuery(undefined, {
@@ -985,17 +987,27 @@ export function CMRReportsDashboard() {
     );
   }, [filters]);
 
-  const handleExportPDF = useCallback(async (report: ClientMeetingReport) => {
+  const handleExportPDF = useCallback(async (report: ClientMeetingReport & { dbId?: number }) => {
     if (exportingId) return;
+    const numericId = (report as any).dbId as number | undefined;
+    if (!numericId) {
+      Alert.alert('Export Failed', 'Report ID not found. Please refresh and try again.');
+      return;
+    }
     setExportingId(report.id);
     try {
-      await exportMeetingReportPDF(report);
+      const result = await exportPDFMutation.mutateAsync({ id: numericId });
+      if (Platform.OS === 'web') {
+        window.open(result.url, '_blank');
+      } else {
+        await Linking.openURL(result.url);
+      }
     } catch (e: any) {
-      Alert.alert('Export Failed', e?.message ?? 'Could not generate PDF.');
+      Alert.alert('Export Failed', e?.message ?? 'Could not generate PDF. Please try again.');
     } finally {
       setExportingId(null);
     }
-  }, [exportingId]);
+  }, [exportingId, exportPDFMutation]);
 
   if (isLoading) {
     return (

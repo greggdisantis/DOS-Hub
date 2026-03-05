@@ -15,7 +15,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useColors } from '@/hooks/use-colors';
 import { useAuth } from '@/hooks/use-auth';
 import { ClientMeetingFormWizard } from './client-meeting-report/form';
-import { exportMeetingReportPDF } from './client-meeting-report/pdf-export';
+import { Linking } from 'react-native';
 import { loadAllReports, saveReport, deleteReport, generateId } from './client-meeting-report/storage';
 import { trpc } from '@/lib/trpc';
 import {
@@ -215,11 +215,12 @@ function ReportDetail({
 // ── Main screen ───────────────────────────────────────────────────────────────
 
 /** Convert a DB CMR row to a ClientMeetingReport object */
-function dbRowToReport(row: any): ClientMeetingReport {
+function dbRowToReport(row: any): ClientMeetingReport & { dbId: number } {
   const data = (row.reportData ?? {}) as ClientMeetingReport;
   return {
     ...data,
     id: row.localId ?? data?.id ?? String(row.id),
+    dbId: row.id as number,
     clientName: row.clientName ?? data?.clientName ?? '',
     consultantName: row.consultantName ?? data?.consultantName ?? '',
     consultantUserId: row.consultantUserId ?? data?.consultantUserId ?? '',
@@ -406,28 +407,28 @@ export default function ClientMeetingReportScreen() {
     ]);
   }, [utils]);
 
+  const exportPDFMutation = trpc.cmr.exportPDF.useMutation();
   const handleExport = useCallback(async () => {
     if (!activeReport) return;
+    const numericId = (activeReport as any).dbId as number | undefined;
+    if (!numericId) {
+      Alert.alert('Export Failed', 'Report ID not found. Please refresh and try again.');
+      return;
+    }
     setIsExporting(true);
     try {
-      // On web, get the DOM element from the ScrollView ref
-      let domEl: HTMLElement | null = null;
-      if (Platform.OS === 'web' && detailScrollRef.current) {
-        // React Native Web renders ScrollView as a div
-        domEl = (detailScrollRef.current as any)._nativeTag ?? (detailScrollRef.current as any)._node ?? null;
-        if (!domEl) {
-          // Fallback: find by traversing
-          const inner = (detailScrollRef.current as any)?._scrollRef?.current;
-          domEl = inner ?? null;
-        }
+      const result = await exportPDFMutation.mutateAsync({ id: numericId });
+      if (Platform.OS === 'web') {
+        window.open(result.url, '_blank');
+      } else {
+        await Linking.openURL(result.url);
       }
-      await exportMeetingReportPDF(activeReport, domEl);
     } catch (e) {
       Alert.alert('Export Failed', 'Could not generate PDF. Please try again.');
     } finally {
       setIsExporting(false);
     }
-  }, [activeReport]);
+  }, [activeReport, exportPDFMutation]);
 
   const handleCancel = useCallback(() => {
     setViewMode('list');

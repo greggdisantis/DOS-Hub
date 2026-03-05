@@ -860,6 +860,63 @@ export const appRouter = router({
         await db.deleteCmrReport(input.id);
         return { success: true };
       }),
+    /** Export a CMR report as a PDF — generates server-side and returns an S3 URL */
+    exportPDF: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const reports = await db.getAllCmrReports();
+        const report = (reports as any[]).find((r: any) => r.id === input.id);
+        if (!report) throw new Error('CMR report not found');
+        const isAdmin = ctx.user.role === 'admin' || ctx.user.role === 'manager';
+        if (!isAdmin && report.userId !== ctx.user.id) throw new Error('Unauthorized');
+        const rd: any = report.reportData ?? {};
+        const { generateCmrPDF } = await import('./cmr-pdf');
+        const pdfBuffer = await generateCmrPDF({
+          clientName: report.clientName,
+          consultantName: report.consultantName,
+          appointmentDate: report.appointmentDate,
+          weekOf: report.weekOf,
+          source: rd.source,
+          address: rd.address,
+          clientType: rd.clientType,
+          appointmentType: rd.appointmentType,
+          leadSources: rd.leadSources,
+          projectTypes: rd.projectTypes,
+          dealStatus: report.dealStatus,
+          closeTimeline: rd.closeTimeline,
+          followUpDate: rd.followUpDate,
+          proposalDate: rd.proposalDate,
+          lostReason: rd.lostReason,
+          lastConversationSummary: rd.lastConversationSummary,
+          purchaseConfidencePct: report.purchaseConfidencePct,
+          originalPcPct: report.originalPcPct,
+          estimatedContractValue: report.estimatedContractValue,
+          decisionMakers: rd.decisionMakers,
+          mainMotivation: rd.mainMotivation,
+          mainHesitation: rd.mainHesitation,
+          pcNotes: rd.pcNotes,
+          financingDiscussed: rd.financingDiscussed,
+          financingReaction: rd.financingReaction,
+          valueCommunicated: rd.valueCommunicated,
+          clientResponse: rd.clientResponse,
+          objections: rd.objections,
+          objectionNotes: rd.objectionNotes,
+          nextActions: rd.nextActions,
+          nextFollowUpDate: rd.nextFollowUpDate,
+          leadQuality: rd.leadQuality,
+          expectationAlignment: rd.expectationAlignment,
+          messagingReferenced: rd.messagingReferenced,
+          budgetAlignment: rd.budgetAlignment,
+          marketingNotes: rd.marketingNotes,
+        });
+        const { storagePut } = await import('./storage');
+        const safeName = (report.clientName ?? 'CMR').replace(/[^a-zA-Z0-9_-]/g, '_');
+        const dateStr = new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }).replace(/\//g, '-');
+        const fileKey = `cmr/pdf/${safeName}_${dateStr}_${report.id}.pdf`;
+        const { url } = await storagePut(fileKey, pdfBuffer, 'application/pdf');
+        const fileName = `DOS_Hub_CMR_${safeName}_${dateStr}.pdf`;
+        return { url, fileName };
+      }),
   }),
 
   // ─── PROJECT MATERIAL DELIVERY ────────────────────────────────────────────

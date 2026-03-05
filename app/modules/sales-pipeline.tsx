@@ -19,7 +19,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { loadAllReports, saveReport } from './client-meeting-report/storage';
 import { trpc } from '@/lib/trpc';
 import { ClientMeetingReport, DEAL_STATUS_LABELS } from './client-meeting-report/types';
-import { exportMeetingReportPDF } from './client-meeting-report/pdf-export';
+import { Linking, Platform } from 'react-native';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -444,11 +444,12 @@ function PipelineRow({ report, onUpdate, onMarkSold, onMarkLost, onReopen, onEdi
 type FilterTab = 'open' | 'sold' | 'lost' | 'all';
 
 /** Convert a DB CMR row to a ClientMeetingReport object */
-function dbRowToReport(row: any): ClientMeetingReport {
+function dbRowToReport(row: any): ClientMeetingReport & { dbId: number } {
   const data = (row.reportData ?? {}) as ClientMeetingReport;
   return {
     ...data,
     id: row.localId ?? data?.id ?? String(row.id),
+    dbId: row.id as number,
     clientName: row.clientName ?? data?.clientName ?? '',
     consultantName: row.consultantName ?? data?.consultantName ?? '',
     consultantUserId: row.consultantUserId ?? data?.consultantUserId ?? '',
@@ -472,19 +473,29 @@ export function SalesPipelineContent() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterTab>('open');
   const [search, setSearch] = useState('');
-  const [exportingId, setExportingId] = useState<string | null>(null);
-
-  const handleExportPDF = useCallback(async (report: ClientMeetingReport) => {
+   const [exportingId, setExportingId] = useState<string | null>(null);
+  const exportPDFMutation = trpc.cmr.exportPDF.useMutation();
+  const handleExportPDF = useCallback(async (report: ClientMeetingReport & { dbId?: number }) => {
     if (exportingId) return;
+    const numericId = (report as any).dbId as number | undefined;
+    if (!numericId) {
+      Alert.alert('Export Failed', 'Report ID not found. Please refresh and try again.');
+      return;
+    }
     setExportingId(report.id);
     try {
-      await exportMeetingReportPDF(report);
+      const result = await exportPDFMutation.mutateAsync({ id: numericId });
+      if (Platform.OS === 'web') {
+        window.open(result.url, '_blank');
+      } else {
+        await Linking.openURL(result.url);
+      }
     } catch (e: any) {
-      Alert.alert('Export Failed', e?.message ?? 'Could not generate PDF.');
+      Alert.alert('Export Failed', e?.message ?? 'Could not generate PDF. Please try again.');
     } finally {
       setExportingId(null);
     }
-  }, [exportingId]);
+  }, [exportingId, exportPDFMutation]);
 
   const sortReports = (all: ClientMeetingReport[]) =>
     [...all].sort((a, b) => {
