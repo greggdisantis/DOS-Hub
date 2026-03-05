@@ -1439,12 +1439,19 @@ export const appRouter = router({
         const used = await db.getUsedPTODays(input.userId, input.periodYear);
         return { usedDays: used };
       }),
-    /** Admin/manager only: permanently delete a time off request */
+    /** Admin/manager/Owner only: permanently delete a time off request */
     deleteRequest: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {
-        if (ctx.user.role !== 'admin' && ctx.user.role !== 'manager') {
-          throw new Error('Only admins and managers can delete time off requests');
+        const dosRoles = (ctx.user.dosRoles as string[]) ?? [];
+        const isAuthorized =
+          ctx.user.role === 'admin' ||
+          ctx.user.role === 'manager' ||
+          dosRoles.includes('Owner') ||
+          dosRoles.includes('Operations Manager') ||
+          dosRoles.includes('Project Manager');
+        if (!isAuthorized) {
+          throw new Error('Only admins, managers, and Owners can delete time off requests');
         }
         await db.deleteTimeOffRequest(input.id);
         return { success: true };

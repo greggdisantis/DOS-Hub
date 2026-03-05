@@ -737,3 +737,6 @@
 
 ## BUG: Time Off Admin delete button not working (3/5/2026)
 - [x] Fix delete button on request cards - tap does nothing (fixed: nested TouchableOpacity conflict resolved by separating card tap from delete button)
+
+## BUG: Time Off Admin delete button still not working (3/5/2026)
+- [x] Deep debug delete button - root cause was server auth guard checking ctx.user.role === 'admin' but users have system role 'approved'; fixed to also allow Owner/Operations Manager/Project Manager dosRoles
