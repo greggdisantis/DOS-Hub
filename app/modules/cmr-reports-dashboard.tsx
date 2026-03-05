@@ -510,6 +510,21 @@ function CMRDetailModal({
             <Row label="Follow-Up Date" value={fmt(report.nextFollowUpDate)} />
           </Section>
 
+          {report.progressNotes && report.progressNotes.length > 0 && (
+            <Section title="Progress Notes">
+              {report.progressNotes.map((note) => (
+                <View key={note.id} style={[detailStyles.row, { borderBottomColor: colors.border }]}>
+                  <Text style={[detailStyles.key, { color: colors.muted }]}>
+                    {note.createdAt
+                      ? new Date(note.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                      : '—'}
+                  </Text>
+                  <Text style={[detailStyles.val, { color: colors.foreground }]}>{note.text}</Text>
+                </View>
+              ))}
+            </Section>
+          )}
+
           {(report.source === 'marketing-in-home' || report.source === 'marketing-showroom') && (
             <Section title="Marketing Feedback">
               <Row label="Lead Quality" value={report.leadQuality || null} />

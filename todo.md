@@ -840,3 +840,7 @@
 
 ## BUG: Progress notes not saving on CMR report (3/5/2026)
 - [x] Fix progressNotes not persisted when saving CMR report — explicitly included in all 3 dbRowToReport mappers
+
+## BUG: Progress notes missing from detail modal and PDF (3/5/2026)
+- [x] Fix progress notes not showing in CMR detail modal summary view — added Progress Notes section to CMRDetailModal
+- [x] Fix progress notes not appearing in PDF export — PDF generator was looking for `timestamp` field but data uses `createdAt`; fixed field name

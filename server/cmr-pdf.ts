@@ -142,7 +142,7 @@ export interface CmrPDFInput {
   messagingReferenced?: string[];
   budgetAlignment?: string | null;
   marketingNotes?: string | null;
-  progressNotes?: { id: string; text: string; timestamp: string }[] | null;
+  progressNotes?: { id: string; text: string; createdAt: string }[] | null;
 }
 
 export async function generateCmrPDF(data: CmrPDFInput): Promise<Buffer> {
@@ -310,8 +310,8 @@ export async function generateCmrPDF(data: CmrPDFInput): Promise<Buffer> {
       section("Progress Notes");
       rowEven = false;
       for (const note of notes) {
-        const label = note.timestamp
-          ? new Date(note.timestamp).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+        const label = note.createdAt
+          ? new Date(note.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
           : "—";
         const noteText = note.text?.trim() || "—";
         const noteH = Math.max(
