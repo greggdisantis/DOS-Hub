@@ -194,13 +194,16 @@ export async function getAllModulePermissions() {
   return db.select().from(modulePermissions).orderBy(modulePermissions.moduleName);
 }
 
-export async function setModulePermissions(moduleKey: string, allowedJobRoles: string[]) {
+export async function setModulePermissions(moduleKey: string, allowedJobRoles: string[], moduleName?: string) {
   const db = await getDb();
   if (!db) return;
+  // Use upsert so modules without an existing row are created automatically.
+  // The moduleName defaults to the moduleKey if not provided.
+  const name = moduleName ?? moduleKey;
   await db
-    .update(modulePermissions)
-    .set({ allowedJobRoles })
-    .where(eq(modulePermissions.moduleKey, moduleKey));
+    .insert(modulePermissions)
+    .values({ moduleKey, moduleName: name, allowedJobRoles })
+    .onDuplicateKeyUpdate({ set: { allowedJobRoles } });
 }
 
 /** Check if a user’s job roles grant access to a module. Owner always has access. */

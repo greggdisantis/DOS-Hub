@@ -773,3 +773,6 @@
 
 ## BUG: Delete button in All Requests not working (3/5/2026)
 - [x] Replace broken trash icon delete with a proper "Delete" button matching Pre-Construction Checklist style (bordered button with loading state; also adds "Review" button for pending requests)
+
+## BUG: Module Permissions Save button not saving (3/5/2026)
+- [x] Diagnose and fix the Save button in Module Permissions so role selections are persisted (root cause: UPDATE silently failed for modules with no existing DB row; fixed by switching to INSERT ... ON DUPLICATE KEY UPDATE upsert; also added onError alert and passes moduleName for new rows)

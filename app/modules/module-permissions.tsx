@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Modal,
   Platform,
@@ -192,6 +193,13 @@ function ModulePermissionsContent() {
       refetch();
       setEditingModule(null);
     },
+    onError: (err) => {
+      if (Platform.OS === "web") {
+        window.alert(`Failed to save permissions: ${err.message}`);
+      } else {
+        Alert.alert("Save Failed", err.message);
+      }
+    },
   });
 
   const getModuleRoles = useCallback((moduleKey: string): string[] => {
@@ -212,6 +220,7 @@ function ModulePermissionsContent() {
     if (!editingModule) return;
     setPermissionsMutation.mutate({
       moduleKey: editingModule.key,
+      moduleName: editingModule.label,
       allowedJobRoles: roles,
     });
   };

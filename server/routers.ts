@@ -175,7 +175,7 @@ export const appRouter = router({
 
     /** Set which job roles can access a module */
     set: protectedProcedure
-      .input(z.object({ moduleKey: z.string(), allowedJobRoles: z.array(z.string()) }))
+      .input(z.object({ moduleKey: z.string(), moduleName: z.string().optional(), allowedJobRoles: z.array(z.string()) }))
       .mutation(async ({ ctx, input }) => {
         if (ctx.user.role !== "admin") {
           throw new Error("Unauthorized: admin role required");
@@ -185,7 +185,7 @@ export const appRouter = router({
         if (!dosRoles.includes("Owner")) {
           throw new Error("Unauthorized: Owner job role required to modify module permissions");
         }
-        await db.setModulePermissions(input.moduleKey, input.allowedJobRoles);
+        await db.setModulePermissions(input.moduleKey, input.allowedJobRoles, input.moduleName);
         return { success: true };
       }),
   }),
