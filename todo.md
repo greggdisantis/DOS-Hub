@@ -848,3 +848,6 @@
 
 ## BUG: iOS build failure (3/5/2026)
 - [x] Fix iOS build failing with UNKNOWN_ERROR in Bundle JavaScript build phase — fixed 4 TypeScript errors in app files: FlatItem type in cmr-reports-dashboard (dbId missing), modalSubtitle missing in time-off-admin styles, requestType vs type field mismatch in time-off-calendar, and invalid presentationStyle value in time-off-calendar Modal
+
+## BUG: server/db.ts archived field errors (3/5/2026)
+- [x] Fix server/db.ts lines 496 and 504 — confirmed schema already has archived/archivedAt/archivedBy; errors were stale tsc --watch cache, not real errors
