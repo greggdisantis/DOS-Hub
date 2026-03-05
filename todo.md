@@ -755,3 +755,6 @@
 
 ## Edit PTO Policy: Date Picker (3/5/2026)
 - [x] Replace PERIOD START DATE and PERIOD END DATE text inputs with native date picker in EditPolicyModal (native DateTimePicker on iOS/Android, HTML date input on web)
+
+## BUG: Date picker not working in Edit PTO Policy modal (3/5/2026)
+- [x] Fix date picker - clicking does nothing on web (fixed: replaced overlay approach with direct HTML <input type="date"> rendered as the button on web; native DateTimePicker used on iOS/Android)

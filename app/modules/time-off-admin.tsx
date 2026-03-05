@@ -17,23 +17,41 @@ import { ScreenContainer } from "@/components/screen-container";
 import { trpc } from "@/lib/trpc";
 import { useColors } from "@/hooks/use-colors";
 
-// Web-compatible date picker using native HTML input
-function WebDateInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+// Web-compatible date picker button — renders a styled HTML <input type="date"> directly
+function WebDateButton({
+  value,
+  onChange,
+  placeholder,
+  colors,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+  colors: ReturnType<typeof useColors>;
+}) {
   if (Platform.OS !== "web") return null;
+  // On web, render the native date input styled to look like the button
   return (
     <input
       type="date"
       value={value || ""}
       onChange={(e: any) => onChange(e.target.value)}
+      placeholder={placeholder}
       style={{
-        position: "absolute",
-        opacity: 0,
+        display: "flex",
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
         width: "100%",
-        height: "100%",
-        top: 0,
-        left: 0,
+        padding: "14px",
+        borderRadius: 10,
+        border: `1px solid ${colors.border}`,
+        backgroundColor: colors.surface,
+        color: value ? colors.foreground : colors.muted,
+        fontSize: 16,
         cursor: "pointer",
-        zIndex: 10,
+        outline: "none",
+        boxSizing: "border-box",
       }}
     />
   );
@@ -175,58 +193,74 @@ function EditPolicyModal({
           {/* Period Start Date Picker */}
           <View style={styles.fieldGroup}>
             <Text style={[styles.label, { color: colors.muted }]}>PERIOD START DATE</Text>
-            <View style={{ position: "relative" }}>
-              <TouchableOpacity
-                onPress={() => Platform.OS !== "web" && setShowStartPicker(true)}
-                activeOpacity={0.7}
-                style={[styles.datePickerBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}
-              >
-                <Text style={{ fontSize: 16, color: periodStart ? colors.foreground : colors.muted }}>
-                  {periodStart ? formatDate(periodStart) : "Select start date"}
-                </Text>
-                <Text style={{ fontSize: 18 }}>📅</Text>
-              </TouchableOpacity>
-              <WebDateInput value={periodStart} onChange={setPeriodStart} />
-            </View>
-            {showStartPicker && Platform.OS !== "web" && (
-              <DateTimePicker
-                value={toDate(periodStart)}
-                mode="date"
-                display={Platform.OS === "ios" ? "inline" : "default"}
-                onChange={(_, date) => {
-                  setShowStartPicker(Platform.OS === "ios");
-                  if (date) setPeriodStart(fromDate(date));
-                }}
+            {Platform.OS === "web" ? (
+              <WebDateButton
+                value={periodStart}
+                onChange={setPeriodStart}
+                placeholder="Select start date"
+                colors={colors}
               />
+            ) : (
+              <>
+                <TouchableOpacity
+                  onPress={() => setShowStartPicker(true)}
+                  activeOpacity={0.7}
+                  style={[styles.datePickerBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                >
+                  <Text style={{ fontSize: 16, color: periodStart ? colors.foreground : colors.muted }}>
+                    {periodStart ? formatDate(periodStart) : "Select start date"}
+                  </Text>
+                  <Text style={{ fontSize: 18 }}>📅</Text>
+                </TouchableOpacity>
+                {showStartPicker && (
+                  <DateTimePicker
+                    value={toDate(periodStart)}
+                    mode="date"
+                    display={Platform.OS === "ios" ? "inline" : "default"}
+                    onChange={(_, date) => {
+                      setShowStartPicker(Platform.OS === "ios");
+                      if (date) setPeriodStart(fromDate(date));
+                    }}
+                  />
+                )}
+              </>
             )}
           </View>
 
           {/* Period End Date Picker */}
           <View style={styles.fieldGroup}>
             <Text style={[styles.label, { color: colors.muted }]}>PERIOD END DATE</Text>
-            <View style={{ position: "relative" }}>
-              <TouchableOpacity
-                onPress={() => Platform.OS !== "web" && setShowEndPicker(true)}
-                activeOpacity={0.7}
-                style={[styles.datePickerBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}
-              >
-                <Text style={{ fontSize: 16, color: periodEnd ? colors.foreground : colors.muted }}>
-                  {periodEnd ? formatDate(periodEnd) : "Select end date"}
-                </Text>
-                <Text style={{ fontSize: 18 }}>📅</Text>
-              </TouchableOpacity>
-              <WebDateInput value={periodEnd} onChange={setPeriodEnd} />
-            </View>
-            {showEndPicker && Platform.OS !== "web" && (
-              <DateTimePicker
-                value={toDate(periodEnd)}
-                mode="date"
-                display={Platform.OS === "ios" ? "inline" : "default"}
-                onChange={(_, date) => {
-                  setShowEndPicker(Platform.OS === "ios");
-                  if (date) setPeriodEnd(fromDate(date));
-                }}
+            {Platform.OS === "web" ? (
+              <WebDateButton
+                value={periodEnd}
+                onChange={setPeriodEnd}
+                placeholder="Select end date"
+                colors={colors}
               />
+            ) : (
+              <>
+                <TouchableOpacity
+                  onPress={() => setShowEndPicker(true)}
+                  activeOpacity={0.7}
+                  style={[styles.datePickerBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                >
+                  <Text style={{ fontSize: 16, color: periodEnd ? colors.foreground : colors.muted }}>
+                    {periodEnd ? formatDate(periodEnd) : "Select end date"}
+                  </Text>
+                  <Text style={{ fontSize: 18 }}>📅</Text>
+                </TouchableOpacity>
+                {showEndPicker && (
+                  <DateTimePicker
+                    value={toDate(periodEnd)}
+                    mode="date"
+                    display={Platform.OS === "ios" ? "inline" : "default"}
+                    onChange={(_, date) => {
+                      setShowEndPicker(Platform.OS === "ios");
+                      if (date) setPeriodEnd(fromDate(date));
+                    }}
+                  />
+                )}
+              </>
             )}
           </View>
 
