@@ -806,3 +806,6 @@
 - [x] Wire Calendar button from Time Off Admin header to calendar screen
 - [x] Add tRPC getCalendarRequests endpoint to fetch all requests for calendar
 - [x] Native header back button navigates back to Time Off Admin
+
+## BUG: My Time Off shows soft-deleted requests (3/5/2026)
+- [x] Fix getUserRequests DB function to exclude soft-deleted records (deletedAt IS NULL)

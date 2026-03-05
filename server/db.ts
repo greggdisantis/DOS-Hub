@@ -1198,7 +1198,9 @@ export async function getTimeOffRequest(id: number) {
 export async function getUserTimeOffRequests(userId: number) {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(timeOffRequests).where(eq(timeOffRequests.userId, userId)).orderBy(desc(timeOffRequests.createdAt));
+  return db.select().from(timeOffRequests)
+    .where(and(eq(timeOffRequests.userId, userId), isNull(timeOffRequests.deletedAt)))
+    .orderBy(desc(timeOffRequests.createdAt));
 }
 
 /** Get all requests for a specific user filtered by period year */
@@ -1206,7 +1208,7 @@ export async function getUserTimeOffRequestsByPeriod(userId: number, periodYear:
   const db = await getDb();
   if (!db) return [];
   return db.select().from(timeOffRequests)
-    .where(and(eq(timeOffRequests.userId, userId), eq(timeOffRequests.periodYear, periodYear)))
+    .where(and(eq(timeOffRequests.userId, userId), eq(timeOffRequests.periodYear, periodYear), isNull(timeOffRequests.deletedAt)))
     .orderBy(desc(timeOffRequests.createdAt));
 }
 
