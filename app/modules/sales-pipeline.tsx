@@ -477,6 +477,7 @@ function dbRowToReport(row: any): ClientMeetingReport & { dbId: number } {
     estimatedContractValue: row.estimatedContractValue != null ? Number(row.estimatedContractValue) : data?.estimatedContractValue,
     soldAt: row.soldAt ?? data?.soldAt,
     soldBy: row.soldBy ?? data?.soldBy,
+    progressNotes: data?.progressNotes ?? [],
   };
 }
 

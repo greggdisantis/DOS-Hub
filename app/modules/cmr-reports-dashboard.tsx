@@ -69,6 +69,7 @@ function toClientMeetingReport(row: any): ClientMeetingReport & { dbId: number }
       ? parseFloat(String(row.estimatedContractValue))
       : data?.estimatedContractValue,
     soldAt: row.soldAt ?? data?.soldAt,
+    progressNotes: data?.progressNotes ?? [],
   };
 }
 
