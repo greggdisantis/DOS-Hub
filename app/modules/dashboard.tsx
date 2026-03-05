@@ -18,6 +18,7 @@ import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import SalesPipelineScreen, { SalesPipelineContent } from "./sales-pipeline";
 import { ReceiptDashboardContent } from "./receipt-dashboard";
+import { AquacleanReceiptDashboardContent } from "./aquaclean-receipt-dashboard";
 import { CMRReportsDashboard } from "./cmr-reports-dashboard";
 import ProjectMaterialDeliveryScreen from "../(tabs)/modules/project-material-delivery/index";
 import { PreconDashboardContent } from "./precon-dashboard";
@@ -242,12 +243,13 @@ function RecentActivity({ orders, onTapOrder }: { orders: any[]; onTapOrder: (id
 
 // ─── Module Picker ──────────────────────────────────────────────────────────
 
-type DashboardModule = 'screen-ordering' | 'sales-pipeline' | 'receipts' | 'cmr-reports' | 'material-delivery' | 'precon';
+type DashboardModule = 'screen-ordering' | 'sales-pipeline' | 'receipts' | 'aquaclean-receipts' | 'cmr-reports' | 'material-delivery' | 'precon';
 
 const DASHBOARD_MODULES: { key: DashboardModule; label: string; icon: any }[] = [
   { key: 'screen-ordering', label: 'Screen Ordering', icon: 'rectangle.grid.2x2.fill' },
   { key: 'sales-pipeline', label: 'Sales Pipeline', icon: 'chart.bar.fill' },
   { key: 'receipts', label: 'Receipts', icon: 'receipt' },
+  { key: 'aquaclean-receipts', label: 'AquaClean Receipts', icon: 'receipt' },
   { key: 'cmr-reports', label: 'CMR Reports', icon: 'doc.text.fill' },
   { key: 'material-delivery', label: 'Material Delivery', icon: 'shippingbox.fill' },
   { key: 'precon', label: 'Precon Checklists', icon: 'doc.text.fill' },
@@ -385,6 +387,23 @@ function DashboardContent() {
           </View>
           <View style={{ flex: 1 }}>
             <CMRReportsDashboard />
+          </View>
+        </View>
+      </ScreenContainer>
+    );
+  }
+
+  // ── AquaClean Receipts module ─────────────────────────────────────────────────────
+  if (activeModule === 'aquaclean-receipts') {
+    return (
+      <ScreenContainer edges={['top', 'left', 'right']}>
+        <View style={{ flex: 1 }}>
+          {header}
+          <View style={{ flexShrink: 0 }}>
+            <ModulePicker active={activeModule} onChange={setActiveModule} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <AquacleanReceiptDashboardContent />
           </View>
         </View>
       </ScreenContainer>

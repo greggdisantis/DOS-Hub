@@ -19,6 +19,10 @@ import {
   projectMaterialChecklists,
   notifications,
   preconChecklists,
+  timeOffPolicies,
+  timeOffRequests,
+  type InsertTimeOffPolicy,
+  type InsertTimeOffRequest,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
@@ -1126,4 +1130,120 @@ export async function deletePreconChecklist(id: number): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.delete(preconChecklists).where(eq(preconChecklists.id, id));
+}
+
+// ─── TIME OFF QUERIES ──────────────────────────────────────────────────────────
+
+/** Get or create a PTO policy for a user */
+export async function getTimeOffPolicy(userId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(timeOffPolicies).where(eq(timeOffPolicies.userId, userId)).limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+/** Get all PTO policies (admin view) */
+export async function getAllTimeOffPolicies() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(timeOffPolicies).orderBy(timeOffPolicies.userId);
+}
+
+/** Upsert a PTO policy for a user */
+export async function upsertTimeOffPolicy(data: InsertTimeOffPolicy) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const existing = await db.select().from(timeOffPolicies).where(eq(timeOffPolicies.userId, data.userId)).limit(1);
+  if (existing.length > 0) {
+    await db.update(timeOffPolicies).set(data as any).where(eq(timeOffPolicies.userId, data.userId));
+    return existing[0].id;
+  } else {
+    const [result] = await db.insert(timeOffPolicies).values(data).$returningId();
+    return result.id;
+  }
+}
+
+/** Create a new time off request */
+export async function createTimeOffRequest(data: InsertTimeOffRequest): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const [result] = await db.insert(timeOffRequests).values(data).$returningId();
+  return result.id;
+}
+
+/** Get a single time off request */
+export async function getTimeOffRequest(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(timeOffRequests).where(eq(timeOffRequests.id, id)).limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+/** Get all requests for a specific user */
+export async function getUserTimeOffRequests(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(timeOffRequests).where(eq(timeOffRequests.userId, userId)).orderBy(desc(timeOffRequests.createdAt));
+}
+
+/** Get all requests for a specific user filtered by period year */
+export async function getUserTimeOffRequestsByPeriod(userId: number, periodYear: string) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(timeOffRequests)
+    .where(and(eq(timeOffRequests.userId, userId), eq(timeOffRequests.periodYear, periodYear)))
+    .orderBy(desc(timeOffRequests.createdAt));
+}
+
+/** Get all time off requests (admin/manager view) */
+export async function getAllTimeOffRequests(filters?: { userId?: number; status?: string; periodYear?: string }) {
+  const db = await getDb();
+  if (!db) return [];
+  const conditions: any[] = [];
+  if (filters?.userId) conditions.push(eq(timeOffRequests.userId, filters.userId));
+  if (filters?.status) conditions.push(eq(timeOffRequests.status, filters.status));
+  if (filters?.periodYear) conditions.push(eq(timeOffRequests.periodYear, filters.periodYear));
+  if (conditions.length > 0) {
+    return db.select().from(timeOffRequests).where(and(...conditions)).orderBy(desc(timeOffRequests.createdAt));
+  }
+  return db.select().from(timeOffRequests).orderBy(desc(timeOffRequests.createdAt));
+}
+
+/** Approve or deny a time off request */
+export async function reviewTimeOffRequest(id: number, status: "approved" | "denied", reviewedBy: number, reviewNotes?: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(timeOffRequests)
+    .set({ status, reviewedBy, reviewedAt: new Date(), reviewNotes: reviewNotes || null } as any)
+    .where(eq(timeOffRequests.id, id));
+}
+
+/** Cancel a time off request (employee action) */
+export async function cancelTimeOffRequest(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(timeOffRequests).set({ status: "cancelled" } as any).where(eq(timeOffRequests.id, id));
+}
+
+/** Delete a time off request */
+export async function deleteTimeOffRequest(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(timeOffRequests).where(eq(timeOffRequests.id, id));
+}
+
+/**
+ * Calculate used PTO days for a user in a given period.
+ * Only counts approved requests.
+ */
+export async function getUsedPTODays(userId: number, periodYear?: string): Promise<number> {
+  const db = await getDb();
+  if (!db) return 0;
+  const conditions: any[] = [
+    eq(timeOffRequests.userId, userId),
+    eq(timeOffRequests.status, "approved"),
+  ];
+  if (periodYear) conditions.push(eq(timeOffRequests.periodYear, periodYear));
+  const approved = await db.select().from(timeOffRequests).where(and(...conditions));
+  return approved.reduce((sum, r) => sum + parseFloat(String(r.totalDays ?? "0")), 0);
 }

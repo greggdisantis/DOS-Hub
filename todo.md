@@ -693,3 +693,39 @@
 - [ ] Add AquaClean Receipt Capture to home screen quick actions and module cards
 - [ ] Add AquaClean Receipt Capture to Tools screen module grid
 - [ ] Test both Receipt Capture modules end-to-end with separate data
+
+## Time Off Request Module (3/4/2026)
+
+### Database
+- [ ] Create time_off_policies table: userId, totalDaysAllowed, totalHoursAllowed, periodStartDate, periodEndDate, notes, createdAt, updatedAt
+- [ ] Create time_off_requests table: id, userId, requestType (vacation/sick/personal/other), startDate, endDate, startTime, endTime, totalDays, totalHours, reason, status (pending/approved/denied), reviewedBy, reviewedAt, reviewNotes, periodYear, createdAt
+- [ ] Run db:push migration
+
+### Server
+- [ ] tRPC time_off router: submitRequest, listMyRequests, getMyPolicy, cancelRequest (employee)
+- [ ] tRPC time_off router: listAllRequests, approveRequest, denyRequest, listAllPolicies, upsertPolicy, getUserPolicy (admin/manager)
+- [ ] DB functions: createTimeOffRequest, getUserTimeOffRequests, getAllTimeOffRequests, updateTimeOffRequestStatus, getUserTimeOffPolicy, upsertTimeOffPolicy, getUsedTimeOff (calculates used days/hours per period)
+
+### Employee Screen (time-off.tsx)
+- [ ] PTO balance card: shows total allowed, used, remaining for current period with countdown
+- [ ] Submit new request form: type, start date, end date, start/end time, total days/hours (auto-calc), reason
+- [ ] My requests list: pending (yellow), approved (green), denied (red) — filterable by year
+- [ ] Year filter to see prior year balances
+
+### Admin Dashboard (time-off-dashboard.tsx)
+- [ ] Employee list with PTO balance summary per user
+- [ ] Tap employee → see their requests and policy
+- [ ] Pending requests queue: approve or deny with optional note
+- [ ] Edit PTO policy per user: total days/hours allowed, period start date, period end date
+- [ ] Filter by year/period
+
+### Navigation
+- [ ] Add "Time Off" module card to home screen (all users)
+- [ ] Add "Time Off Dashboard" to admin dashboard module picker
+- [ ] Add route app/modules/time-off.tsx and app/modules/time-off-dashboard.tsx
+
+## Job Role: AquaClean (3/5/2026)
+- [x] Add "AquaClean" to DOS_ROLES in module-permissions.tsx
+- [x] Add "AquaClean" to job role dropdown in admin-users.tsx (user management)
+- [x] Add "AquaClean" to any other role picker/selector in the app
+- [x] Move "Time Off" module card from Utilities to Administration section on home screen and Tools screen

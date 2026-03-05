@@ -27,6 +27,8 @@ const ALL_MODULES = [
   { key: "sales-pipeline", label: "Sales Pipeline", icon: "chart.bar.fill", description: "Track deals, confidence & outcomes" },
   { key: "job-intelligence", label: "Job Intelligence", icon: "chart.bar.fill", description: "Job readiness and field status overview" },
   { key: "receipt-capture", label: "Receipt Capture", icon: "camera.fill", description: "Capture and categorize expense receipts" },
+  { key: "aquaclean-receipt-capture", label: "AquaClean Receipt Capture", icon: "camera.fill", description: "AquaClean-specific expense receipt capture and reporting" },
+  { key: "time-off", label: "Time Off", icon: "calendar", description: "Employee time off requests and PTO balance tracking" },
   { key: "zoning-lookup", label: "Zoning Lookup", icon: "map.fill", description: "Look up property zoning information" },
   { key: "hubspot-crm", label: "HubSpot CRM", icon: "link", description: "Access HubSpot CRM contacts and deals" },
   { key: "training", label: "Training", icon: "book.fill", description: "Training materials and resources" },
@@ -51,6 +53,7 @@ const DOS_ROLES = [
   "Project Supervisor",
   "Warehouse Manager",
   "Marketing",
+  "AquaClean",
   "Team Member",
   "Guest User",
 ];

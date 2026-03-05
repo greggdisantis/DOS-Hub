@@ -61,6 +61,7 @@ const DOS_ROLES = [
   "Project Supervisor",
   "Warehouse Manager",
   "Marketing",
+  "AquaClean",
   "Team Member",
   "Guest User",
 ] as const;
@@ -68,6 +69,8 @@ const DOS_ROLES = [
 /** Module-level permissions */
 const MODULE_PERMISSIONS: { key: string; label: string; icon: any }[] = [
   { key: "receipt-capture", label: "Receipt Capture", icon: "camera.fill" },
+  { key: "aquaclean-receipt-capture", label: "AquaClean Receipt Capture", icon: "camera.fill" },
+  { key: "time-off", label: "Time Off", icon: "calendar" },
   { key: "zoning-lookup", label: "Zoning Lookup", icon: "map.fill" },
   { key: "screen-ordering", label: "Screen Ordering", icon: "rectangle.grid.2x2.fill" },
   { key: "job-intelligence", label: "Job Intelligence", icon: "chart.bar.fill" },

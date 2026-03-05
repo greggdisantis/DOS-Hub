@@ -66,6 +66,15 @@ const ALL_TOOLS: ToolItem[] = [
     category: "Utilities",
   },
   {
+    id: "aquaclean-receipt-capture",
+    title: "AquaClean Receipt Capture",
+    description: "AquaClean-specific expense receipt capture, tracking, and reporting.",
+    icon: "receipt",
+    route: "/modules/aquaclean-receipt-capture",
+    color: "#0EA5E9",
+    category: "Utilities",
+  },
+  {
     id: "zoning-lookup",
     title: "Zoning Lookup",
     description: "Property jurisdiction, zoning, and permit research for PA and NJ.",
@@ -104,6 +113,24 @@ const ALL_TOOLS: ToolItem[] = [
     category: "Training",
   },
   // Administration
+  {
+    id: "time-off",
+    title: "Time Off",
+    description: "Request paid time off, view your PTO balance, and track approvals.",
+    icon: "calendar",
+    route: "/modules/time-off",
+    color: "#22C55E",
+    category: "Administration",
+  },
+  {
+    id: "time-off-admin",
+    title: "Time Off Admin",
+    description: "Manager dashboard: review, approve, or deny employee time off requests.",
+    icon: "calendar",
+    route: "/modules/time-off-admin",
+    color: "#8B5CF6",
+    category: "Administration",
+  },
   {
     id: "hubspot",
     title: "HubSpot CRM",

@@ -120,6 +120,13 @@
       "when": 1772661805879,
       "tag": "0015_complex_wiccan",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "5",
+      "when": 1772671571748,
+      "tag": "0016_big_caretaker",
+      "breakpoints": true
     }
   ]
 }

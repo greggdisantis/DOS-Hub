@@ -559,6 +559,184 @@ export const appRouter = router({
     }),
   }),
 
+  // ─── AQUACLEAN RECEIPTS ───────────────────────────────────────────────────────
+  aquacleanReceipts: router({
+    /** Analyze a receipt image with AI and extract structured data */
+    analyzeImage: protectedProcedure
+      .input(z.object({ imageUrl: z.string() }))
+      .mutation(async ({ input }) => {
+        const { invokeLLM } = await import("./_core/llm");
+        const response = await invokeLLM({
+          messages: [
+            {
+              role: "system",
+              content: `You are a receipt data extraction assistant. Extract all data from the receipt image and return it as JSON. Be precise with numbers.`,
+            },
+            {
+              role: "user",
+              content: [
+                { type: "text", text: "Extract all data from this receipt image. Return JSON with: vendorName, vendorLocation, purchaseDate (YYYY-MM-DD format), lineItems (array of {description, quantity, unitPrice, lineTotal}), subtotal, tax, total. If a field is not visible, return null." },
+                { type: "image_url", image_url: { url: input.imageUrl } },
+              ],
+            },
+          ],
+          response_format: { type: "json_object" },
+        });
+        const content = response.choices[0].message.content;
+        return JSON.parse(typeof content === "string" ? content : JSON.stringify(content));
+      }),
+
+    /** Create a new AquaClean receipt */
+    create: protectedProcedure
+      .input(
+        z.object({
+          submitterName: z.string().optional(),
+          vendorName: z.string().optional(),
+          vendorLocation: z.string().optional(),
+          purchaseDate: z.string().optional(),
+          expenseType: z.enum(["JOB", "OVERHEAD"]).default("JOB"),
+          jobName: z.string().optional(),
+          workOrderNumber: z.string().optional(),
+          poNumber: z.string().optional(),
+          overheadCategory: z.string().optional(),
+          materialCategory: z.string().optional(),
+          lineItems: z.array(z.object({
+            description: z.string(),
+            quantity: z.number(),
+            unitPrice: z.number(),
+            lineTotal: z.number(),
+          })).optional(),
+          subtotal: z.string().optional(),
+          tax: z.string().optional(),
+          total: z.string().optional(),
+          notes: z.string().optional(),
+          imageUrl: z.string().optional(),
+          fileName: z.string().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const id = await db.createAquacleanReceipt({
+          userId: ctx.user.id,
+          companyId: ctx.user.companyId,
+          submitterName: input.submitterName,
+          vendorName: input.vendorName,
+          vendorLocation: input.vendorLocation,
+          purchaseDate: input.purchaseDate,
+          expenseType: input.expenseType,
+          jobName: input.jobName,
+          workOrderNumber: input.workOrderNumber,
+          poNumber: input.poNumber,
+          overheadCategory: input.overheadCategory,
+          materialCategory: input.materialCategory || "Miscellaneous",
+          lineItems: input.lineItems,
+          subtotal: input.subtotal,
+          tax: input.tax,
+          total: input.total,
+          notes: input.notes,
+          imageUrl: input.imageUrl,
+          fileName: input.fileName,
+        });
+        return { id };
+      }),
+
+    /** List AquaClean receipts */
+    list: protectedProcedure
+      .input(z.object({
+        userId: z.number().optional(),
+        vendorName: z.string().optional(),
+        startDate: z.string().optional(),
+        endDate: z.string().optional(),
+      }).optional())
+      .query(async ({ ctx, input }) => {
+        const isAdmin = ctx.user.role === "admin" || ctx.user.role === "manager";
+        if (input && (input.userId || input.vendorName || input.startDate || input.endDate)) {
+          const filters = isAdmin ? input : { ...input, userId: ctx.user.id };
+          return db.getAquacleanReceiptsWithFilters(filters);
+        }
+        return isAdmin ? db.getAllAquacleanReceipts() : db.getUserAquacleanReceipts(ctx.user.id);
+      }),
+
+    /** Get a single AquaClean receipt */
+    get: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const isAdmin = ctx.user.role === "admin" || ctx.user.role === "manager";
+        const receipt = await db.getAquacleanReceipt(input.id);
+        if (!receipt) throw new Error("Receipt not found");
+        if (!isAdmin && receipt.userId !== ctx.user.id) throw new Error("Unauthorized");
+        return receipt;
+      }),
+
+    /** Delete an AquaClean receipt */
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const isAdmin = ctx.user.role === "admin" || ctx.user.role === "manager";
+        if (!isAdmin) {
+          const receipt = await db.getAquacleanReceipt(input.id);
+          if (!receipt) throw new Error("Receipt not found");
+          if (receipt.userId !== ctx.user.id) throw new Error("Unauthorized: you can only delete your own receipts");
+        }
+        await db.deleteAquacleanReceipt(input.id);
+        return { success: true };
+      }),
+
+    /** Generate PDF for an AquaClean receipt */
+    generatePDF: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const receipt = await db.getAquacleanReceipt(input.id);
+        if (!receipt) throw new Error("Receipt not found");
+        const isAdmin = ctx.user.role === "admin" || ctx.user.role === "manager";
+        if (!isAdmin && receipt.userId !== ctx.user.id) throw new Error("Unauthorized");
+        const { generateAquacleanReceiptPDF } = await import("./aquaclean-receipt-pdf");
+        const pdfBuffer = await generateAquacleanReceiptPDF({
+          fileName: receipt.fileName || `${receipt.vendorName || 'Receipt'}_${receipt.purchaseDate || 'unknown'}`,
+          submitterName: receipt.submitterName,
+          expenseType: receipt.expenseType,
+          jobName: receipt.jobName,
+          workOrderNumber: receipt.workOrderNumber,
+          poNumber: receipt.poNumber,
+          overheadCategory: receipt.overheadCategory,
+          vendorName: receipt.vendorName,
+          vendorLocation: receipt.vendorLocation,
+          purchaseDate: receipt.purchaseDate,
+          materialCategory: receipt.materialCategory,
+          lineItems: receipt.lineItems,
+          subtotal: receipt.subtotal,
+          tax: receipt.tax,
+          total: receipt.total,
+          notes: receipt.notes,
+          imageUrl: receipt.imageUrl,
+          createdAt: receipt.createdAt,
+        });
+        const { storagePut } = await import("./storage");
+        const fileKey = `aquaclean-receipts/pdf/${receipt.fileName || `receipt-${receipt.id}`}.pdf`;
+        const { url } = await storagePut(fileKey, pdfBuffer, "application/pdf");
+        return { url, fileName: (receipt.fileName || `receipt-${receipt.id}`) + ".pdf" };
+      }),
+
+    /** Upload AquaClean receipt image to S3 */
+    uploadImage: protectedProcedure
+      .input(z.object({ base64: z.string(), mimeType: z.string().default("image/jpeg"), fileName: z.string().optional() }))
+      .mutation(async ({ ctx, input }) => {
+        const { storagePut } = await import("./storage");
+        const ext = input.mimeType === "image/png" ? "png" : "jpg";
+        const key = `aquaclean-receipts/images/${ctx.user.id}-${Date.now()}.${ext}`;
+        const buf = Buffer.from(input.base64, "base64");
+        const { url } = await storagePut(key, buf, input.mimeType);
+        return { url };
+      }),
+
+    /** Get analytics for the AquaClean finance dashboard */
+    analytics: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user.role !== "admin" && ctx.user.role !== "manager") {
+        throw new Error("Unauthorized: manager or admin role required");
+      }
+      return db.getAquacleanReceiptAnalytics();
+    }),
+  }),
+
   // ─── CMR REPORTS ──────────────────────────────────────────────────────────────
   cmr: router({
     /** Upsert a CMR report (create or update by localId) */
@@ -1110,5 +1288,158 @@ export const appRouter = router({
         return { success: true };
       }),
   }),
+  // ─── TIME OFF ──────────────────────────────────────────────────────────────
+  timeOff: router({
+    /** Get the current user's PTO policy */
+    getMyPolicy: protectedProcedure.query(async ({ ctx }) => {
+      return db.getTimeOffPolicy(ctx.user.id);
+    }),
+
+    /** Admin: get all PTO policies with user info */
+    getAllPolicies: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user.role !== 'admin' && ctx.user.role !== 'manager') {
+        throw new Error('Only managers and admins can view all policies');
+      }
+      const policies = await db.getAllTimeOffPolicies();
+      const users = await db.getAllUsers();
+      return policies.map((p) => {
+        const user = users.find((u) => u.id === p.userId);
+        return { ...p, userName: user?.name || user?.email || `User #${p.userId}` };
+      });
+    }),
+
+    /** Admin: upsert a PTO policy for a user */
+    upsertPolicy: protectedProcedure
+      .input(z.object({
+        userId: z.number(),
+        totalDaysAllowed: z.string().optional(),
+        totalHoursAllowed: z.string().optional(),
+        periodStartDate: z.string().optional(),
+        periodEndDate: z.string().optional(),
+        notes: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== 'admin' && ctx.user.role !== 'manager') {
+          throw new Error('Only managers and admins can update PTO policies');
+        }
+        const id = await db.upsertTimeOffPolicy({
+          userId: input.userId,
+          totalDaysAllowed: input.totalDaysAllowed,
+          totalHoursAllowed: input.totalHoursAllowed,
+          periodStartDate: input.periodStartDate,
+          periodEndDate: input.periodEndDate,
+          notes: input.notes,
+        });
+        return { id };
+      }),
+
+    /** Submit a new time off request */
+    submitRequest: protectedProcedure
+      .input(z.object({
+        requestType: z.string().default('vacation'),
+        startDate: z.string(),
+        endDate: z.string(),
+        startTime: z.string().optional(),
+        endTime: z.string().optional(),
+        totalDays: z.string().optional(),
+        totalHours: z.string().optional(),
+        reason: z.string().optional(),
+        periodYear: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const id = await db.createTimeOffRequest({
+          userId: ctx.user.id,
+          companyId: ctx.user.companyId ?? null,
+          requestType: input.requestType,
+          startDate: input.startDate,
+          endDate: input.endDate,
+          startTime: input.startTime,
+          endTime: input.endTime,
+          totalDays: input.totalDays,
+          totalHours: input.totalHours,
+          reason: input.reason,
+          periodYear: input.periodYear,
+          status: 'pending',
+        });
+        return { id };
+      }),
+
+    /** Get the current user's own requests */
+    getMyRequests: protectedProcedure
+      .input(z.object({ periodYear: z.string().optional() }).optional())
+      .query(async ({ ctx, input }) => {
+        if (input?.periodYear) {
+          return db.getUserTimeOffRequestsByPeriod(ctx.user.id, input.periodYear);
+        }
+        return db.getUserTimeOffRequests(ctx.user.id);
+      }),
+
+    /** Admin/manager: get all requests with optional filters */
+    getAllRequests: protectedProcedure
+      .input(z.object({
+        userId: z.number().optional(),
+        status: z.string().optional(),
+        periodYear: z.string().optional(),
+      }).optional())
+      .query(async ({ ctx, input }) => {
+        if (ctx.user.role !== 'admin' && ctx.user.role !== 'manager') {
+          throw new Error('Only managers and admins can view all requests');
+        }
+        const requests = await db.getAllTimeOffRequests(input || {});
+        const users = await db.getAllUsers();
+        return requests.map((r) => {
+          const user = users.find((u) => u.id === r.userId);
+          return { ...r, userName: user?.name || user?.email || `User #${r.userId}` };
+        });
+      }),
+
+    /** Admin/manager: approve or deny a request */
+    reviewRequest: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        status: z.enum(['approved', 'denied']),
+        reviewNotes: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== 'admin' && ctx.user.role !== 'manager') {
+          throw new Error('Only managers and admins can review requests');
+        }
+        await db.reviewTimeOffRequest(input.id, input.status, ctx.user.id, input.reviewNotes);
+        return { success: true };
+      }),
+
+    /** Employee: cancel own pending request */
+    cancelRequest: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const req = await db.getTimeOffRequest(input.id);
+        if (!req) throw new Error('Request not found');
+        if (req.userId !== ctx.user.id && ctx.user.role !== 'admin' && ctx.user.role !== 'manager') {
+          throw new Error('Not authorized');
+        }
+        await db.cancelTimeOffRequest(input.id);
+        return { success: true };
+      }),
+
+    /** Get used PTO days for current user in a period */
+    getUsedDays: protectedProcedure
+      .input(z.object({ periodYear: z.string().optional() }).optional())
+      .query(async ({ ctx, input }) => {
+        const used = await db.getUsedPTODays(ctx.user.id, input?.periodYear);
+        return { usedDays: used };
+      }),
+
+    /** Admin: get used PTO days for any user */
+    getUserUsedDays: protectedProcedure
+      .input(z.object({ userId: z.number(), periodYear: z.string().optional() }))
+      .query(async ({ ctx, input }) => {
+        if (ctx.user.role !== 'admin' && ctx.user.role !== 'manager') {
+          throw new Error('Not authorized');
+        }
+        const used = await db.getUsedPTODays(input.userId, input.periodYear);
+        return { usedDays: used };
+      }),
+  }),
+
 });
 export type AppRouter = typeof appRouter;

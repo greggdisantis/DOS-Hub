@@ -417,3 +417,64 @@ export type InsertPreconChecklist = typeof preconChecklists.$inferInsert;
 
 // System role type
 export type SystemRole = 'pending' | 'guest' | 'member' | 'manager' | 'admin';
+
+// ─── TIME OFF ─────────────────────────────────────────────────────────────────
+
+/** Per-user PTO policy: how many days/hours allowed per period and when it resets */
+export const timeOffPolicies = mysqlTable("time_off_policies", {
+  id: int("id").primaryKey().autoincrement(),
+  userId: int("userId").notNull(),
+  companyId: int("companyId"),
+  /** Total paid days allowed per period (e.g. 10) */
+  totalDaysAllowed: decimal("totalDaysAllowed", { precision: 5, scale: 2 }).default("0"),
+  /** Total paid hours allowed per period (alternative to days) */
+  totalHoursAllowed: decimal("totalHoursAllowed", { precision: 6, scale: 2 }).default("0"),
+  /** Start date of the current PTO period (YYYY-MM-DD) */
+  periodStartDate: varchar("periodStartDate", { length: 10 }),
+  /** End date of the current PTO period (YYYY-MM-DD) */
+  periodEndDate: varchar("periodEndDate", { length: 10 }),
+  /** Admin notes about this employee's PTO package */
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow(),
+});
+
+/** Individual time off request submitted by an employee */
+export const timeOffRequests = mysqlTable("time_off_requests", {
+  id: int("id").primaryKey().autoincrement(),
+  userId: int("userId").notNull(),
+  companyId: int("companyId"),
+  /** Type of time off: vacation, sick, personal, bereavement, unpaid, other */
+  requestType: varchar("requestType", { length: 50 }).default("vacation").notNull(),
+  /** Start date of the time off (YYYY-MM-DD) */
+  startDate: varchar("startDate", { length: 10 }).notNull(),
+  /** End date of the time off (YYYY-MM-DD) */
+  endDate: varchar("endDate", { length: 10 }).notNull(),
+  /** Optional start time (HH:MM) for partial-day requests */
+  startTime: varchar("startTime", { length: 5 }),
+  /** Optional end time (HH:MM) for partial-day requests */
+  endTime: varchar("endTime", { length: 5 }),
+  /** Total number of days requested */
+  totalDays: decimal("totalDays", { precision: 5, scale: 2 }).default("0"),
+  /** Total number of hours requested */
+  totalHours: decimal("totalHours", { precision: 6, scale: 2 }).default("0"),
+  /** Employee's reason for the request */
+  reason: text("reason"),
+  /** Status: pending, approved, denied, cancelled */
+  status: varchar("status", { length: 20 }).default("pending").notNull(),
+  /** UserId of the manager who reviewed */
+  reviewedBy: int("reviewedBy"),
+  /** When the request was reviewed */
+  reviewedAt: timestamp("reviewedAt"),
+  /** Manager's note on approval/denial */
+  reviewNotes: text("reviewNotes"),
+  /** Which PTO period year this request belongs to (e.g. "2025-2026") */
+  periodYear: varchar("periodYear", { length: 20 }),
+  createdAt: timestamp("createdAt").defaultNow(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow(),
+});
+
+export type TimeOffPolicy = typeof timeOffPolicies.$inferSelect;
+export type InsertTimeOffPolicy = typeof timeOffPolicies.$inferInsert;
+export type TimeOffRequest = typeof timeOffRequests.$inferSelect;
+export type InsertTimeOffRequest = typeof timeOffRequests.$inferInsert;
