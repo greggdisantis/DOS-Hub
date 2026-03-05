@@ -740,3 +740,15 @@
 
 ## BUG: Time Off Admin delete button still not working (3/5/2026)
 - [x] Deep debug delete button - root cause was server auth guard checking ctx.user.role === 'admin' but users have system role 'approved'; fixed to also allow Owner/Operations Manager/Project Manager dosRoles
+
+## isEmployee Toggle + Time Off Admin Employees Tab (3/5/2026)
+- [x] Add isEmployee boolean column to users table in schema.ts
+- [x] Add setIsEmployee tRPC endpoint to update the flag
+- [x] Add listEmployees tRPC endpoint to get only employee users
+- [x] Add getPolicyForUser tRPC endpoint to get PTO policy for a specific user
+- [x] Add Employee toggle (Switch) to User Management panel (admin-only, in expanded card)
+- [x] Show EMPLOYEE badge on user card header when isEmployee = true
+- [x] Filter Time Off Admin Employees tab to only show users where isEmployee = true
+- [x] Update Employees stat card count to reflect only employees
+- [x] PTO policy configured per employee via Edit PTO / Set PTO button in Employees tab
+- [x] Empty state in Employees tab guides admin to mark users as Employee in User Management

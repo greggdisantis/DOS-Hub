@@ -230,6 +230,18 @@ export async function updatePermissions(userId: number, permissions: Record<stri
   await db.update(users).set({ permissions }).where(eq(users.id, userId));
 }
 
+export async function setIsEmployee(userId: number, isEmployee: boolean) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(users).set({ isEmployee: isEmployee }).where(eq(users.id, userId));
+}
+
+export async function getEmployeeUsers() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(users).where(eq(users.isEmployee, true)).orderBy(users.name);
+}
+
 // ─── SCREEN ORDER QUERIES ───────────────────────────────────────────────────
 
 export async function createScreenOrder(data: InsertScreenOrder): Promise<number> {

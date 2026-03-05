@@ -68,6 +68,7 @@ function EditPolicyModal({
   const upsert = trpc.timeOff.upsertPolicy.useMutation({
     onSuccess: () => {
       utils.timeOff.getAllPolicies.invalidate();
+      utils.timeOff.getPolicyForUser.invalidate({ userId: user.id });
       onSaved();
     },
     onError: (e) => Alert.alert("Error", e.message),
@@ -264,44 +265,43 @@ function ReviewModal({
             {request.reason && (
               <View style={styles.reviewRow}>
                 <Text style={[styles.reviewRowLabel, { color: colors.muted }]}>Reason</Text>
-                <Text style={[styles.reviewRowValue, { color: colors.foreground, flex: 1 }]}>{request.reason}</Text>
+                <Text style={[styles.reviewRowValue, { color: colors.foreground }]}>{request.reason}</Text>
               </View>
             )}
           </View>
 
-          {/* Manager note */}
-          <View style={styles.fieldGroup}>
-            <Text style={[styles.label, { color: colors.muted }]}>MANAGER NOTE (optional)</Text>
-            <TextInput
-              style={[styles.textArea, { backgroundColor: colors.surface, color: colors.foreground, borderColor: colors.border }]}
-              value={reviewNotes}
-              onChangeText={setReviewNotes}
-              placeholder="Add a note for the employee..."
-              placeholderTextColor={colors.muted}
-              multiline
-              numberOfLines={3}
-              returnKeyType="done"
-            />
-          </View>
-
-          {/* Action buttons */}
           {request.status === "pending" && (
-            <View style={styles.reviewBtnRow}>
-              <TouchableOpacity
-                style={[styles.reviewBtn, { backgroundColor: "#22C55E" }]}
-                onPress={() => review.mutate({ id: request.id, status: "approved", reviewNotes: reviewNotes || undefined })}
-                disabled={review.isPending}
-              >
-                {review.isPending ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.reviewBtnText}>Approve</Text>}
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.reviewBtn, { backgroundColor: "#EF4444" }]}
-                onPress={() => review.mutate({ id: request.id, status: "denied", reviewNotes: reviewNotes || undefined })}
-                disabled={review.isPending}
-              >
-                {review.isPending ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.reviewBtnText}>Deny</Text>}
-              </TouchableOpacity>
-            </View>
+            <>
+              <View style={styles.fieldGroup}>
+                <Text style={[styles.label, { color: colors.muted }]}>REVIEW NOTES (optional)</Text>
+                <TextInput
+                  style={[styles.textArea, { backgroundColor: colors.surface, color: colors.foreground, borderColor: colors.border }]}
+                  value={reviewNotes}
+                  onChangeText={setReviewNotes}
+                  placeholder="Add a note for the employee..."
+                  placeholderTextColor={colors.muted}
+                  multiline
+                  numberOfLines={3}
+                  returnKeyType="done"
+                />
+              </View>
+              <View style={styles.reviewBtnRow}>
+                <TouchableOpacity
+                  style={[styles.reviewBtn, { backgroundColor: "#22C55E" }]}
+                  onPress={() => review.mutate({ id: request.id, status: "approved", reviewNotes: reviewNotes || undefined })}
+                  disabled={review.isPending}
+                >
+                  {review.isPending ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.reviewBtnText}>Approve</Text>}
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.reviewBtn, { backgroundColor: "#EF4444" }]}
+                  onPress={() => review.mutate({ id: request.id, status: "denied", reviewNotes: reviewNotes || undefined })}
+                  disabled={review.isPending}
+                >
+                  {review.isPending ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.reviewBtnText}>Deny</Text>}
+                </TouchableOpacity>
+              </View>
+            </>
           )}
 
           {request.status !== "pending" && (
@@ -322,56 +322,65 @@ function ReviewModal({
   );
 }
 
-// ─── Employee Row ─────────────────────────────────────────────────────────────
+// ─── Employee Row (with inline PTO policy) ────────────────────────────────────
 
 function EmployeeRow({
-  policy,
+  employee,
   onEditPolicy,
   onViewRequests,
   colors,
 }: {
-  policy: any;
-  onEditPolicy: (policy: any) => void;
+  employee: any;
+  onEditPolicy: (employee: any) => void;
   onViewRequests: (userId: number, userName: string) => void;
   colors: ReturnType<typeof useColors>;
 }) {
+  const { data: policy } = trpc.timeOff.getPolicyForUser.useQuery({ userId: employee.id });
+  const { data: usedData } = trpc.timeOff.getUserUsedDays.useQuery({ userId: employee.id });
+
   const totalDays = parseFloat(String(policy?.totalDaysAllowed ?? "0"));
-  const { data: usedData } = trpc.timeOff.getUserUsedDays.useQuery({ userId: policy.userId });
   const usedDays = usedData?.usedDays ?? 0;
   const remaining = Math.max(0, totalDays - usedDays);
   const pct = totalDays > 0 ? Math.min(1, usedDays / totalDays) : 0;
   const barColor = pct > 0.8 ? "#EF4444" : pct > 0.5 ? "#F59E0B" : "#22C55E";
+  const displayName = employee.name || employee.email || `User #${employee.id}`;
 
   return (
     <View style={[styles.employeeRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
       <View style={styles.employeeInfo}>
-        <Text style={[styles.employeeName, { color: colors.foreground }]}>{policy.userName}</Text>
-        <Text style={[styles.employeeMeta, { color: colors.muted }]}>
-          {remaining.toFixed(1)} / {totalDays.toFixed(1)} days remaining
-        </Text>
-        {policy.periodStartDate && policy.periodEndDate && (
-          <Text style={[styles.employeePeriod, { color: colors.muted }]}>
-            {formatDate(policy.periodStartDate)} – {formatDate(policy.periodEndDate)}
-          </Text>
+        <Text style={[styles.employeeName, { color: colors.foreground }]}>{displayName}</Text>
+        {policy ? (
+          <>
+            <Text style={[styles.employeeMeta, { color: colors.muted }]}>
+              {remaining.toFixed(1)} / {totalDays.toFixed(1)} days remaining
+            </Text>
+            {policy.periodStartDate && policy.periodEndDate && (
+              <Text style={[styles.employeePeriod, { color: colors.muted }]}>
+                {formatDate(policy.periodStartDate)} – {formatDate(policy.periodEndDate)}
+              </Text>
+            )}
+            {/* Progress bar */}
+            <View style={[styles.miniProgressTrack, { backgroundColor: colors.border }]}>
+              <View style={[styles.miniProgressFill, { width: `${pct * 100}%`, backgroundColor: barColor }]} />
+            </View>
+          </>
+        ) : (
+          <Text style={[styles.employeeMeta, { color: colors.muted }]}>No PTO policy configured</Text>
         )}
-        {/* Progress bar */}
-        <View style={[styles.miniProgressTrack, { backgroundColor: colors.border }]}>
-          <View style={[styles.miniProgressFill, { width: `${pct * 100}%`, backgroundColor: barColor }]} />
-        </View>
       </View>
 
       <View style={styles.employeeActions}>
         <TouchableOpacity
           style={[styles.actionBtn, { borderColor: colors.border }]}
-          onPress={() => onViewRequests(policy.userId, policy.userName)}
+          onPress={() => onViewRequests(employee.id, displayName)}
         >
           <Text style={[styles.actionBtnText, { color: colors.primary }]}>Requests</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.actionBtn, { borderColor: "#3B82F6", backgroundColor: "#3B82F610" }]}
-          onPress={() => onEditPolicy(policy)}
+          onPress={() => onEditPolicy({ ...policy, userId: employee.id, userName: displayName })}
         >
-          <Text style={[styles.actionBtnText, { color: "#3B82F6" }]}>Edit</Text>
+          <Text style={[styles.actionBtnText, { color: "#3B82F6" }]}>{policy ? "Edit PTO" : "Set PTO"}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -410,7 +419,8 @@ export default function TimeOffAdminScreen() {
     );
   }, [deleteRequest]);
 
-  const { data: policies = [], isLoading: policiesLoading } = trpc.timeOff.getAllPolicies.useQuery();
+  // Use listEmployees to get only users marked as employees
+  const { data: employees = [], isLoading: employeesLoading } = trpc.users.listEmployees.useQuery();
   const { data: allRequests = [], isLoading: requestsLoading } = trpc.timeOff.getAllRequests.useQuery(
     selectedUser
       ? { userId: selectedUser.id, periodYear: filterPeriod || undefined }
@@ -448,7 +458,7 @@ export default function TimeOffAdminScreen() {
             <Text style={[styles.statLabel, { color: colors.muted }]}>Approved</Text>
           </View>
           <View style={[styles.statCard, { backgroundColor: "#3B82F620", borderColor: "#3B82F640" }]}>
-            <Text style={[styles.statNum, { color: "#3B82F6" }]}>{policies.length}</Text>
+            <Text style={[styles.statNum, { color: "#3B82F6" }]}>{employees.length}</Text>
             <Text style={[styles.statLabel, { color: colors.muted }]}>Employees</Text>
           </View>
         </View>
@@ -462,7 +472,13 @@ export default function TimeOffAdminScreen() {
               onPress={() => { setActiveTab(tab); if (tab !== "all") setSelectedUser(null); }}
             >
               <Text style={[styles.tabText, { color: activeTab === tab ? "#3B82F6" : colors.muted }]}>
-                {tab === "pending" ? `Pending (${pendingRequests.length})` : tab === "employees" ? "Employees" : selectedUser ? `${selectedUser.name}'s Requests` : "All Requests"}
+                {tab === "pending"
+                  ? `Pending (${pendingRequests.length})`
+                  : tab === "employees"
+                  ? `Employees (${employees.length})`
+                  : selectedUser
+                  ? `${selectedUser.name}'s Requests`
+                  : "All Requests"}
               </Text>
             </TouchableOpacity>
           ))}
@@ -472,20 +488,20 @@ export default function TimeOffAdminScreen() {
         {activeTab === "employees" && (
           <>
             <Text style={[styles.sectionLabel, { color: colors.muted }]}>EMPLOYEE PTO OVERVIEW</Text>
-            {policiesLoading ? (
+            {employeesLoading ? (
               <ActivityIndicator style={{ marginTop: 24 }} color={colors.primary} />
-            ) : policies.length === 0 ? (
+            ) : employees.length === 0 ? (
               <View style={[styles.emptyState, { borderColor: colors.border }]}>
-                <Text style={[styles.emptyText, { color: colors.muted }]}>No PTO policies configured yet.</Text>
+                <Text style={[styles.emptyText, { color: colors.muted }]}>No employees configured yet.</Text>
                 <Text style={[styles.emptySubText, { color: colors.muted }]}>
-                  Policies are created automatically when you edit an employee's PTO settings.
+                  Mark users as "Employee" in User Management to see them here.
                 </Text>
               </View>
             ) : (
-              policies.map((p: any) => (
+              employees.map((emp: any) => (
                 <EmployeeRow
-                  key={p.userId}
-                  policy={p}
+                  key={emp.id}
+                  employee={emp}
                   onEditPolicy={setEditingPolicy}
                   onViewRequests={handleViewRequests}
                   colors={colors}

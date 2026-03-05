@@ -1,0 +1,1 @@
+ALTER TABLE `users` ADD `isEmployee` boolean DEFAULT false NOT NULL;

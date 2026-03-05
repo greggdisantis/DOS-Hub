@@ -7,6 +7,7 @@ import {
   RefreshControl,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TouchableOpacity,
   View,
@@ -302,28 +303,23 @@ function PermissionsModal({
           </Text>
           <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 380 }}>
             {MODULE_PERMISSIONS.map((mod) => {
-              const enabled = draft[mod.key] !== false; // default to true (access granted)
+              const enabled = !!draft[mod.key];
               return (
                 <View
                   key={mod.key}
                   style={[styles.permRow, { borderBottomColor: colors.border }]}
                 >
-                  <IconSymbol name={mod.icon} size={18} color={enabled ? colors.primary : colors.muted} />
-                  <Text style={{ flex: 1, fontSize: 15, color: colors.foreground, marginLeft: 10 }}>
-                    {mod.label}
-                  </Text>
+                  <IconSymbol name={mod.icon} size={18} color={colors.primary} style={{ marginRight: 10 }} />
+                  <Text style={{ fontSize: 14, color: colors.foreground, flex: 1 }}>{mod.label}</Text>
                   <TouchableOpacity
                     onPress={() => handleToggle(mod.key)}
-                    activeOpacity={0.7}
-                    style={[
-                      styles.toggle,
-                      { backgroundColor: enabled ? colors.primary : colors.border },
-                    ]}
+                    activeOpacity={0.8}
+                    style={[styles.toggle, { backgroundColor: enabled ? colors.primary : colors.border }]}
                   >
                     <View
                       style={[
                         styles.toggleThumb,
-                        { transform: [{ translateX: enabled ? 18 : 2 }] },
+                        { marginLeft: enabled ? 20 : 2 },
                       ]}
                     />
                   </TouchableOpacity>
@@ -355,19 +351,21 @@ function PermissionsModal({
 
 // ─── User Card ────────────────────────────────────────────────────────────────
 
-function UserCard({ item, onApprove, onReject, onChangeRole, onChangeDosRoles, onChangePermissions }: {
+function UserCard({ item, onApprove, onReject, onChangeRole, onChangeDosRoles, onChangePermissions, onToggleEmployee }: {
   item: any;
   onApprove: () => void;
   onReject: () => void;
   onChangeRole: () => void;
   onChangeDosRoles: () => void;
   onChangePermissions: () => void;
+  onToggleEmployee: (value: boolean) => void;
 }) {
   const colors = useColors();
   const [expanded, setExpanded] = useState(false);
   const isPending = !item.approved;
   const roleColor = SYSTEM_ROLE_COLORS[item.role] || colors.muted;
   const dosRoles: string[] = Array.isArray(item.dosRoles) ? item.dosRoles : [];
+  const isEmployee: boolean = !!item.isEmployee;
 
   return (
     <View style={[styles.userCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -383,7 +381,14 @@ function UserCard({ item, onApprove, onReject, onChangeRole, onChangeDosRoles, o
           </Text>
         </View>
         <View style={styles.userInfo}>
-          <Text style={{ fontSize: 15, fontWeight: "600", color: colors.foreground }}>{item.name || "Unknown"}</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <Text style={{ fontSize: 15, fontWeight: "600", color: colors.foreground }}>{item.name || "Unknown"}</Text>
+            {isEmployee && (
+              <View style={[styles.employeeBadge, { backgroundColor: colors.success + "20" }]}>
+                <Text style={{ fontSize: 10, fontWeight: "700", color: colors.success }}>EMPLOYEE</Text>
+              </View>
+            )}
+          </View>
           <Text style={{ fontSize: 12, color: colors.muted }}>{item.email || "No email"}</Text>
           {dosRoles.length > 0 && (
             <Text style={{ fontSize: 11, color: colors.primary, marginTop: 2 }} numberOfLines={1}>
@@ -426,7 +431,24 @@ function UserCard({ item, onApprove, onReject, onChangeRole, onChangeDosRoles, o
           <Text style={{ fontSize: 12, fontWeight: "700", color: colors.muted, marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.5 }}>
             Manage User
           </Text>
-          <View style={styles.mgmtRow}>
+
+          {/* Employee Toggle */}
+          <View style={[styles.employeeToggleRow, { borderColor: colors.border, backgroundColor: isEmployee ? colors.success + "10" : "transparent" }]}>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 14, fontWeight: "600", color: colors.foreground }}>Employee</Text>
+              <Text style={{ fontSize: 12, color: colors.muted, marginTop: 2 }}>
+                {isEmployee ? "Appears in Time Off management" : "Not tracked for time off"}
+              </Text>
+            </View>
+            <Switch
+              value={isEmployee}
+              onValueChange={onToggleEmployee}
+              trackColor={{ false: colors.border, true: colors.success }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
+
+          <View style={[styles.mgmtRow, { marginTop: 10 }]}>
             <TouchableOpacity
               onPress={onChangeRole}
               activeOpacity={0.7}
@@ -476,7 +498,6 @@ function AdminUsersContent() {
   const colors = useColors();
   const router = useRouter();
   const utils = trpc.useUtils();
-
   const { data: allUsers, isLoading, refetch } = trpc.users.list.useQuery();
   const { data: pendingUsers } = trpc.users.pending.useQuery();
 
@@ -493,6 +514,9 @@ function AdminUsersContent() {
     onSuccess: () => utils.users.list.invalidate(),
   });
   const updatePermissionsMutation = trpc.users.updatePermissions.useMutation({
+    onSuccess: () => utils.users.list.invalidate(),
+  });
+  const setIsEmployeeMutation = trpc.users.setIsEmployee.useMutation({
     onSuccess: () => utils.users.list.invalidate(),
   });
 
@@ -559,6 +583,10 @@ function AdminUsersContent() {
     setPermsModal((prev) => ({ ...prev, visible: false }));
   };
 
+  const handleToggleEmployee = (userId: number, value: boolean) => {
+    setIsEmployeeMutation.mutate({ userId, isEmployee: value });
+  };
+
   const pendingCount = pendingUsers?.length ?? 0;
 
   if (isLoading) {
@@ -609,6 +637,7 @@ function AdminUsersContent() {
             onChangeRole={() => handleChangeRole(item.id, item.name, item.role)}
             onChangeDosRoles={() => handleChangeDosRoles(item.id, item.name, Array.isArray(item.dosRoles) ? item.dosRoles : [])}
             onChangePermissions={() => handleChangePermissions(item.id, item.name, (item.permissions as Record<string, boolean>) || {})}
+            onToggleEmployee={(value) => handleToggleEmployee(item.id, value)}
           />
         )}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}
@@ -670,10 +699,15 @@ const styles = StyleSheet.create({
   avatar: { width: 42, height: 42, borderRadius: 21, alignItems: "center", justifyContent: "center" },
   userInfo: { flex: 1 },
   roleBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+  employeeBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
   actionRow: { flexDirection: "row", paddingHorizontal: 14, paddingBottom: 12, gap: 10 },
   actionButton: { flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8, gap: 6 },
   actionButtonText: { color: "#FFFFFF", fontSize: 13, fontWeight: "600" },
   expandedPanel: { paddingHorizontal: 14, paddingVertical: 12, borderTopWidth: StyleSheet.hairlineWidth },
+  employeeToggleRow: {
+    flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 10,
+    borderRadius: 10, borderWidth: 1, marginBottom: 4,
+  },
   mgmtRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   mgmtBtn: {
     flexDirection: "row", alignItems: "center", gap: 6,

@@ -142,6 +142,25 @@ export const appRouter = router({
         await db.updatePermissions(input.userId, input.permissions);
         return { success: true };
       }),
+
+    /** Toggle whether a user is marked as an employee (for Time Off tracking) */
+    setIsEmployee: protectedProcedure
+      .input(z.object({ userId: z.number(), isEmployee: z.boolean() }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") {
+          throw new Error("Unauthorized: admin role required");
+        }
+        await db.setIsEmployee(input.userId, input.isEmployee);
+        return { success: true };
+      }),
+
+    /** Get all users marked as employees */
+    listEmployees: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user.role !== "admin") {
+        throw new Error("Unauthorized: admin role required");
+      }
+      return db.getEmployeeUsers();
+    }),
   }),
 
   // ─── MODULE PERMISSIONS (Owner job role only) ──────────────────────────────
@@ -1308,6 +1327,15 @@ export const appRouter = router({
       });
     }),
 
+    /** Admin: get PTO policy for a specific user */
+    getPolicyForUser: protectedProcedure
+      .input(z.object({ userId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        if (ctx.user.role !== 'admin' && ctx.user.role !== 'manager') {
+          throw new Error('Only managers and admins can view user policies');
+        }
+        return db.getTimeOffPolicy(input.userId);
+      }),
     /** Admin: upsert a PTO policy for a user */
     upsertPolicy: protectedProcedure
       .input(z.object({
