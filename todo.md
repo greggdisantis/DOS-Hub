@@ -758,3 +758,8 @@
 
 ## BUG: Date picker not working in Edit PTO Policy modal (3/5/2026)
 - [x] Fix date picker - clicking does nothing on web (fixed: replaced overlay approach with direct HTML <input type="date"> rendered as the button on web; native DateTimePicker used on iOS/Android)
+
+## DatePicker Skill (3/5/2026)
+- [x] Extract DatePicker into shared component (components/ui/date-picker.tsx)
+- [x] Create dos-hub-datepicker skill with SKILL.md documenting usage
+- [x] Update time-off-admin.tsx to use the shared DatePicker component

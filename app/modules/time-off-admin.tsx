@@ -11,51 +11,11 @@ import {
   StyleSheet,
   Platform,
 } from "react-native";
-import DateTimePicker from "@react-native-community/datetimepicker";
 import { Stack } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { trpc } from "@/lib/trpc";
 import { useColors } from "@/hooks/use-colors";
-
-// Web-compatible date picker button — renders a styled HTML <input type="date"> directly
-function WebDateButton({
-  value,
-  onChange,
-  placeholder,
-  colors,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  placeholder: string;
-  colors: ReturnType<typeof useColors>;
-}) {
-  if (Platform.OS !== "web") return null;
-  // On web, render the native date input styled to look like the button
-  return (
-    <input
-      type="date"
-      value={value || ""}
-      onChange={(e: any) => onChange(e.target.value)}
-      placeholder={placeholder}
-      style={{
-        display: "flex",
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        width: "100%",
-        padding: "14px",
-        borderRadius: 10,
-        border: `1px solid ${colors.border}`,
-        backgroundColor: colors.surface,
-        color: value ? colors.foreground : colors.muted,
-        fontSize: 16,
-        cursor: "pointer",
-        outline: "none",
-        boxSizing: "border-box",
-      }}
-    />
-  );
-}
+import { DatePicker } from "@/components/ui/date-picker";
 
 // ─── Types & Constants ────────────────────────────────────────────────────────
 
@@ -104,25 +64,6 @@ function EditPolicyModal({
   const [periodStart, setPeriodStart] = useState(policy?.periodStartDate ?? "");
   const [periodEnd, setPeriodEnd] = useState(policy?.periodEndDate ?? "");
   const [notes, setNotes] = useState(policy?.notes ?? "");
-  const [showStartPicker, setShowStartPicker] = useState(false);
-  const [showEndPicker, setShowEndPicker] = useState(false);
-
-  // Convert "YYYY-MM-DD" string to Date object (or today if empty)
-  const toDate = (str: string): Date => {
-    if (str && /^\d{4}-\d{2}-\d{2}$/.test(str)) {
-      const [y, m, d] = str.split("-").map(Number);
-      return new Date(y, m - 1, d);
-    }
-    return new Date();
-  };
-  // Convert Date to "YYYY-MM-DD" string
-  const fromDate = (date: Date): string => {
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, "0");
-    const d = String(date.getDate()).padStart(2, "0");
-    return `${y}-${m}-${d}`;
-  };
-
   const utils = trpc.useUtils();
   const upsert = trpc.timeOff.upsertPolicy.useMutation({
     onSuccess: () => {
@@ -193,75 +134,23 @@ function EditPolicyModal({
           {/* Period Start Date Picker */}
           <View style={styles.fieldGroup}>
             <Text style={[styles.label, { color: colors.muted }]}>PERIOD START DATE</Text>
-            {Platform.OS === "web" ? (
-              <WebDateButton
-                value={periodStart}
-                onChange={setPeriodStart}
-                placeholder="Select start date"
-                colors={colors}
-              />
-            ) : (
-              <>
-                <TouchableOpacity
-                  onPress={() => setShowStartPicker(true)}
-                  activeOpacity={0.7}
-                  style={[styles.datePickerBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}
-                >
-                  <Text style={{ fontSize: 16, color: periodStart ? colors.foreground : colors.muted }}>
-                    {periodStart ? formatDate(periodStart) : "Select start date"}
-                  </Text>
-                  <Text style={{ fontSize: 18 }}>📅</Text>
-                </TouchableOpacity>
-                {showStartPicker && (
-                  <DateTimePicker
-                    value={toDate(periodStart)}
-                    mode="date"
-                    display={Platform.OS === "ios" ? "inline" : "default"}
-                    onChange={(_, date) => {
-                      setShowStartPicker(Platform.OS === "ios");
-                      if (date) setPeriodStart(fromDate(date));
-                    }}
-                  />
-                )}
-              </>
-            )}
+            <DatePicker
+              value={periodStart}
+              onChange={setPeriodStart}
+              placeholder="Select start date"
+              colors={colors}
+            />
           </View>
 
           {/* Period End Date Picker */}
           <View style={styles.fieldGroup}>
             <Text style={[styles.label, { color: colors.muted }]}>PERIOD END DATE</Text>
-            {Platform.OS === "web" ? (
-              <WebDateButton
-                value={periodEnd}
-                onChange={setPeriodEnd}
-                placeholder="Select end date"
-                colors={colors}
-              />
-            ) : (
-              <>
-                <TouchableOpacity
-                  onPress={() => setShowEndPicker(true)}
-                  activeOpacity={0.7}
-                  style={[styles.datePickerBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}
-                >
-                  <Text style={{ fontSize: 16, color: periodEnd ? colors.foreground : colors.muted }}>
-                    {periodEnd ? formatDate(periodEnd) : "Select end date"}
-                  </Text>
-                  <Text style={{ fontSize: 18 }}>📅</Text>
-                </TouchableOpacity>
-                {showEndPicker && (
-                  <DateTimePicker
-                    value={toDate(periodEnd)}
-                    mode="date"
-                    display={Platform.OS === "ios" ? "inline" : "default"}
-                    onChange={(_, date) => {
-                      setShowEndPicker(Platform.OS === "ios");
-                      if (date) setPeriodEnd(fromDate(date));
-                    }}
-                  />
-                )}
-              </>
-            )}
+            <DatePicker
+              value={periodEnd}
+              onChange={setPeriodEnd}
+              placeholder="Select end date"
+              colors={colors}
+            />
           </View>
 
           <View style={styles.fieldGroup}>
