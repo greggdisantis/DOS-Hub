@@ -581,6 +581,100 @@ function EmployeeRow({
   );
 }
 
+// ─── Request Card (self-contained with its own delete mutation) ──────────────
+
+function RequestCard({
+  req,
+  colors,
+  onReview,
+  onDeleted,
+}: {
+  req: any;
+  colors: ReturnType<typeof useColors>;
+  onReview: (req: any) => void;
+  onDeleted: () => void;
+}) {
+  const typeColor = REQUEST_TYPE_COLORS[req.requestType] || "#3B82F6";
+  const statusColor = STATUS_COLORS[req.status] || "#9CA3AF";
+
+  const deleteMutation = trpc.timeOff.deleteRequest.useMutation({
+    onSuccess: onDeleted,
+    onError: (err) => Alert.alert("Delete Failed", err.message),
+  });
+
+  const handleDelete = () => {
+    Alert.alert(
+      "Delete Request",
+      `Delete ${req.userName}'s ${req.requestType} request? This cannot be undone.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => deleteMutation.mutate({ id: req.id }),
+        },
+      ]
+    );
+  };
+
+  return (
+    <View style={[styles.requestCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      <View style={styles.requestCardHeader}>
+        <Text style={[styles.requestEmployee, { color: colors.foreground }]}>{req.userName}</Text>
+        <View style={[styles.statusBadge, { backgroundColor: statusColor + "20" }]}>
+          <Text style={[styles.statusText, { color: statusColor }]}>{req.status.toUpperCase()}</Text>
+        </View>
+      </View>
+      <TouchableOpacity activeOpacity={0.7} onPress={() => onReview(req)}>
+        <View style={styles.requestCardRow}>
+          <View style={[styles.typeBadge, { backgroundColor: typeColor + "20", borderColor: typeColor }]}>
+            <Text style={[styles.typeBadgeText, { color: typeColor }]}>
+              {req.requestType.charAt(0).toUpperCase() + req.requestType.slice(1)}
+            </Text>
+          </View>
+          <Text style={[styles.requestDates, { color: colors.muted }]}>
+            {formatDate(req.startDate)}{req.startDate !== req.endDate ? ` – ${formatDate(req.endDate)}` : ""}
+          </Text>
+        </View>
+        <Text style={[styles.requestDuration, { color: colors.muted }]}>
+          {parseFloat(String(req.totalDays ?? "0")).toFixed(1)} days
+          {req.periodYear ? ` · ${req.periodYear}` : ""}
+        </Text>
+        {req.reason ? (
+          <Text style={[styles.requestReason, { color: colors.muted }]} numberOfLines={1}>{req.reason}</Text>
+        ) : null}
+        {req.status === "pending" && (
+          <Text style={{ color: "#3B82F6", fontSize: 13, fontWeight: "600", marginTop: 6 }}>Tap to review →</Text>
+        )}
+      </TouchableOpacity>
+      {/* Action buttons row */}
+      <View style={{ flexDirection: "row", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+        {req.status === "pending" && (
+          <TouchableOpacity
+            style={[styles.actionBtn, { borderColor: colors.primary }]}
+            onPress={() => onReview(req)}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.actionBtnText, { color: colors.primary }]}>Review</Text>
+          </TouchableOpacity>
+        )}
+        <TouchableOpacity
+          style={[styles.actionBtn, { borderColor: "#EF4444" }]}
+          onPress={handleDelete}
+          disabled={deleteMutation.isPending}
+          activeOpacity={0.7}
+        >
+          {deleteMutation.isPending ? (
+            <ActivityIndicator size="small" color="#EF4444" />
+          ) : (
+            <Text style={[styles.actionBtnText, { color: "#EF4444" }]}>Delete</Text>
+          )}
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
 // ─── Main Admin Dashboard ─────────────────────────────────────────────────────
 
 export default function TimeOffAdminScreen() {
@@ -593,26 +687,6 @@ export default function TimeOffAdminScreen() {
   const [activeFilters, setActiveFilters] = useState<RequestFilters>(EMPTY_FILTERS);
 
   const utils = trpc.useUtils();
-
-  const deleteRequest = trpc.timeOff.deleteRequest.useMutation({
-    onSuccess: () => utils.timeOff.getAllRequests.invalidate(),
-    onError: (err) => Alert.alert("Error", err.message),
-  });
-
-  const handleDeleteRequest = useCallback((req: any) => {
-    Alert.alert(
-      "Delete Request",
-      `Delete ${req.userName}'s ${req.requestType} request? This cannot be undone.`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: () => deleteRequest.mutate({ id: req.id }),
-        },
-      ]
-    );
-  }, [deleteRequest]);
 
   // Use listEmployees to get only users marked as employees
   const { data: employees = [], isLoading: employeesLoading } = trpc.users.listEmployees.useQuery();
@@ -780,66 +854,15 @@ export default function TimeOffAdminScreen() {
                 </Text>
               </View>
             ) : (
-              displayedRequests.map((req: any) => {
-                const typeColor = REQUEST_TYPE_COLORS[req.requestType] || "#3B82F6";
-                const statusColor = STATUS_COLORS[req.status] || "#9CA3AF";
-                return (
-                  <View key={req.id} style={[styles.requestCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                    <View style={styles.requestCardHeader}>
-                      <Text style={[styles.requestEmployee, { color: colors.foreground }]}>{req.userName}</Text>
-                      <View style={[styles.statusBadge, { backgroundColor: statusColor + "20" }]}>
-                        <Text style={[styles.statusText, { color: statusColor }]}>{req.status.toUpperCase()}</Text>
-                      </View>
-                    </View>
-                    <TouchableOpacity activeOpacity={0.7} onPress={() => setReviewingRequest(req)}>
-                      <View style={styles.requestCardRow}>
-                        <View style={[styles.typeBadge, { backgroundColor: typeColor + "20", borderColor: typeColor }]}>
-                          <Text style={[styles.typeBadgeText, { color: typeColor }]}>
-                            {req.requestType.charAt(0).toUpperCase() + req.requestType.slice(1)}
-                          </Text>
-                        </View>
-                        <Text style={[styles.requestDates, { color: colors.muted }]}>
-                          {formatDate(req.startDate)}{req.startDate !== req.endDate ? ` – ${formatDate(req.endDate)}` : ""}
-                        </Text>
-                      </View>
-                      <Text style={[styles.requestDuration, { color: colors.muted }]}>
-                        {parseFloat(String(req.totalDays ?? "0")).toFixed(1)} days
-                        {req.periodYear ? ` · ${req.periodYear}` : ""}
-                      </Text>
-                      {req.reason ? (
-                        <Text style={[styles.requestReason, { color: colors.muted }]} numberOfLines={1}>{req.reason}</Text>
-                      ) : null}
-                      {req.status === "pending" && (
-                        <Text style={{ color: "#3B82F6", fontSize: 13, fontWeight: "600", marginTop: 6 }}>Tap to review →</Text>
-                      )}
-                    </TouchableOpacity>
-                    {/* Action buttons row */}
-                    <View style={{ flexDirection: "row", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
-                      {req.status === "pending" && (
-                        <TouchableOpacity
-                          style={[styles.actionBtn, { borderColor: colors.primary }]}
-                          onPress={() => setReviewingRequest(req)}
-                          activeOpacity={0.7}
-                        >
-                          <Text style={[styles.actionBtnText, { color: colors.primary }]}>Review</Text>
-                        </TouchableOpacity>
-                      )}
-                      <TouchableOpacity
-                        style={[styles.actionBtn, { borderColor: "#EF444480" }]}
-                        onPress={() => handleDeleteRequest(req)}
-                        disabled={deleteRequest.isPending}
-                        activeOpacity={0.7}
-                      >
-                        {deleteRequest.isPending ? (
-                          <ActivityIndicator size="small" color="#EF4444" />
-                        ) : (
-                          <Text style={[styles.actionBtnText, { color: "#EF4444" }]}>Delete</Text>
-                        )}
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                );
-              })
+              displayedRequests.map((req: any) => (
+                <RequestCard
+                  key={req.id}
+                  req={req}
+                  colors={colors}
+                  onReview={setReviewingRequest}
+                  onDeleted={() => utils.timeOff.getAllRequests.invalidate()}
+                />
+              ))
             )}
           </>
         )}
