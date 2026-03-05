@@ -770,3 +770,6 @@
 - [x] Apply active filters to the All Requests list client-side (employee, type, status, date from/to, period)
 - [x] Add Cancel / Clear / Apply Filters buttons in the sheet
 - [x] Removed old period-only filter chips row (now handled inside FilterSheet)
+
+## BUG: Delete button in All Requests not working (3/5/2026)
+- [x] Replace broken trash icon delete with a proper "Delete" button matching Pre-Construction Checklist style (bordered button with loading state; also adds "Review" button for pending requests)

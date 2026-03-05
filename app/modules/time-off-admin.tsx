@@ -813,13 +813,30 @@ export default function TimeOffAdminScreen() {
                         <Text style={{ color: "#3B82F6", fontSize: 13, fontWeight: "600", marginTop: 6 }}>Tap to review →</Text>
                       )}
                     </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => handleDeleteRequest(req)}
-                      style={{ padding: 8, alignSelf: "flex-end", marginTop: 4 }}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    >
-                      <Text style={{ color: "#EF4444", fontSize: 18 }}>🗑</Text>
-                    </TouchableOpacity>
+                    {/* Action buttons row */}
+                    <View style={{ flexDirection: "row", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+                      {req.status === "pending" && (
+                        <TouchableOpacity
+                          style={[styles.actionBtn, { borderColor: colors.primary }]}
+                          onPress={() => setReviewingRequest(req)}
+                          activeOpacity={0.7}
+                        >
+                          <Text style={[styles.actionBtnText, { color: colors.primary }]}>Review</Text>
+                        </TouchableOpacity>
+                      )}
+                      <TouchableOpacity
+                        style={[styles.actionBtn, { borderColor: "#EF444480" }]}
+                        onPress={() => handleDeleteRequest(req)}
+                        disabled={deleteRequest.isPending}
+                        activeOpacity={0.7}
+                      >
+                        {deleteRequest.isPending ? (
+                          <ActivityIndicator size="small" color="#EF4444" />
+                        ) : (
+                          <Text style={[styles.actionBtnText, { color: "#EF4444" }]}>Delete</Text>
+                        )}
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 );
               })
