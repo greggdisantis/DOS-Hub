@@ -5,6 +5,8 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import * as db from "./db";
 import { sendPushNotifications, notifyUsers, MATERIAL_DELIVERY_NOTIFICATIONS } from "./push-notifications";
+import { generateCmrPDF } from "./cmr-pdf";
+import { storagePut } from "./storage";
 
 /**
  * Filter a list of user IDs by their notification preference for a given type.
@@ -870,7 +872,6 @@ export const appRouter = router({
         const isAdmin = ctx.user.role === 'admin' || ctx.user.role === 'manager';
         if (!isAdmin && report.userId !== ctx.user.id) throw new Error('Unauthorized');
         const rd: any = report.reportData ?? {};
-        const { generateCmrPDF } = await import('./cmr-pdf');
         const pdfBuffer = await generateCmrPDF({
           clientName: report.clientName,
           consultantName: report.consultantName,
@@ -910,7 +911,6 @@ export const appRouter = router({
           marketingNotes: rd.marketingNotes,
           progressNotes: rd.progressNotes ?? [],
         });
-        const { storagePut } = await import('./storage');
         const safeName = (report.clientName ?? 'CMR').replace(/[^a-zA-Z0-9_-]/g, '_');
         const dateStr = new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }).replace(/\//g, '-');
         const fileKey = `cmr/pdf/${safeName}_${dateStr}_${report.id}.pdf`;

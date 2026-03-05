@@ -843,4 +843,4 @@
 
 ## BUG: Progress notes missing from detail modal and PDF (3/5/2026)
 - [x] Fix progress notes not showing in CMR detail modal summary view — added Progress Notes section to CMRDetailModal
-- [x] Fix progress notes not appearing in PDF export — PDF generator was looking for `timestamp` field but data uses `createdAt`; fixed field name
+- [x] Fix progress notes not appearing in PDF export — fixed `timestamp` → `createdAt` field name; changed dynamic import() to static import so server always uses latest cmr-pdf.ts code
