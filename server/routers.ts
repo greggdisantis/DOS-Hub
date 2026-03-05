@@ -908,6 +908,7 @@ export const appRouter = router({
           messagingReferenced: rd.messagingReferenced,
           budgetAlignment: rd.budgetAlignment,
           marketingNotes: rd.marketingNotes,
+          progressNotes: rd.progressNotes ?? [],
         });
         const { storagePut } = await import('./storage');
         const safeName = (report.clientName ?? 'CMR').replace(/[^a-zA-Z0-9_-]/g, '_');

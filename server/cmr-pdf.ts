@@ -142,6 +142,7 @@ export interface CmrPDFInput {
   messagingReferenced?: string[];
   budgetAlignment?: string | null;
   marketingNotes?: string | null;
+  progressNotes?: { id: string; text: string; timestamp: string }[] | null;
 }
 
 export async function generateCmrPDF(data: CmrPDFInput): Promise<Buffer> {
@@ -303,7 +304,33 @@ export async function generateCmrPDF(data: CmrPDFInput): Promise<Buffer> {
     row("Next Follow-Up Date", fmtDate(data.nextFollowUpDate));
     y += 6;
 
-    // ── Section 6: Marketing Feedback (if applicable) ─────────────────────────
+    // ── Section 6: Progress Notes ─────────────────────────────────────────────
+    const notes = (data.progressNotes ?? []).filter((n) => n?.text?.trim());
+    if (notes.length > 0) {
+      section("Progress Notes");
+      rowEven = false;
+      for (const note of notes) {
+        const label = note.timestamp
+          ? new Date(note.timestamp).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+          : "—";
+        const noteText = note.text?.trim() || "—";
+        const noteH = Math.max(
+          18,
+          doc.heightOfString(noteText, { width: contentW * 0.62, fontSize: 9 }) + 8,
+        );
+        if (y + noteH > pageH - 60) { doc.addPage(); y = margin; rowEven = false; }
+        if (rowEven) doc.rect(margin, y, contentW, noteH).fill("#F9FAFB");
+        rowEven = !rowEven;
+        doc.fillColor(MID_GRAY).fontSize(9).font("Helvetica-Bold")
+          .text(label, margin + 8, y + 5, { width: contentW * 0.34 });
+        doc.fillColor(DARK).fontSize(9).font("Helvetica")
+          .text(noteText, margin + contentW * 0.36, y + 5, { width: contentW * 0.62 });
+        y += noteH;
+      }
+      y += 6;
+    }
+
+    // ── Section 7: Marketing Feedback (if applicable) ─────────────────────────
     const isMarketing = data.source === "marketing-in-home" || data.source === "marketing-showroom";
     if (isMarketing) {
       section("Marketing Feedback");

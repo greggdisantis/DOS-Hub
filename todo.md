@@ -836,7 +836,7 @@
 - [x] Progress Notes: Add New note button with auto date-stamp, text input, remove button
 - [x] Surface most recent progress note on Sales Pipeline client card
 - [x] Surface most recent progress note on CMR Reports dashboard client card
-- [ ] Include progress notes in server-side PDF export
+- [x] Include progress notes in server-side PDF export
 
 ## BUG: Progress notes not saving on CMR report (3/5/2026)
 - [x] Fix progressNotes not persisted when saving CMR report — explicitly included in all 3 dbRowToReport mappers
