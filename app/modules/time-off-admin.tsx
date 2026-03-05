@@ -546,49 +546,43 @@ export default function TimeOffAdminScreen() {
                 const typeColor = REQUEST_TYPE_COLORS[req.requestType] || "#3B82F6";
                 const statusColor = STATUS_COLORS[req.status] || "#9CA3AF";
                 return (
-                  <TouchableOpacity
-                    key={req.id}
-                    style={[styles.requestCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
-                    onPress={() => setReviewingRequest(req)}
-                  >
+                  <View key={req.id} style={[styles.requestCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                     <View style={styles.requestCardHeader}>
                       <Text style={[styles.requestEmployee, { color: colors.foreground }]}>{req.userName}</Text>
-                      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                        <View style={[styles.statusBadge, { backgroundColor: statusColor + "20" }]}>
-                          <Text style={[styles.statusText, { color: statusColor }]}>{req.status.toUpperCase()}</Text>
-                        </View>
-                        <TouchableOpacity
-                          onPress={(e) => { e.stopPropagation?.(); handleDeleteRequest(req); }}
-                          style={{ padding: 4 }}
-                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                        >
-                          <Text style={{ color: "#EF4444", fontSize: 16 }}>🗑</Text>
-                        </TouchableOpacity>
+                      <View style={[styles.statusBadge, { backgroundColor: statusColor + "20" }]}>
+                        <Text style={[styles.statusText, { color: statusColor }]}>{req.status.toUpperCase()}</Text>
                       </View>
                     </View>
-                    <View style={styles.requestCardRow}>
-                      <View style={[styles.typeBadge, { backgroundColor: typeColor + "20", borderColor: typeColor }]}>
-                        <Text style={[styles.typeBadgeText, { color: typeColor }]}>
-                          {req.requestType.charAt(0).toUpperCase() + req.requestType.slice(1)}
+                    <TouchableOpacity activeOpacity={0.7} onPress={() => setReviewingRequest(req)}>
+                      <View style={styles.requestCardRow}>
+                        <View style={[styles.typeBadge, { backgroundColor: typeColor + "20", borderColor: typeColor }]}>
+                          <Text style={[styles.typeBadgeText, { color: typeColor }]}>
+                            {req.requestType.charAt(0).toUpperCase() + req.requestType.slice(1)}
+                          </Text>
+                        </View>
+                        <Text style={[styles.requestDates, { color: colors.muted }]}>
+                          {formatDate(req.startDate)}{req.startDate !== req.endDate ? ` – ${formatDate(req.endDate)}` : ""}
                         </Text>
                       </View>
-                      <Text style={[styles.requestDates, { color: colors.muted }]}>
-                        {formatDate(req.startDate)}{req.startDate !== req.endDate ? ` – ${formatDate(req.endDate)}` : ""}
+                      <Text style={[styles.requestDuration, { color: colors.muted }]}>
+                        {parseFloat(String(req.totalDays ?? "0")).toFixed(1)} days
+                        {req.periodYear ? ` · ${req.periodYear}` : ""}
                       </Text>
-                    </View>
-                    <Text style={[styles.requestDuration, { color: colors.muted }]}>
-                      {parseFloat(String(req.totalDays ?? "0")).toFixed(1)} days
-                      {req.periodYear ? ` · ${req.periodYear}` : ""}
-                    </Text>
-                    {req.reason ? (
-                      <Text style={[styles.requestReason, { color: colors.muted }]} numberOfLines={1}>{req.reason}</Text>
-                    ) : null}
-                    {req.status === "pending" && (
-                      <Text style={{ color: "#3B82F6", fontSize: 13, fontWeight: "600", marginTop: 6 }}>
-                        Tap to review →
-                      </Text>
-                    )}
-                  </TouchableOpacity>
+                      {req.reason ? (
+                        <Text style={[styles.requestReason, { color: colors.muted }]} numberOfLines={1}>{req.reason}</Text>
+                      ) : null}
+                      {req.status === "pending" && (
+                        <Text style={{ color: "#3B82F6", fontSize: 13, fontWeight: "600", marginTop: 6 }}>Tap to review →</Text>
+                      )}
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => handleDeleteRequest(req)}
+                      style={{ padding: 8, alignSelf: "flex-end", marginTop: 4 }}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <Text style={{ color: "#EF4444", fontSize: 18 }}>🗑</Text>
+                    </TouchableOpacity>
+                  </View>
                 );
               })
             )}

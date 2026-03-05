@@ -734,3 +734,6 @@
 - [x] Add deleteRequest tRPC endpoint (admin/manager only)
 - [x] Add delete button (trash icon) to each request card in Time Off Admin dashboard
 - [x] Confirm before delete with alert dialog
+
+## BUG: Time Off Admin delete button not working (3/5/2026)
+- [x] Fix delete button on request cards - tap does nothing (fixed: nested TouchableOpacity conflict resolved by separating card tap from delete button)
