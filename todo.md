@@ -794,3 +794,15 @@
 - [x] Add "Change Status" action button on all request cards in All Requests tab
 - [x] Show status picker (Pending / Approved / Denied / Cancelled) for any request regardless of current status
 - [x] Add timeOff.changeStatus tRPC endpoint
+
+## Time Off Calendar (3/5/2026)
+- [x] Create TimeOffCalendar screen with month/week/day view switcher
+- [x] Assign unique colors to each employee (deterministic, from a palette of 10 colors)
+- [x] Month view: grid of days, colored event bars per employee per day
+- [x] Week view: 7-column grid with colored blocks spanning multi-day requests
+- [x] Day view: list of all requests on selected day, grouped by employee
+- [x] Employee toggle sidebar: show/hide individual employees
+- [x] Filter panel: request type, status, date range
+- [x] Wire Calendar button from Time Off Admin header to calendar screen
+- [x] Add tRPC getCalendarRequests endpoint to fetch all requests for calendar
+- [x] Native header back button navigates back to Time Off Admin

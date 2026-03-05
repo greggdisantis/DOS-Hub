@@ -1532,6 +1532,31 @@ export const appRouter = router({
         await db.reviewTimeOffRequest(input.id, input.status as any, ctx.user.id, input.reviewNotes);
         return { success: true };
       }),
+
+    /** Admin/manager: get all requests for calendar display (approved + pending, with user info) */
+    getCalendarRequests: protectedProcedure
+      .query(async ({ ctx }) => {
+        const dosRoles = (ctx.user.dosRoles as string[]) ?? [];
+        const isAuthorized =
+          ctx.user.role === 'admin' ||
+          ctx.user.role === 'manager' ||
+          dosRoles.includes('Owner') ||
+          dosRoles.includes('Operations Manager');
+        if (!isAuthorized) throw new Error('Not authorized');
+        const allRequests = await db.getAllTimeOffRequests({});
+        const calendarRequests = allRequests.filter(
+          (r) => r.status === 'approved' || r.status === 'pending'
+        );
+        const users = await db.getAllUsers();
+        return calendarRequests.map((r) => {
+          const user = users.find((u) => u.id === r.userId);
+          return {
+            ...r,
+            userName: user?.name || user?.email || `User #${r.userId}`,
+            userEmail: user?.email || '',
+          };
+        });
+      }),
   }),
 });
 export type AppRouter = typeof appRouter;

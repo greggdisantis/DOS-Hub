@@ -12,7 +12,7 @@ import {
   Platform,
   Animated,
 } from "react-native";
-import { Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { trpc } from "@/lib/trpc";
 import { useColors } from "@/hooks/use-colors";
@@ -822,6 +822,7 @@ function RequestCard({
 
 export default function TimeOffAdminScreen() {
   const colors = useColors();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<"employees" | "pending" | "all">("pending");
   const [editingPolicy, setEditingPolicy] = useState<any>(null);
   const [reviewingRequest, setReviewingRequest] = useState<any>(null);
@@ -871,7 +872,20 @@ export default function TimeOffAdminScreen() {
 
   return (
     <ScreenContainer>
-      <Stack.Screen options={{ title: "Time Off Admin", headerBackTitle: "Back" }} />
+      <Stack.Screen
+        options={{
+          title: "Time Off Admin",
+          headerBackTitle: "Back",
+          headerRight: () => (
+            <TouchableOpacity
+              onPress={() => router.push("/modules/time-off-calendar" as any)}
+              style={{ paddingHorizontal: 4, paddingVertical: 4 }}
+            >
+              <Text style={{ color: colors.primary, fontSize: 14, fontWeight: "600" }}>Calendar</Text>
+            </TouchableOpacity>
+          ),
+        }}
+      />
 
       <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
 
