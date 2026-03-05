@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -16,6 +16,214 @@ import { ScreenContainer } from "@/components/screen-container";
 import { trpc } from "@/lib/trpc";
 import { useColors } from "@/hooks/use-colors";
 import { DatePicker } from "@/components/ui/date-picker";
+
+// ─── Filter Sheet ────────────────────────────────────────────────────────────
+
+interface RequestFilters {
+  employeeIds: number[];
+  types: string[];
+  statuses: string[];
+  dateFrom: string;
+  dateTo: string;
+  period: string;
+}
+
+const EMPTY_FILTERS: RequestFilters = {
+  employeeIds: [],
+  types: [],
+  statuses: [],
+  dateFrom: "",
+  dateTo: "",
+  period: "",
+};
+
+function FilterSheet({
+  visible,
+  filters,
+  employees,
+  availablePeriods,
+  onApply,
+  onClose,
+  colors,
+}: {
+  visible: boolean;
+  filters: RequestFilters;
+  employees: any[];
+  availablePeriods: string[];
+  onApply: (f: RequestFilters) => void;
+  onClose: () => void;
+  colors: ReturnType<typeof useColors>;
+}) {
+  const [draft, setDraft] = useState<RequestFilters>(filters);
+
+  // Sync draft when sheet opens
+  React.useEffect(() => {
+    if (visible) setDraft(filters);
+  }, [visible]);
+
+  const toggleItem = (key: keyof Pick<RequestFilters, "employeeIds" | "types" | "statuses">, val: number | string) => {
+    setDraft((prev) => {
+      const arr = prev[key] as any[];
+      return {
+        ...prev,
+        [key]: arr.includes(val) ? arr.filter((x) => x !== val) : [...arr, val],
+      };
+    });
+  };
+
+  const isActive = (key: keyof Pick<RequestFilters, "employeeIds" | "types" | "statuses">, val: number | string) =>
+    (draft[key] as any[]).includes(val);
+
+  const chipStyle = (active: boolean) => ({
+    borderWidth: 1,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    marginRight: 8,
+    marginBottom: 8,
+    borderColor: active ? "#3B82F6" : colors.border,
+    backgroundColor: active ? "#3B82F620" : "transparent",
+  });
+
+  const chipTextStyle = (active: boolean) => ({
+    fontSize: 13,
+    fontWeight: "500" as const,
+    color: active ? "#3B82F6" : colors.muted,
+  });
+
+  const REQUEST_TYPES = ["vacation", "sick", "personal", "bereavement", "unpaid", "other"];
+  const STATUSES = ["pending", "approved", "denied", "cancelled"];
+
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
+        {/* Header */}
+        <View style={[styles.modalHeader, { borderBottomColor: colors.border, paddingTop: Platform.OS === "ios" ? 56 : 14 }]}>
+          <TouchableOpacity onPress={onClose}>
+            <Text style={{ color: colors.muted, fontSize: 16 }}>Cancel</Text>
+          </TouchableOpacity>
+          <Text style={[styles.modalTitle, { color: colors.foreground }]}>Filter Requests</Text>
+          <TouchableOpacity onPress={() => setDraft(EMPTY_FILTERS)}>
+            <Text style={{ color: "#EF4444", fontSize: 16, fontWeight: "600" }}>Clear</Text>
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView style={{ flex: 1, padding: 16 }} keyboardShouldPersistTaps="handled">
+
+          {/* Employee */}
+          {employees.length > 0 && (
+            <View style={{ marginBottom: 20 }}>
+              <Text style={[styles.label, { color: colors.muted, marginBottom: 10 }]}>EMPLOYEE</Text>
+              <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
+                {employees.map((emp: any) => (
+                  <TouchableOpacity
+                    key={emp.id}
+                    style={chipStyle(isActive("employeeIds", emp.id))}
+                    onPress={() => toggleItem("employeeIds", emp.id)}
+                  >
+                    <Text style={chipTextStyle(isActive("employeeIds", emp.id))}>{emp.name}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {/* Request Type */}
+          <View style={{ marginBottom: 20 }}>
+            <Text style={[styles.label, { color: colors.muted, marginBottom: 10 }]}>REQUEST TYPE</Text>
+            <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
+              {REQUEST_TYPES.map((t) => (
+                <TouchableOpacity
+                  key={t}
+                  style={chipStyle(isActive("types", t))}
+                  onPress={() => toggleItem("types", t)}
+                >
+                  <Text style={chipTextStyle(isActive("types", t))}>
+                    {t.charAt(0).toUpperCase() + t.slice(1)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* Status */}
+          <View style={{ marginBottom: 20 }}>
+            <Text style={[styles.label, { color: colors.muted, marginBottom: 10 }]}>STATUS</Text>
+            <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
+              {STATUSES.map((s) => (
+                <TouchableOpacity
+                  key={s}
+                  style={chipStyle(isActive("statuses", s))}
+                  onPress={() => toggleItem("statuses", s)}
+                >
+                  <Text style={chipTextStyle(isActive("statuses", s))}>
+                    {s.charAt(0).toUpperCase() + s.slice(1)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* Date Range */}
+          <View style={{ marginBottom: 20 }}>
+            <Text style={[styles.label, { color: colors.muted, marginBottom: 10 }]}>DATE RANGE</Text>
+            <View style={{ flexDirection: "row", gap: 10 }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 12, color: colors.muted, marginBottom: 4 }}>From</Text>
+                <DatePicker
+                  value={draft.dateFrom}
+                  onChange={(v) => setDraft((p) => ({ ...p, dateFrom: v }))}
+                  placeholder="mm/dd/yyyy"
+                  colors={colors}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 12, color: colors.muted, marginBottom: 4 }}>To</Text>
+                <DatePicker
+                  value={draft.dateTo}
+                  onChange={(v) => setDraft((p) => ({ ...p, dateTo: v }))}
+                  placeholder="mm/dd/yyyy"
+                  colors={colors}
+                  minimumDate={draft.dateFrom || undefined}
+                />
+              </View>
+            </View>
+          </View>
+
+          {/* Period */}
+          {availablePeriods.length > 0 && (
+            <View style={{ marginBottom: 20 }}>
+              <Text style={[styles.label, { color: colors.muted, marginBottom: 10 }]}>PERIOD</Text>
+              <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
+                {availablePeriods.map((p) => (
+                  <TouchableOpacity
+                    key={p}
+                    style={chipStyle(draft.period === p)}
+                    onPress={() => setDraft((prev) => ({ ...prev, period: prev.period === p ? "" : p }))}
+                  >
+                    <Text style={chipTextStyle(draft.period === p)}>{p}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
+
+          <View style={{ height: 120 }} />
+        </ScrollView>
+
+        {/* Apply Button */}
+        <View style={{ padding: 16, paddingBottom: Platform.OS === "ios" ? 34 : 16, borderTopWidth: 1, borderTopColor: colors.border }}>
+          <TouchableOpacity
+            style={{ backgroundColor: "#1E3A5F", borderRadius: 14, paddingVertical: 16, alignItems: "center" }}
+            onPress={() => { onApply(draft); onClose(); }}
+          >
+            <Text style={{ color: "#fff", fontSize: 16, fontWeight: "700" }}>Apply Filters</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+}
 
 // ─── Types & Constants ────────────────────────────────────────────────────────
 
@@ -381,7 +589,8 @@ export default function TimeOffAdminScreen() {
   const [editingPolicy, setEditingPolicy] = useState<any>(null);
   const [reviewingRequest, setReviewingRequest] = useState<any>(null);
   const [selectedUser, setSelectedUser] = useState<{ id: number; name: string } | null>(null);
-  const [filterPeriod, setFilterPeriod] = useState("");
+  const [showFilterSheet, setShowFilterSheet] = useState(false);
+  const [activeFilters, setActiveFilters] = useState<RequestFilters>(EMPTY_FILTERS);
 
   const utils = trpc.useUtils();
 
@@ -408,9 +617,7 @@ export default function TimeOffAdminScreen() {
   // Use listEmployees to get only users marked as employees
   const { data: employees = [], isLoading: employeesLoading } = trpc.users.listEmployees.useQuery();
   const { data: allRequests = [], isLoading: requestsLoading } = trpc.timeOff.getAllRequests.useQuery(
-    selectedUser
-      ? { userId: selectedUser.id, periodYear: filterPeriod || undefined }
-      : { periodYear: filterPeriod || undefined }
+    selectedUser ? { userId: selectedUser.id } : {}
   );
 
   const pendingRequests = allRequests.filter((r: any) => r.status === "pending");
@@ -423,7 +630,27 @@ export default function TimeOffAdminScreen() {
     setActiveTab("all");
   }, []);
 
-  const displayedRequests = activeTab === "pending" ? pendingRequests : allRequests;
+  // Count active filters for badge
+  const activeFilterCount = useMemo(() => {
+    const f = activeFilters;
+    return f.employeeIds.length + f.types.length + f.statuses.length +
+      (f.dateFrom ? 1 : 0) + (f.dateTo ? 1 : 0) + (f.period ? 1 : 0);
+  }, [activeFilters]);
+
+  // Apply filters to the full request list
+  const filteredRequests = useMemo(() => {
+    let list = allRequests as any[];
+    const f = activeFilters;
+    if (f.employeeIds.length > 0) list = list.filter((r) => f.employeeIds.includes(r.userId));
+    if (f.types.length > 0) list = list.filter((r) => f.types.includes(r.requestType));
+    if (f.statuses.length > 0) list = list.filter((r) => f.statuses.includes(r.status));
+    if (f.dateFrom) list = list.filter((r) => r.startDate >= f.dateFrom);
+    if (f.dateTo) list = list.filter((r) => r.startDate <= f.dateTo);
+    if (f.period) list = list.filter((r) => r.periodYear === f.period);
+    return list;
+  }, [allRequests, activeFilters]);
+
+  const displayedRequests = activeTab === "pending" ? pendingRequests : filteredRequests;
 
   return (
     <ScreenContainer>
@@ -500,27 +727,36 @@ export default function TimeOffAdminScreen() {
         {/* Pending / All Requests Tabs */}
         {(activeTab === "pending" || activeTab === "all") && (
           <>
-            {/* Period filter */}
-            {availablePeriods.length > 0 && (
-              <View style={styles.filterSection}>
-                <Text style={[styles.sectionLabel, { color: colors.muted }]}>FILTER BY PERIOD</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {/* Filter bar — only shown on All Requests tab */}
+            {activeTab === "all" && (
+              <View style={{ flexDirection: "row", justifyContent: "flex-end", marginBottom: 12 }}>
+                <TouchableOpacity
+                  onPress={() => setShowFilterSheet(true)}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 6,
+                    borderWidth: 1,
+                    borderRadius: 20,
+                    paddingHorizontal: 14,
+                    paddingVertical: 7,
+                    borderColor: activeFilterCount > 0 ? "#3B82F6" : colors.border,
+                    backgroundColor: activeFilterCount > 0 ? "#3B82F620" : "transparent",
+                  }}
+                >
+                  <Text style={{ fontSize: 15 }}>⚙️</Text>
+                  <Text style={{ fontSize: 14, fontWeight: "600", color: activeFilterCount > 0 ? "#3B82F6" : colors.foreground }}>
+                    Filter{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
+                  </Text>
+                </TouchableOpacity>
+                {activeFilterCount > 0 && (
                   <TouchableOpacity
-                    style={[styles.filterChip, { borderColor: !filterPeriod ? "#3B82F6" : colors.border, backgroundColor: !filterPeriod ? "#3B82F620" : "transparent" }]}
-                    onPress={() => setFilterPeriod("")}
+                    onPress={() => setActiveFilters(EMPTY_FILTERS)}
+                    style={{ marginLeft: 8, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, borderWidth: 1, borderColor: "#EF4444" }}
                   >
-                    <Text style={[styles.filterChipText, { color: !filterPeriod ? "#3B82F6" : colors.muted }]}>All</Text>
+                    <Text style={{ fontSize: 13, color: "#EF4444", fontWeight: "600" }}>Clear</Text>
                   </TouchableOpacity>
-                  {availablePeriods.map((p) => (
-                    <TouchableOpacity
-                      key={p}
-                      style={[styles.filterChip, { borderColor: filterPeriod === p ? "#3B82F6" : colors.border, backgroundColor: filterPeriod === p ? "#3B82F620" : "transparent" }]}
-                      onPress={() => setFilterPeriod(p)}
-                    >
-                      <Text style={[styles.filterChipText, { color: filterPeriod === p ? "#3B82F6" : colors.muted }]}>{p}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
+                )}
               </View>
             )}
 
@@ -593,6 +829,17 @@ export default function TimeOffAdminScreen() {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      {/* Filter Sheet */}
+      <FilterSheet
+        visible={showFilterSheet}
+        filters={activeFilters}
+        employees={employees}
+        availablePeriods={availablePeriods}
+        onApply={(f) => setActiveFilters(f)}
+        onClose={() => setShowFilterSheet(false)}
+        colors={colors}
+      />
 
       {/* Edit Policy Modal */}
       {editingPolicy && (

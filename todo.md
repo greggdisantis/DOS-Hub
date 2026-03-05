@@ -763,3 +763,10 @@
 - [x] Extract DatePicker into shared component (components/ui/date-picker.tsx)
 - [x] Create dos-hub-datepicker skill with SKILL.md documenting usage
 - [x] Update time-off-admin.tsx to use the shared DatePicker component
+
+## Time Off Admin: All Requests Filter Panel (3/5/2026)
+- [x] Add Filter button (top-right of All Requests tab header) with active filter count badge
+- [x] Build FilterSheet modal with: Employee chips, Request Type chips, Status chips, Date Range (from/to DatePicker), Period chips
+- [x] Apply active filters to the All Requests list client-side (employee, type, status, date from/to, period)
+- [x] Add Cancel / Clear / Apply Filters buttons in the sheet
+- [x] Removed old period-only filter chips row (now handled inside FilterSheet)
