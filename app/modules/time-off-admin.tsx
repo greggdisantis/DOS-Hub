@@ -11,10 +11,33 @@ import {
   StyleSheet,
   Platform,
 } from "react-native";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { Stack } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { trpc } from "@/lib/trpc";
 import { useColors } from "@/hooks/use-colors";
+
+// Web-compatible date picker using native HTML input
+function WebDateInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  if (Platform.OS !== "web") return null;
+  return (
+    <input
+      type="date"
+      value={value || ""}
+      onChange={(e: any) => onChange(e.target.value)}
+      style={{
+        position: "absolute",
+        opacity: 0,
+        width: "100%",
+        height: "100%",
+        top: 0,
+        left: 0,
+        cursor: "pointer",
+        zIndex: 10,
+      }}
+    />
+  );
+}
 
 // ─── Types & Constants ────────────────────────────────────────────────────────
 
@@ -63,6 +86,24 @@ function EditPolicyModal({
   const [periodStart, setPeriodStart] = useState(policy?.periodStartDate ?? "");
   const [periodEnd, setPeriodEnd] = useState(policy?.periodEndDate ?? "");
   const [notes, setNotes] = useState(policy?.notes ?? "");
+  const [showStartPicker, setShowStartPicker] = useState(false);
+  const [showEndPicker, setShowEndPicker] = useState(false);
+
+  // Convert "YYYY-MM-DD" string to Date object (or today if empty)
+  const toDate = (str: string): Date => {
+    if (str && /^\d{4}-\d{2}-\d{2}$/.test(str)) {
+      const [y, m, d] = str.split("-").map(Number);
+      return new Date(y, m - 1, d);
+    }
+    return new Date();
+  };
+  // Convert Date to "YYYY-MM-DD" string
+  const fromDate = (date: Date): string => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  };
 
   const utils = trpc.useUtils();
   const upsert = trpc.timeOff.upsertPolicy.useMutation({
@@ -83,14 +124,6 @@ function EditPolicyModal({
       periodEndDate: periodEnd || undefined,
       notes: notes || undefined,
     });
-  };
-
-  const handleDateInput = (text: string, setter: (v: string) => void) => {
-    let cleaned = text.replace(/[^0-9]/g, "");
-    if (cleaned.length > 4) cleaned = cleaned.slice(0, 4) + "/" + cleaned.slice(4);
-    if (cleaned.length > 7) cleaned = cleaned.slice(0, 7) + "/" + cleaned.slice(7);
-    cleaned = cleaned.slice(0, 10);
-    setter(cleaned.length === 10 ? cleaned.replace(/\//g, "-") : cleaned);
   };
 
   return (
@@ -139,32 +172,62 @@ function EditPolicyModal({
             />
           </View>
 
+          {/* Period Start Date Picker */}
           <View style={styles.fieldGroup}>
-            <Text style={[styles.label, { color: colors.muted }]}>PERIOD START DATE (YYYY-MM-DD)</Text>
-            <TextInput
-              style={[styles.input, { backgroundColor: colors.surface, color: colors.foreground, borderColor: colors.border }]}
-              value={periodStart.replace(/-/g, "/")}
-              onChangeText={(t) => handleDateInput(t, setPeriodStart)}
-              placeholder="YYYY/MM/DD"
-              placeholderTextColor={colors.muted}
-              keyboardType="numeric"
-              maxLength={10}
-              returnKeyType="done"
-            />
+            <Text style={[styles.label, { color: colors.muted }]}>PERIOD START DATE</Text>
+            <View style={{ position: "relative" }}>
+              <TouchableOpacity
+                onPress={() => Platform.OS !== "web" && setShowStartPicker(true)}
+                activeOpacity={0.7}
+                style={[styles.datePickerBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}
+              >
+                <Text style={{ fontSize: 16, color: periodStart ? colors.foreground : colors.muted }}>
+                  {periodStart ? formatDate(periodStart) : "Select start date"}
+                </Text>
+                <Text style={{ fontSize: 18 }}>📅</Text>
+              </TouchableOpacity>
+              <WebDateInput value={periodStart} onChange={setPeriodStart} />
+            </View>
+            {showStartPicker && Platform.OS !== "web" && (
+              <DateTimePicker
+                value={toDate(periodStart)}
+                mode="date"
+                display={Platform.OS === "ios" ? "inline" : "default"}
+                onChange={(_, date) => {
+                  setShowStartPicker(Platform.OS === "ios");
+                  if (date) setPeriodStart(fromDate(date));
+                }}
+              />
+            )}
           </View>
 
+          {/* Period End Date Picker */}
           <View style={styles.fieldGroup}>
-            <Text style={[styles.label, { color: colors.muted }]}>PERIOD END DATE (YYYY-MM-DD)</Text>
-            <TextInput
-              style={[styles.input, { backgroundColor: colors.surface, color: colors.foreground, borderColor: colors.border }]}
-              value={periodEnd.replace(/-/g, "/")}
-              onChangeText={(t) => handleDateInput(t, setPeriodEnd)}
-              placeholder="YYYY/MM/DD"
-              placeholderTextColor={colors.muted}
-              keyboardType="numeric"
-              maxLength={10}
-              returnKeyType="done"
-            />
+            <Text style={[styles.label, { color: colors.muted }]}>PERIOD END DATE</Text>
+            <View style={{ position: "relative" }}>
+              <TouchableOpacity
+                onPress={() => Platform.OS !== "web" && setShowEndPicker(true)}
+                activeOpacity={0.7}
+                style={[styles.datePickerBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}
+              >
+                <Text style={{ fontSize: 16, color: periodEnd ? colors.foreground : colors.muted }}>
+                  {periodEnd ? formatDate(periodEnd) : "Select end date"}
+                </Text>
+                <Text style={{ fontSize: 18 }}>📅</Text>
+              </TouchableOpacity>
+              <WebDateInput value={periodEnd} onChange={setPeriodEnd} />
+            </View>
+            {showEndPicker && Platform.OS !== "web" && (
+              <DateTimePicker
+                value={toDate(periodEnd)}
+                mode="date"
+                display={Platform.OS === "ios" ? "inline" : "default"}
+                onChange={(_, date) => {
+                  setShowEndPicker(Platform.OS === "ios");
+                  if (date) setPeriodEnd(fromDate(date));
+                }}
+              />
+            )}
           </View>
 
           <View style={styles.fieldGroup}>
@@ -789,4 +852,13 @@ const styles = StyleSheet.create({
   },
   alreadyReviewedText: { fontSize: 16, fontWeight: "700" },
   alreadyReviewedNote: { fontSize: 13, marginTop: 6, textAlign: "center" },
+  datePickerBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+  },
 });

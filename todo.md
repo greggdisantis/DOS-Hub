@@ -752,3 +752,6 @@
 - [x] Update Employees stat card count to reflect only employees
 - [x] PTO policy configured per employee via Edit PTO / Set PTO button in Employees tab
 - [x] Empty state in Employees tab guides admin to mark users as Employee in User Management
+
+## Edit PTO Policy: Date Picker (3/5/2026)
+- [x] Replace PERIOD START DATE and PERIOD END DATE text inputs with native date picker in EditPolicyModal (native DateTimePicker on iOS/Android, HTML date input on web)
