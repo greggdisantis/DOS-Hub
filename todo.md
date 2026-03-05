@@ -816,3 +816,8 @@
 ## Calendar Button & Crash Fix (3/5/2026)
 - [x] Move Calendar button to be a prominent 4th stat card in Time Off Admin (alongside Pending/Approved/Employees)
 - [x] Fix uncaught error on Calendar screen: hooks[lastArg] is not a function (tRPC queryOptions() API mismatch)
+
+## CMR Report Detail View (3/5/2026)
+- [x] Wire "Open" button on CMR report cards to navigate to a full CMR detail/edit screen
+- [x] Build CMR detail screen showing all report fields (customer, products, pricing, notes, status, etc.)
+- [ ] Allow editing key fields from the detail screen (status, PC%, notes, est. value) — deferred, view-only for now

@@ -14,11 +14,17 @@ import {
   View, Text, FlatList, Pressable, StyleSheet, Alert,
   ActivityIndicator, ScrollView, Modal, Platform, TextInput,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColors } from '@/hooks/use-colors';
 import { useAuth } from '@/hooks/use-auth';
 import { trpc } from '@/lib/trpc';
 import { exportMeetingReportPDF } from './client-meeting-report/pdf-export';
-import { ClientMeetingReport, DEAL_STATUS_LABELS } from './client-meeting-report/types';
+import {
+  ClientMeetingReport, DEAL_STATUS_LABELS,
+  LEAD_SOURCE_OPTIONS, PROJECT_TYPE_OPTIONS,
+  VALUE_COMMUNICATED_OPTIONS, OBJECTION_OPTIONS,
+  MESSAGING_OPTIONS,
+} from './client-meeting-report/types';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 
 
@@ -196,11 +202,13 @@ function ReportRow({
   showUser,
   onExportPDF,
   isExporting,
+  onOpen,
 }: {
   report: ClientMeetingReport;
   showUser: boolean;
   onExportPDF: () => void;
   isExporting: boolean;
+  onOpen: () => void;
 }) {
   const colors = useColors();
   const pcColor =
@@ -247,9 +255,16 @@ function ReportRow({
           </Text>
         </View>
 
-        <View style={[styles.outcomePill, { backgroundColor: outcomeColor + '18' }]}>
+        <Pressable
+          onPress={onOpen}
+          style={({ pressed }) => ([
+            styles.outcomePill,
+            { backgroundColor: outcomeColor + (pressed ? '35' : '18') },
+            pressed && { opacity: 0.8 },
+          ])}
+        >
           <Text style={[styles.outcomePillText, { color: outcomeColor }]}>{outcomeLabel}</Text>
-        </View>
+        </Pressable>
 
         <Pressable
           onPress={onExportPDF}
@@ -289,6 +304,260 @@ function ReportRow({
     </View>
   );
 }
+
+// ── CMR Detail Modal ─────────────────────────────────────────────────────────
+
+function CMRDetailModal({
+  report,
+  visible,
+  onClose,
+  onExportPDF,
+  isExporting,
+}: {
+  report: ClientMeetingReport | null;
+  visible: boolean;
+  onClose: () => void;
+  onExportPDF: () => void;
+  isExporting: boolean;
+}) {
+  const colors = useColors();
+  const insets = useSafeAreaInsets();
+
+  if (!report) return null;
+
+  const pcColor =
+    report.purchaseConfidencePct >= 70
+      ? colors.success
+      : report.purchaseConfidencePct >= 40
+      ? colors.warning
+      : colors.error;
+
+  const fmt = (d?: string | null) =>
+    d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+
+  const dealLabel = report.dealStatus
+    ? (DEAL_STATUS_LABELS[report.dealStatus] ?? report.dealStatus)
+    : '—';
+
+  const leadSourceLabels = report.leadSources
+    .map((v) => LEAD_SOURCE_OPTIONS.find((o) => o.value === v)?.label ?? v)
+    .join(', ');
+
+  const projectTypeLabels = report.projectTypes
+    .map((v) => PROJECT_TYPE_OPTIONS.find((o) => o.value === v)?.label ?? v)
+    .join(', ');
+
+  const valueCommunicatedLabels = report.valueCommunicated
+    .map((v) => VALUE_COMMUNICATED_OPTIONS.find((o) => o.value === v)?.label ?? v)
+    .join(', ');
+
+  const objectionLabels = report.objections
+    .map((v) => OBJECTION_OPTIONS.find((o) => o.value === v)?.label ?? v)
+    .join(', ');
+
+  const messagingLabels = report.messagingReferenced
+    .map((v) => MESSAGING_OPTIONS.find((o) => o.value === v)?.label ?? v)
+    .join(', ');
+
+  const sourceLabel =
+    report.source === 'marketing-in-home' ? 'Marketing – In-Home'
+    : report.source === 'marketing-showroom' ? 'Marketing – Showroom'
+    : report.source === 'self-generated' ? 'Self-Generated'
+    : '—';
+
+  function Row({ label, value }: { label: string; value?: string | null }) {
+    if (!value) return null;
+    return (
+      <View style={[detailStyles.row, { borderBottomColor: colors.border }]}>
+        <Text style={[detailStyles.key, { color: colors.muted }]}>{label}</Text>
+        <Text style={[detailStyles.val, { color: colors.foreground }]}>{value}</Text>
+      </View>
+    );
+  }
+
+  function Section({ title, children }: { title: string; children: React.ReactNode }) {
+    return (
+      <View style={detailStyles.section}>
+        <View style={[detailStyles.sectionHeader, { borderBottomColor: colors.primary }]}>
+          <Text style={[detailStyles.sectionTitle, { color: colors.primary }]}>{title}</Text>
+        </View>
+        {children}
+      </View>
+    );
+  }
+
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <View style={[detailStyles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
+        {/* Header toolbar */}
+        <View style={[detailStyles.toolbar, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+          <Pressable
+            onPress={onClose}
+            style={({ pressed }) => [detailStyles.backBtn, pressed && { opacity: 0.6 }]}
+          >
+            <IconSymbol name="chevron.right" size={20} color={colors.primary} style={{ transform: [{ rotate: '180deg' }] }} />
+            <Text style={[detailStyles.backBtnText, { color: colors.primary }]}>Close</Text>
+          </Pressable>
+          <Text style={[detailStyles.toolbarTitle, { color: colors.foreground }]} numberOfLines={1}>
+            {report.clientName || 'Report'}
+          </Text>
+          <Pressable
+            onPress={onExportPDF}
+            disabled={isExporting}
+            style={({ pressed }) => [
+              detailStyles.exportBtn,
+              { backgroundColor: colors.error + (pressed ? 'CC' : 'FF') },
+              pressed && { opacity: 0.85 },
+            ]}
+          >
+            {isExporting
+              ? <ActivityIndicator size="small" color="#fff" />
+              : <>
+                  <IconSymbol name="arrow.down.doc.fill" size={12} color="#fff" />
+                  <Text style={detailStyles.exportBtnText}>PDF</Text>
+                </>}
+          </Pressable>
+        </View>
+
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ padding: 16, paddingBottom: 40 + insets.bottom }}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Hero header */}
+          <View style={[detailStyles.hero, { backgroundColor: colors.primary + '12', borderColor: colors.primary + '30' }]}>
+            <Text style={[detailStyles.heroName, { color: colors.foreground }]}>
+              {report.clientName || 'Unnamed Client'}
+            </Text>
+            <Text style={[detailStyles.heroSub, { color: colors.muted }]}>
+              {fmt(report.appointmentDate)} · {report.consultantName}
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+              <View style={[detailStyles.pcBadge, { backgroundColor: pcColor }]}>
+                <Text style={detailStyles.pcBadgeText}>{report.purchaseConfidencePct}% PC</Text>
+              </View>
+              {report.estimatedContractValue != null && (
+                <View style={[detailStyles.valueBadge, { backgroundColor: colors.success + '22', borderColor: colors.success + '44' }]}>
+                  <Text style={[detailStyles.valueBadgeText, { color: colors.success }]}>
+                    ${report.estimatedContractValue.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                  </Text>
+                </View>
+              )}
+              <View style={[detailStyles.statusBadge, { backgroundColor: colors.primary + '18' }]}>
+                <Text style={[detailStyles.statusBadgeText, { color: colors.primary }]}>{dealLabel}</Text>
+              </View>
+            </View>
+          </View>
+
+          <Section title="Client Information">
+            <Row label="Consultant" value={report.consultantName} />
+            <Row label="Week Of" value={fmt(report.weekOf)} />
+            <Row label="Source" value={sourceLabel} />
+            <Row label="Address" value={report.address} />
+            <Row label="Client Type" value={report.clientType === 'residential' ? 'Residential' : report.clientType === 'commercial' ? 'Commercial' : null} />
+            <Row label="Appt Type" value={report.appointmentType === 'in-home' ? 'In-Home' : report.appointmentType === 'showroom' ? 'Showroom' : report.appointmentType === 'phone' ? 'Phone' : null} />
+            <Row label="Lead Sources" value={leadSourceLabels || null} />
+            <Row label="Project Types" value={projectTypeLabels || null} />
+          </Section>
+
+          <Section title="Deal Status">
+            <Row label="Status" value={dealLabel} />
+            <Row label="Close Timeline" value={report.closeTimeline ? `${report.closeTimeline} days` : null} />
+            <Row label="Follow-Up Date" value={fmt(report.followUpDate)} />
+            <Row label="Proposal Date" value={fmt(report.proposalDate)} />
+            <Row label="Lost Reason" value={report.lostReason} />
+            <Row label="Conversation Summary" value={report.lastConversationSummary} />
+          </Section>
+
+          <Section title="Purchase Confidence">
+            <Row label="Current PC%" value={`${report.purchaseConfidencePct}%`} />
+            <Row label="Original PC%" value={report.originalPcPct != null ? `${report.originalPcPct}%` : null} />
+            <Row label="Est. Value" value={report.estimatedContractValue != null ? `$${report.estimatedContractValue.toLocaleString('en-US', { maximumFractionDigits: 0 })}` : null} />
+            <Row label="Decision Makers" value={report.decisionMakers} />
+            <Row label="Motivation" value={report.mainMotivation} />
+            <Row label="Hesitation" value={report.mainHesitation} />
+            <Row label="PC Notes" value={report.pcNotes} />
+          </Section>
+
+          <Section title="Value & Objections">
+            <Row label="Financing?" value={report.financingDiscussed === true ? 'Yes' : report.financingDiscussed === false ? 'No' : null} />
+            <Row label="Financing Reaction" value={report.financingReaction || null} />
+            <Row label="Value Communicated" value={valueCommunicatedLabels || null} />
+            <Row label="Client Response" value={report.clientResponse || null} />
+            <Row label="Objections" value={objectionLabels || null} />
+            <Row label="Objection Notes" value={report.objectionNotes} />
+          </Section>
+
+          <Section title="Next Steps">
+            <Row label="Next Actions" value={report.nextActions.join(', ') || null} />
+            <Row label="Follow-Up Date" value={fmt(report.nextFollowUpDate)} />
+          </Section>
+
+          {(report.source === 'marketing-in-home' || report.source === 'marketing-showroom') && (
+            <Section title="Marketing Feedback">
+              <Row label="Lead Quality" value={report.leadQuality || null} />
+              <Row label="Expectation Align" value={report.expectationAlignment || null} />
+              <Row label="Messaging" value={messagingLabels || null} />
+              <Row label="Budget Alignment" value={report.budgetAlignment || null} />
+              <Row label="Marketing Notes" value={report.marketingNotes} />
+            </Section>
+          )}
+        </ScrollView>
+      </View>
+    </Modal>
+  );
+}
+
+const detailStyles = StyleSheet.create({
+  container: { flex: 1 },
+  toolbar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    gap: 8,
+  },
+  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, padding: 4 },
+  backBtnText: { fontSize: 15, fontWeight: '500' },
+  toolbarTitle: { flex: 1, fontSize: 16, fontWeight: '600', textAlign: 'center' },
+  exportBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    minWidth: 52,
+    justifyContent: 'center',
+  },
+  exportBtnText: { fontSize: 11, fontWeight: '700', color: '#fff', letterSpacing: 0.5 },
+  hero: {
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 16,
+  },
+  heroName: { fontSize: 22, fontWeight: '700' },
+  heroSub: { fontSize: 13, marginTop: 2 },
+  pcBadge: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20 },
+  pcBadgeText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  valueBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1 },
+  valueBadgeText: { fontWeight: '700', fontSize: 14 },
+  statusBadge: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20 },
+  statusBadgeText: { fontWeight: '600', fontSize: 13 },
+  section: { marginBottom: 16 },
+  sectionHeader: { borderBottomWidth: 1.5, paddingBottom: 4, marginBottom: 8 },
+  sectionTitle: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.8 },
+  row: {
+    flexDirection: 'row',
+    paddingVertical: 6,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    gap: 8,
+  },
+  key: { width: 130, fontSize: 12, fontWeight: '600', flexShrink: 0 },
+  val: { flex: 1, fontSize: 13, lineHeight: 18 },
+});
 
 // ── Section Header ────────────────────────────────────────────────────────────
 
@@ -579,6 +848,7 @@ export function CMRReportsDashboard() {
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [showFilters, setShowFilters] = useState(false);
   const [exportingId, setExportingId] = useState<string | null>(null);
+  const [detailReport, setDetailReport] = useState<ClientMeetingReport | null>(null);
 
   // Fetch reports from database
   const { data: rawReports = [], isLoading, refetch } = trpc.cmr.list.useQuery(undefined, {
@@ -817,6 +1087,7 @@ export function CMRReportsDashboard() {
                 showUser={isAdmin && filters.consultantId === null}
                 onExportPDF={() => handleExportPDF(item.report)}
                 isExporting={exportingId === item.report.id}
+                onOpen={() => setDetailReport(item.report)}
               />
             </View>
           );
@@ -830,6 +1101,14 @@ export function CMRReportsDashboard() {
         isAdmin={isAdmin}
         onApply={setFilters}
         onClose={() => setShowFilters(false)}
+      />
+
+      <CMRDetailModal
+        report={detailReport}
+        visible={detailReport !== null}
+        onClose={() => setDetailReport(null)}
+        onExportPDF={() => detailReport && handleExportPDF(detailReport)}
+        isExporting={detailReport !== null && exportingId === detailReport.id}
       />
     </View>
   );
