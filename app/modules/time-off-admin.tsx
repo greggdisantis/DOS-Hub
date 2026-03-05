@@ -876,14 +876,6 @@ export default function TimeOffAdminScreen() {
         options={{
           title: "Time Off Admin",
           headerBackTitle: "Back",
-          headerRight: () => (
-            <TouchableOpacity
-              onPress={() => router.push("/modules/time-off-calendar" as any)}
-              style={{ paddingHorizontal: 4, paddingVertical: 4 }}
-            >
-              <Text style={{ color: colors.primary, fontSize: 14, fontWeight: "600" }}>Calendar</Text>
-            </TouchableOpacity>
-          ),
         }}
       />
 
@@ -906,6 +898,16 @@ export default function TimeOffAdminScreen() {
             <Text style={[styles.statLabel, { color: colors.muted }]}>Employees</Text>
           </View>
         </View>
+
+        {/* Calendar Button */}
+        <TouchableOpacity
+          onPress={() => router.push("/modules/time-off-calendar" as any)}
+          style={[styles.calendarCard, { backgroundColor: "#6366F120", borderColor: "#6366F140" }]}
+        >
+          <Text style={[styles.calendarCardIcon, { color: "#6366F1" }]}>📅</Text>
+          <Text style={[styles.calendarCardLabel, { color: "#6366F1" }]}>View Time Off Calendar</Text>
+          <Text style={[styles.calendarCardArrow, { color: "#6366F1" }]}>›</Text>
+        </TouchableOpacity>
 
         {/* Tabs */}
         <View style={[styles.tabs, { borderColor: colors.border }]}>
@@ -1070,7 +1072,20 @@ export default function TimeOffAdminScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { padding: 16 },
-  statsRow: { flexDirection: "row", gap: 10, marginBottom: 20 },
+  statsRow: { flexDirection: "row", gap: 10, marginBottom: 12 },
+  calendarCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginBottom: 20,
+    gap: 10,
+  },
+  calendarCardIcon: { fontSize: 20 },
+  calendarCardLabel: { flex: 1, fontSize: 15, fontWeight: "700" },
+  calendarCardArrow: { fontSize: 22, fontWeight: "300" },
   statCard: {
     flex: 1,
     borderWidth: 1,

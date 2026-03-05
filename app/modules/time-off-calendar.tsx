@@ -12,7 +12,6 @@ import {
   Platform,
 } from 'react-native';
 import { Stack } from 'expo-router';
-import { useQuery } from '@tanstack/react-query';
 import { trpc } from '@/lib/trpc';
 import { ScreenContainer } from '@/components/screen-container';
 import { useColors } from '@/hooks/use-colors';
@@ -155,9 +154,7 @@ export default function TimeOffCalendar() {
 
   // ─── Data ──────────────────────────────────────────────────────────────────
 
-  const { data: rawRequests = [], isLoading } = useQuery(
-    trpc.timeOff.getCalendarRequests.queryOptions()
-  );
+  const { data: rawRequests = [], isLoading } = trpc.timeOff.getCalendarRequests.useQuery();
 
   // Build sorted unique employee list with colors
   const employees = useMemo(() => {

@@ -812,3 +812,7 @@
 
 ## BUG: PTO balance "Used" still counts soft-deleted requests (3/5/2026)
 - [x] Fix getUsedPTODays DB function to exclude soft-deleted records (deletedAt IS NULL)
+
+## Calendar Button & Crash Fix (3/5/2026)
+- [x] Move Calendar button to be a prominent 4th stat card in Time Off Admin (alongside Pending/Approved/Employees)
+- [x] Fix uncaught error on Calendar screen: hooks[lastArg] is not a function (tRPC queryOptions() API mismatch)
