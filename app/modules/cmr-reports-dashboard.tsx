@@ -283,6 +283,21 @@ function ReportRow({
         </Pressable>
       </View>
 
+      {/* Latest progress note */}
+      {report.progressNotes && report.progressNotes.length > 0 && (() => {
+        const latest = report.progressNotes[0];
+        const noteDate = (() => {
+          try { return new Date(latest.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); }
+          catch { return ''; }
+        })();
+        return (
+          <View style={[styles.latestNoteRow, { borderTopColor: colors.border }]}>
+            <Text style={[styles.latestNoteLabel, { color: colors.primary }]}>Note {noteDate}:</Text>
+            <Text style={[styles.latestNoteText, { color: colors.muted }]} numberOfLines={2}>{latest.text}</Text>
+          </View>
+        );
+      })()}
+
       <View style={styles.rowBottom}>
         <View style={styles.metaChip}>
           <Text style={[styles.metaLabel, { color: colors.muted }]}>Est. Value</Text>
@@ -1219,6 +1234,9 @@ const styles = StyleSheet.create({
   metaValue: { fontSize: 12, fontWeight: '700' },
   statusPill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
   statusPillText: { fontSize: 11, fontWeight: '600' },
+  latestNoteRow: { flexDirection: 'row', gap: 6, paddingHorizontal: 12, paddingTop: 8, paddingBottom: 4, borderTopWidth: 0.5, alignItems: 'flex-start' },
+  latestNoteLabel: { fontSize: 11, fontWeight: '700', flexShrink: 0 },
+  latestNoteText: { fontSize: 11, lineHeight: 15, flex: 1 },
 
   empty: { alignItems: 'center', paddingTop: 60, paddingHorizontal: 32 },
   emptyTitle: { fontSize: 16, fontWeight: '600', marginBottom: 8 },

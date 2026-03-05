@@ -29,6 +29,12 @@ export type NextAction =
   | 'showroom-visit'
   | 'site-revisit';
 
+export interface ProgressNote {
+  id: string;          // uuid
+  text: string;
+  createdAt: string;   // ISO date-time
+}
+
 export interface ClientMeetingReport {
   id: string;
   createdAt: string;   // ISO date
@@ -91,6 +97,9 @@ export interface ClientMeetingReport {
 
   // ── Section 5: Next Steps & Marketing ────────────────────────────────────
   nextActions: NextAction[];
+
+  // ── Section 6: Progress Notes ─────────────────────────────────────────────
+  progressNotes: ProgressNote[];
   nextFollowUpDate?: string;
   // Marketing feedback (required for marketing leads)
   leadQuality: LeadQuality | '';
@@ -135,6 +144,7 @@ export const EMPTY_REPORT = (): ClientMeetingReport => ({
   objections: [],
   objectionNotes: '',
   nextActions: [],
+  progressNotes: [],
   leadQuality: '',
   expectationAlignment: '',
   messagingReferenced: [],

@@ -3,14 +3,14 @@
  * 5 sections: Client Info → Deal Status → Purchase Confidence → Value & Objections → Next Steps
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   View, Text, TextInput, ScrollView, Pressable, StyleSheet, Switch, Alert,
 } from 'react-native';
 import { useColors } from '@/hooks/use-colors';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import {
-  ClientMeetingReport, LEAD_SOURCE_OPTIONS, PROJECT_TYPE_OPTIONS,
+  ClientMeetingReport, ProgressNote, LEAD_SOURCE_OPTIONS, PROJECT_TYPE_OPTIONS,
   VALUE_COMMUNICATED_OPTIONS, OBJECTION_OPTIONS, MESSAGING_OPTIONS,
   DEAL_STATUS_LABELS, DealStatus, SourceType, ClientType, AppointmentType,
   CloseTimeline, FinancingReaction, ClientResponse, LeadQuality,
@@ -476,6 +476,100 @@ function StepNextSteps({ report, update }: { report: ClientMeetingReport; update
   );
 }
 
+// ── Step 5: Progress Notes ───────────────────────────────────────────────────
+
+function StepProgressNotes({ report, update }: { report: ClientMeetingReport; update: (p: Partial<ClientMeetingReport>) => void }) {
+  const colors = useColors();
+  const [newText, setNewText] = useState('');
+  const inputRef = useRef<TextInput>(null);
+
+  const addNote = useCallback(() => {
+    const text = newText.trim();
+    if (!text) return;
+    const note: ProgressNote = {
+      id: `note_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      text,
+      createdAt: new Date().toISOString(),
+    };
+    update({ progressNotes: [note, ...(report.progressNotes ?? [])] });
+    setNewText('');
+  }, [newText, report.progressNotes, update]);
+
+  const removeNote = useCallback((id: string) => {
+    update({ progressNotes: (report.progressNotes ?? []).filter((n) => n.id !== id) });
+  }, [report.progressNotes, update]);
+
+  const fmtDate = (iso: string) => {
+    try {
+      return new Date(iso).toLocaleString('en-US', {
+        month: 'short', day: 'numeric', year: 'numeric',
+        hour: 'numeric', minute: '2-digit',
+      });
+    } catch { return iso; }
+  };
+
+  const notes = report.progressNotes ?? [];
+
+  return (
+    <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.stepContent} showsVerticalScrollIndicator={false}>
+      <SectionTitle>Progress Notes</SectionTitle>
+
+      {/* Add new note */}
+      <View style={[styles.noteInputRow, { borderColor: colors.border, backgroundColor: colors.surface }]}>
+        <TextInput
+          ref={inputRef}
+          style={[styles.noteInput, { color: colors.foreground }]}
+          placeholder="Add a progress note…"
+          placeholderTextColor={colors.muted}
+          value={newText}
+          onChangeText={setNewText}
+          multiline
+          numberOfLines={3}
+          returnKeyType="default"
+        />
+        <Pressable
+          onPress={addNote}
+          style={({ pressed }) => [
+            styles.noteAddBtn,
+            { backgroundColor: newText.trim() ? colors.primary : colors.border },
+            pressed && { opacity: 0.8 },
+          ]}
+        >
+          <Text style={[styles.noteAddBtnText, { color: newText.trim() ? '#fff' : colors.muted }]}>+ Add Note</Text>
+        </Pressable>
+      </View>
+
+      {/* Notes list */}
+      {notes.length === 0 ? (
+        <Text style={[styles.hint, { color: colors.muted, marginTop: 16, textAlign: 'center' }]}>No progress notes yet. Add your first note above.</Text>
+      ) : (
+        notes.map((note, idx) => (
+          <View key={note.id} style={[
+            styles.noteCard,
+            { backgroundColor: idx === 0 ? colors.surface : colors.background, borderColor: colors.border },
+          ]}>
+            <View style={styles.noteCardHeader}>
+              <Text style={[styles.noteDate, { color: colors.muted }]}>{fmtDate(note.createdAt)}</Text>
+              {idx === 0 && (
+                <View style={[styles.noteLatestBadge, { backgroundColor: colors.primary }]}>
+                  <Text style={styles.noteLatestText}>Latest</Text>
+                </View>
+              )}
+              <Pressable
+                onPress={() => removeNote(note.id)}
+                style={({ pressed }) => [styles.noteRemoveBtn, pressed && { opacity: 0.6 }]}
+              >
+                <Text style={[styles.noteRemoveText, { color: colors.error }]}>Remove</Text>
+              </Pressable>
+            </View>
+            <Text style={[styles.noteText, { color: colors.foreground }]}>{note.text}</Text>
+          </View>
+        ))
+      )}
+    </ScrollView>
+  );
+}
+
 // ── Main wizard component ─────────────────────────────────────────────────────
 
 const STEPS = [
@@ -484,6 +578,7 @@ const STEPS = [
   { key: 'purchase-confidence', title: 'PC %', icon: 'checkmark.circle.fill' as const },
   { key: 'value-objections', title: 'Value', icon: 'bolt.fill' as const },
   { key: 'next-steps', title: 'Next Steps', icon: 'paperplane.fill' as const },
+  { key: 'progress-notes', title: 'Notes', icon: 'note.text' as const },
 ];
 
 interface FormWizardProps {
@@ -524,6 +619,7 @@ export function ClientMeetingFormWizard({ report, onUpdate, onSave, onCancel, is
       case 2: return <StepPurchaseConfidence report={report} update={onUpdate} />;
       case 3: return <StepValueObjections report={report} update={onUpdate} />;
       case 4: return <StepNextSteps report={report} update={onUpdate} />;
+      case 5: return <StepProgressNotes report={report} update={onUpdate} />;
       default: return null;
     }
   };
@@ -695,6 +791,64 @@ const styles = StyleSheet.create({
   hubspotNote: {
     fontSize: 11,
     fontStyle: 'italic',
+  },
+  noteInputRow: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    gap: 10,
+    marginBottom: 16,
+  },
+  noteInput: {
+    fontSize: 14,
+    lineHeight: 20,
+    minHeight: 64,
+  },
+  noteAddBtn: {
+    borderRadius: 8,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  noteAddBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  noteCard: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 10,
+  },
+  noteCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  noteDate: {
+    fontSize: 11,
+    flex: 1,
+  },
+  noteLatestBadge: {
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  noteLatestText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  noteRemoveBtn: {
+    paddingHorizontal: 4,
+  },
+  noteRemoveText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  noteText: {
+    fontSize: 14,
+    lineHeight: 20,
   },
   navBar: {
     flexDirection: 'row',

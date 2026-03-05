@@ -829,3 +829,11 @@
 - [x] Audit all PDF export entry points (Sales Pipeline list, CMR list, CMR detail modal)
 - [x] Rebuild PDF export using reliable server-side approach (PDFKit, no html2canvas DOM capture)
 - [x] Wire all PDF buttons to new trpc.cmr.exportPDF endpoint and verify they produce correct PDFs
+
+## Progress Notes Feature (3/5/2026)
+- [x] Add progressNotes field (array of {id, text, createdAt}) to ClientMeetingReport type
+- [x] Add Progress Notes step to CMR form wizard after Next Steps (step 6)
+- [x] Progress Notes: Add New note button with auto date-stamp, text input, remove button
+- [x] Surface most recent progress note on Sales Pipeline client card
+- [x] Surface most recent progress note on CMR Reports dashboard client card
+- [ ] Include progress notes in server-side PDF export

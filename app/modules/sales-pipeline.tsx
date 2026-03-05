@@ -428,6 +428,21 @@ function PipelineRow({ report, onUpdate, onMarkSold, onMarkLost, onReopen, onEdi
         </View>
       )}
 
+      {/* Latest progress note */}
+      {report.progressNotes && report.progressNotes.length > 0 && (() => {
+        const latest = report.progressNotes[0];
+        const noteDate = (() => {
+          try { return new Date(latest.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); }
+          catch { return ''; }
+        })();
+        return (
+          <View style={[styles.latestNoteRow, { borderTopColor: colors.border }]}>
+            <Text style={[styles.latestNoteLabel, { color: colors.primary }]}>Note {noteDate}:</Text>
+            <Text style={[styles.latestNoteText, { color: colors.muted }]} numberOfLines={2}>{latest.text}</Text>
+          </View>
+        );
+      })()}
+
       {showPcPicker && (
         <PcPickerModal
           current={currentPc}
@@ -904,6 +919,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   reopenBtnText: { fontSize: 13, fontWeight: '500' },
+  latestNoteRow: { flexDirection: 'row', gap: 6, paddingHorizontal: 12, paddingTop: 8, paddingBottom: 6, borderTopWidth: 0.5, alignItems: 'flex-start' },
+  latestNoteLabel: { fontSize: 11, fontWeight: '700', flexShrink: 0 },
+  latestNoteText: { fontSize: 11, lineHeight: 15, flex: 1 },
 
   // PC Picker Modal
   modalOverlay: {

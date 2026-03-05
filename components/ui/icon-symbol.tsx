@@ -86,6 +86,7 @@ const MAPPING = {
   "chart.line.uptrend.xyaxis": "trending-up",
   "folder.badge.plus": "create-new-folder",
   "checklist": "checklist",
+  "note.text": "notes",
 } as unknown as IconMapping;
 
 /**
