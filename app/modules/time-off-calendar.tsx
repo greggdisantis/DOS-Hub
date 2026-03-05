@@ -24,7 +24,7 @@ type CalendarRequest = {
   userId: number;
   userName: string;
   userEmail: string;
-  type: string;
+  requestType: string;
   status: string;
   startDate: string | null;
   endDate: string | null;
@@ -191,7 +191,7 @@ export default function TimeOffCalendar() {
   const filteredRequests = useMemo(() => {
     return rawRequests.filter((r) => {
       if (!employeeVisible[r.userId]) return false;
-      if (filterTypes.length > 0 && !filterTypes.includes(r.type)) return false;
+      if (filterTypes.length > 0 && !filterTypes.includes(r.requestType)) return false;
       if (filterStatuses.length > 0 && !filterStatuses.includes(r.status)) return false;
       if (filterFrom) {
         const start = parseDate(r.startDate);
@@ -207,7 +207,7 @@ export default function TimeOffCalendar() {
 
   // Get requests that overlap a given date
   const getRequestsForDate = useCallback((date: Date): CalendarRequest[] => {
-    return filteredRequests.filter((r) => {
+    return (filteredRequests as unknown as CalendarRequest[]).filter((r) => {
       const start = parseDate(r.startDate);
       const end = parseDate(r.endDate);
       return isDateInRange(date, start, end);
@@ -388,7 +388,7 @@ export default function TimeOffCalendar() {
                         {dayReqs.map((req) => (
                           <View key={req.id} style={[styles.weekEventBlock, { backgroundColor: emp.color + 'CC' }]}>
                             <Text style={styles.weekEventText} numberOfLines={1}>
-                              {req.type}
+                              {req.requestType}
                             </Text>
                           </View>
                         ))}
@@ -437,7 +437,7 @@ export default function TimeOffCalendar() {
                 </View>
                 <View style={styles.dayEventMeta}>
                   <View style={[styles.typeBadge, { backgroundColor: color + '20' }]}>
-                    <Text style={[styles.typeBadgeText, { color }]}>{req.type}</Text>
+                    <Text style={[styles.typeBadgeText, { color }]}>{req.requestType}</Text>
                   </View>
                   <Text style={[styles.dayEventDates, { color: colors.muted }]}>
                     {req.startDate} {req.endDate && req.endDate !== req.startDate ? `→ ${req.endDate}` : ''}
@@ -588,7 +588,7 @@ export default function TimeOffCalendar() {
       </View>
 
       {/* Filter Sheet Modal */}
-      <Modal visible={filterVisible} animationType="slide" transparent presentationStyle="overCurrentContext">
+      <Modal visible={filterVisible} animationType="slide" transparent presentationStyle="overFullScreen">
         <Pressable style={styles.modalOverlay} onPress={() => setFilterVisible(false)} />
         <View style={[styles.filterSheet, { backgroundColor: colors.background }]}>
           <View style={[styles.filterSheetHandle, { backgroundColor: colors.border }]} />

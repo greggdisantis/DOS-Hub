@@ -870,7 +870,7 @@ function SummaryBar({ reports }: { reports: ClientMeetingReport[] }) {
 type FlatItem =
   | { type: 'userHeader'; userId: string; name: string; count: number; totalValue: number }
   | { type: 'monthHeader'; key: string; label: string; count: number; totalValue: number }
-  | { type: 'report'; report: ClientMeetingReport };
+  | { type: 'report'; report: ClientMeetingReport & { dbId: number } };
 
 export function CMRReportsDashboard() {
   const colors = useColors();
@@ -942,7 +942,7 @@ export function CMRReportsDashboard() {
     const items: FlatItem[] = [];
 
     if (isAdmin) {
-      const byUser = new Map<string, ClientMeetingReport[]>();
+      const byUser = new Map<string, (ClientMeetingReport & { dbId: number })[]>();
       for (const r of filtered) {
         const key = r.consultantName || 'Unknown';
         if (!byUser.has(key)) byUser.set(key, []);
@@ -956,7 +956,7 @@ export function CMRReportsDashboard() {
         const userTotal = userReports.reduce((s, r) => s + (r.estimatedContractValue ?? 0), 0);
         items.push({ type: 'userHeader', userId: userName, name: userName, count: userReports.length, totalValue: userTotal });
 
-        const byMonth = new Map<string, ClientMeetingReport[]>();
+        const byMonth = new Map<string, (ClientMeetingReport & { dbId: number })[]>();
         for (const r of userReports) {
           const mk = monthKey(r.appointmentDate);
           if (!byMonth.has(mk)) byMonth.set(mk, []);
@@ -979,7 +979,7 @@ export function CMRReportsDashboard() {
         }
       }
     } else {
-      const byMonth = new Map<string, ClientMeetingReport[]>();
+      const byMonth = new Map<string, (ClientMeetingReport & { dbId: number })[]>();
       for (const r of filtered) {
         const mk = monthKey(r.appointmentDate);
         if (!byMonth.has(mk)) byMonth.set(mk, []);

@@ -845,3 +845,6 @@
 - [x] Fix progress notes not showing in CMR detail modal summary view — added Progress Notes section to CMRDetailModal
 - [x] Fix progress notes not appearing in PDF export — fixed `timestamp` → `createdAt` field name; changed dynamic import() to static import so server always uses latest cmr-pdf.ts code
 - [x] Fix PDF S3 cache serving old file — added timestamp to S3 file key so every export generates a unique URL; confirmed PDF generator produces correct output with pdftotext test
+
+## BUG: iOS build failure (3/5/2026)
+- [x] Fix iOS build failing with UNKNOWN_ERROR in Bundle JavaScript build phase — fixed 4 TypeScript errors in app files: FlatItem type in cmr-reports-dashboard (dbId missing), modalSubtitle missing in time-off-admin styles, requestType vs type field mismatch in time-off-calendar, and invalid presentationStyle value in time-off-calendar Modal

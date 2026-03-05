@@ -1186,6 +1186,7 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === "ios" ? 56 : 14,
   },
   modalTitle: { fontSize: 17, fontWeight: "700" },
+  modalSubtitle: { fontSize: 13, marginTop: 2 },
   cancelBtnText: { fontSize: 16 },
   modalBody: { flex: 1, padding: 16 },
   policyUserName: { fontSize: 20, fontWeight: "800", marginBottom: 20 },
