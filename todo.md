@@ -240,7 +240,8 @@
 - [x] Push changes to GitHub
 - [x] Fix dashboard link to use email/password login instead of GitHub OAuth
 - [ ] Test email/password login flow end-to-end on production
-- [x] Deploy fixed version to productionema to add password_hash column to users table
+- [x] Deploy fixed version to production (Docker build fixed, awaiting Cloud Run redeploy)
+- [x] Fix Docker build: add async/await and missing archived receipt functions
 - [ ] Create password hashing utility (bcrypt)
 - [ ] Create email/password login endpoint
 - [ ] Create password reset endpoint
