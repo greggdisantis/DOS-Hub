@@ -8,6 +8,13 @@
       "when": 1772752467250,
       "tag": "0000_gray_grey_gargoyle",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1772765579672,
+      "tag": "0001_sturdy_epoch",
+      "breakpoints": true
     }
   ]
 }

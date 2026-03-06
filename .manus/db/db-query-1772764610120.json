@@ -1,0 +1,18 @@
+{
+  "query": "SELECT id, openId, email, name, role, loginMethod FROM users WHERE email = 'greggdisantis@gmail.com';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user rUcyWo8oc4HgvHh.root --database kseAyHgdHCF3tNKxdCJFMX --execute SELECT id, openId, email, name, role, loginMethod FROM users WHERE email = 'greggdisantis@gmail.com';",
+  "rows": [
+    {
+      "id": "1",
+      "openId": "kyJ4ndqQcH4rjNHKHi9JaP",
+      "email": "greggdisantis@gmail.com",
+      "name": "Gregg Disantis",
+      "role": "admin",
+      "loginMethod": "google"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\topenId\temail\tname\trole\tloginMethod\n1\tkyJ4ndqQcH4rjNHKHi9JaP\tgreggdisantis@gmail.com\tGregg Disantis\tadmin\tgoogle\n",
+  "stderr": "",
+  "execution_time_ms": 368
+}

@@ -1,0 +1,24 @@
+{
+  "query": "SELECT id, openId, email, name, role FROM users WHERE email LIKE '%gregg%' LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user rUcyWo8oc4HgvHh.root --database kseAyHgdHCF3tNKxdCJFMX --execute SELECT id, openId, email, name, role FROM users WHERE email LIKE '%gregg%' LIMIT 5;",
+  "rows": [
+    {
+      "id": "1",
+      "openId": "kyJ4ndqQcH4rjNHKHi9JaP",
+      "email": "greggdisantis@gmail.com",
+      "name": "Gregg Disantis",
+      "role": "admin"
+    },
+    {
+      "id": "1260045",
+      "openId": "HLALHubKZJFW5XNTUB42Vz",
+      "email": "greggd.distinctiveos@gmail.com",
+      "name": "Senior DiSantis",
+      "role": "super-admin"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\topenId\temail\tname\trole\n1\tkyJ4ndqQcH4rjNHKHi9JaP\tgreggdisantis@gmail.com\tGregg Disantis\tadmin\n1260045\tHLALHubKZJFW5XNTUB42Vz\tgreggd.distinctiveos@gmail.com\tSenior DiSantis\tsuper-admin\n",
+  "stderr": "",
+  "execution_time_ms": 348
+}

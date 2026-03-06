@@ -7,6 +7,8 @@ import * as db from "./db";
 import { sendPushNotifications, notifyUsers, MATERIAL_DELIVERY_NOTIFICATIONS } from "./push-notifications";
 import { generateCmrPDF } from "./cmr-pdf";
 import { storagePut } from "./storage";
+import { logAuditAction, createSuperAdminNotification } from "./audit";
+import { superAdminRouter } from "./super-admin-routers";
 
 /**
  * Filter a list of user IDs by their notification preference for a given type.
@@ -28,6 +30,7 @@ const SYSTEM_ROLES = ["pending", "guest", "member", "manager", "admin", "super-a
 
 export const appRouter = router({
   system: systemRouter,
+  superAdmin: superAdminRouter,
 
   auth: router({
     me: publicProcedure.query((opts) => opts.ctx.user),
@@ -73,6 +76,18 @@ export const appRouter = router({
           throw new Error("Unauthorized: only super-admin can promote to super-admin");
         }
         await db.approveUser(input.userId, input.role);
+        
+        // Log audit trail if super-admin
+        if (ctx.user.role === "super-admin") {
+          await logAuditAction(
+            ctx.user.id,
+            "user_approval",
+            `Approved user ${input.userId} with role ${input.role}`,
+            input.userId,
+            { role: input.role }
+          );
+        }
+        
         return { success: true };
       }),
 
@@ -119,7 +134,7 @@ export const appRouter = router({
     updateDosRoles: protectedProcedure
       .input(z.object({ userId: z.number(), dosRoles: z.array(z.string()) }))
       .mutation(async ({ ctx, input }) => {
-        if (ctx.user.role !== "admin") {
+        if (ctx.user.role !== "admin" && ctx.user.role !== "super-admin") {
           throw new Error("Unauthorized: admin role required");
         }
         await db.updateDosRoles(input.userId, input.dosRoles);
@@ -128,7 +143,7 @@ export const appRouter = router({
 
     /** List approved users (for consultant picker in CMR filters) */
     listConsultants: protectedProcedure.query(async ({ ctx }) => {
-      const isAdmin = ctx.user.role === 'admin' || ctx.user.role === 'manager';
+      const isAdmin = ctx.user.role === 'admin' || ctx.user.role === 'manager' || ctx.user.role === 'super-admin';
       if (!isAdmin) throw new Error('Unauthorized: manager or admin role required');
       const all = await db.getAllUsers();
       return all
@@ -146,7 +161,7 @@ export const appRouter = router({
     updatePermissions: protectedProcedure
       .input(z.object({ userId: z.number(), permissions: z.record(z.string(), z.boolean()) }))
       .mutation(async ({ ctx, input }) => {
-        if (ctx.user.role !== "admin") {
+        if (ctx.user.role !== "admin" && ctx.user.role !== "super-admin") {
           throw new Error("Unauthorized: admin role required");
         }
         await db.updatePermissions(input.userId, input.permissions);
@@ -157,7 +172,7 @@ export const appRouter = router({
     setIsEmployee: protectedProcedure
       .input(z.object({ userId: z.number(), isEmployee: z.boolean() }))
       .mutation(async ({ ctx, input }) => {
-        if (ctx.user.role !== "admin") {
+        if (ctx.user.role !== "admin" && ctx.user.role !== "super-admin") {
           throw new Error("Unauthorized: admin role required");
         }
         await db.setIsEmployee(input.userId, input.isEmployee);
@@ -166,7 +181,7 @@ export const appRouter = router({
 
     /** Get all users marked as employees */
     listEmployees: protectedProcedure.query(async ({ ctx }) => {
-      if (ctx.user.role !== "admin") {
+      if (ctx.user.role !== "admin" && ctx.user.role !== "super-admin") {
         throw new Error("Unauthorized: admin role required");
       }
       return db.getEmployeeUsers();
@@ -177,7 +192,7 @@ export const appRouter = router({
   modulePermissions: router({
     /** Get all module permission settings */
     list: protectedProcedure.query(async ({ ctx }) => {
-      if (ctx.user.role !== "admin") {
+      if (ctx.user.role !== "admin" && ctx.user.role !== "super-admin") {
         throw new Error("Unauthorized: admin role required");
       }
       return db.getAllModulePermissions();
@@ -187,12 +202,12 @@ export const appRouter = router({
     set: protectedProcedure
       .input(z.object({ moduleKey: z.string(), moduleName: z.string().optional(), allowedJobRoles: z.array(z.string()) }))
       .mutation(async ({ ctx, input }) => {
-        if (ctx.user.role !== "admin") {
+        if (ctx.user.role !== "admin" && ctx.user.role !== "super-admin") {
           throw new Error("Unauthorized: admin role required");
         }
         // Only Owner job role users can modify module permissions
         const dosRoles = (ctx.user.dosRoles as string[]) ?? [];
-        if (!dosRoles.includes("Owner")) {
+        if (!dosRoles.includes("Owner") && ctx.user.role !== "super-admin") {
           throw new Error("Unauthorized: Owner job role required to modify module permissions");
         }
         await db.setModulePermissions(input.moduleKey, input.allowedJobRoles, input.moduleName);

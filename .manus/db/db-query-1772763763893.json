@@ -1,0 +1,30 @@
+{
+  "query": "SELECT * FROM users WHERE email = 'greggdisantis@gmail.com';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user rUcyWo8oc4HgvHh.root --database kseAyHgdHCF3tNKxdCJFMX --execute SELECT * FROM users WHERE email = 'greggdisantis@gmail.com';",
+  "rows": [
+    {
+      "id": "1",
+      "openId": "kyJ4ndqQcH4rjNHKHi9JaP",
+      "name": "Gregg Disantis",
+      "email": "greggdisantis@gmail.com",
+      "loginMethod": "google",
+      "role": "admin",
+      "createdAt": "2026-02-28 19:51:07",
+      "updatedAt": "2026-03-06 02:22:43",
+      "lastSignedIn": "2026-03-06 02:22:43",
+      "companyId": "NULL",
+      "approved": "1",
+      "dosRoles": "[\"Owner\", \"Sales Manager\", \"Project Consultant\", \"Finance Dept.\", \"Logistics Dept\", \"Permit Dept\"]",
+      "permissions": "NULL",
+      "firstName": "Gregg",
+      "lastName": "DiSantis (gmail)",
+      "expoPushToken": "NULL",
+      "notification_prefs": "NULL",
+      "isEmployee": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\topenId\tname\temail\tloginMethod\trole\tcreatedAt\tupdatedAt\tlastSignedIn\tcompanyId\tapproved\tdosRoles\tpermissions\tfirstName\tlastName\texpoPushToken\tnotification_prefs\tisEmployee\n1\tkyJ4ndqQcH4rjNHKHi9JaP\tGregg Disantis\tgreggdisantis@gmail.com\tgoogle\tadmin\t2026-02-28 19:51:07\t2026-03-06 02:22:43\t2026-03-06 02:22:43\tNULL\t1\t[\"Owner\", \"Sales Manager\", \"Project Consultant\", \"Finance Dept.\", \"Logistics Dept\", \"Permit Dept\"]\tNULL\tGregg\tDiSantis (gmail)\tNULL\tNULL\t1\n",
+  "stderr": "",
+  "execution_time_ms": 370
+}

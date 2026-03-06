@@ -482,3 +482,57 @@ export type TimeOffPolicy = typeof timeOffPolicies.$inferSelect;
 export type InsertTimeOffPolicy = typeof timeOffPolicies.$inferInsert;
 export type TimeOffRequest = typeof timeOffRequests.$inferSelect;
 export type InsertTimeOffRequest = typeof timeOffRequests.$inferInsert;
+
+// ─── SUPER-ADMIN AUDIT & NOTIFICATIONS ─────────────────────────────────────────
+
+/**
+ * Audit log table — tracks all super-admin actions for compliance and security.
+ * Records role changes, user approvals, system modifications, and other critical actions.
+ */
+export const auditLogs = mysqlTable("audit_logs", {
+  id: int("id").autoincrement().primaryKey(),
+  /** ID of the super-admin who performed the action */
+  superAdminId: int("superAdminId").notNull(),
+  /** Type of action: role_change, user_approval, user_rejection, permission_update, module_permission_change, etc. */
+  actionType: varchar("actionType", { length: 64 }).notNull(),
+  /** ID of the user affected by the action (if applicable) */
+  affectedUserId: int("affectedUserId"),
+  /** Human-readable description of what was changed */
+  description: text("description").notNull(),
+  /** JSON object containing before/after values for the change */
+  details: json("details").$type<Record<string, any>>(),
+  /** IP address or client identifier (optional) */
+  clientInfo: varchar("clientInfo", { length: 255 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+/**
+ * Super-admin notifications table — stores critical system events that only super-admins can see.
+ * Examples: unusual activity, security alerts, system health warnings, bulk user actions.
+ */
+export const superAdminNotifications = mysqlTable("super_admin_notifications", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Type of notification: security_alert, system_health, user_activity, bulk_action, etc. */
+  notificationType: varchar("notificationType", { length: 64 }).notNull(),
+  /** Severity level: info, warning, critical */
+  severity: mysqlEnum("severity", ["info", "warning", "critical"]).default("info").notNull(),
+  /** Title of the notification */
+  title: varchar("title", { length: 255 }).notNull(),
+  /** Detailed message */
+  message: text("message").notNull(),
+  /** JSON object with additional context/data */
+  data: json("data").$type<Record<string, any>>(),
+  /** Whether the notification has been read by any super-admin */
+  isRead: boolean("isRead").default(false).notNull(),
+  /** When the notification was marked as read */
+  readAt: timestamp("readAt"),
+  /** ID of the super-admin who read it (if applicable) */
+  readBy: int("readBy"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+// Export types
+export type AuditLog = typeof auditLogs.$inferSelect;
+export type InsertAuditLog = typeof auditLogs.$inferInsert;
+export type SuperAdminNotification = typeof superAdminNotifications.$inferSelect;
+export type InsertSuperAdminNotification = typeof superAdminNotifications.$inferInsert;

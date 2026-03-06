@@ -99,7 +99,7 @@ export function AuthGuard({ children, requireManager, requireAdmin }: AuthGuardP
   }
 
   // Check role requirements
-  if (requireAdmin && user?.role !== "admin") {
+  if (requireAdmin && user?.role !== "admin" && user?.role !== "super-admin") {
     return (
       <ScreenContainer>
         <View style={styles.center}>
@@ -113,7 +113,7 @@ export function AuthGuard({ children, requireManager, requireAdmin }: AuthGuardP
     );
   }
 
-  if (requireManager && user?.role !== "manager" && user?.role !== "admin") {
+  if (requireManager && user?.role !== "manager" && user?.role !== "admin" && user?.role !== "super-admin") {
     return (
       <ScreenContainer>
         <View style={styles.center}>

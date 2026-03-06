@@ -1,0 +1,28 @@
+{
+  "query": "SELECT id, email, name, role FROM users WHERE email LIKE '%disantis%' OR email LIKE '%gregg%' OR name LIKE '%Disantis%' OR name LIKE '%Gregg%';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user rUcyWo8oc4HgvHh.root --database kseAyHgdHCF3tNKxdCJFMX --execute SELECT id, email, name, role FROM users WHERE email LIKE '%disantis%' OR email LIKE '%gregg%' OR name LIKE '%Disantis%' OR name LIKE '%Gregg%';",
+  "rows": [
+    {
+      "id": "1",
+      "email": "greggdisantis@gmail.com",
+      "name": "Gregg Disantis",
+      "role": "super-admin"
+    },
+    {
+      "id": "8",
+      "email": "gdisantis@distinctiveos.com",
+      "name": "gdisantis",
+      "role": "super-admin"
+    },
+    {
+      "id": "1260045",
+      "email": "greggd.distinctiveos@gmail.com",
+      "name": "Senior DiSantis",
+      "role": "member"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\temail\tname\trole\n1\tgreggdisantis@gmail.com\tGregg Disantis\tsuper-admin\n8\tgdisantis@distinctiveos.com\tgdisantis\tsuper-admin\n1260045\tgreggd.distinctiveos@gmail.com\tSenior DiSantis\tmember\n",
+  "stderr": "",
+  "execution_time_ms": 355
+}
