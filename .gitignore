@@ -5,9 +5,9 @@ node_modules/
 
 # Expo
 .expo/
-dist/
 web-build/
 expo-env.d.ts
+# Note: dist/ is intentionally NOT ignored - pre-built artifacts are committed for Cloud Run deployment
 
 # Native
 .kotlin/
