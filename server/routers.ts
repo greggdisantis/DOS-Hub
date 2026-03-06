@@ -10,6 +10,7 @@ import { storagePut } from "./storage";
 import { logAuditAction, createSuperAdminNotification } from "./audit";
 import { superAdminRouter } from "./super-admin-routers";
 import { aiRouter } from "./ai-routers";
+import { knowledgeBaseRouter } from "./knowledge-base-routers";
 
 /**
  * Filter a list of user IDs by their notification preference for a given type.
@@ -33,6 +34,7 @@ export const appRouter = router({
   system: systemRouter,
   superAdmin: superAdminRouter,
   ai: aiRouter,
+  knowledgeBase: knowledgeBaseRouter,
 
   auth: router({
     me: publicProcedure.query((opts) => opts.ctx.user),

@@ -536,3 +536,36 @@ export type AuditLog = typeof auditLogs.$inferSelect;
 export type InsertAuditLog = typeof auditLogs.$inferInsert;
 export type SuperAdminNotification = typeof superAdminNotifications.$inferSelect;
 export type InsertSuperAdminNotification = typeof superAdminNotifications.$inferInsert;
+
+
+/**
+ * AI Knowledge Base table — stores metadata for training documents and knowledge files.
+ * Actual files are stored in S3 under ai-knowledge/ path.
+ */
+export const aiKnowledgeBase = mysqlTable("ai_knowledge_base", {
+  id: int("id").autoincrement().primaryKey(),
+  /** File name as uploaded */
+  fileName: varchar("fileName", { length: 255 }).notNull(),
+  /** Category/folder path (e.g., "procedures", "training-materials", "policies") */
+  category: varchar("category", { length: 128 }).notNull(),
+  /** S3 storage key (path under ai-knowledge/) */
+  storageKey: varchar("storageKey", { length: 512 }).notNull().unique(),
+  /** Public URL to access the file */
+  fileUrl: text("fileUrl").notNull(),
+  /** File MIME type (e.g., "application/pdf", "text/markdown") */
+  mimeType: varchar("mimeType", { length: 128 }).notNull(),
+  /** File size in bytes */
+  fileSize: int("fileSize").notNull(),
+  /** Brief description of the file content */
+  description: text("description"),
+  /** User ID who uploaded the file */
+  uploadedBy: int("uploadedBy").notNull(),
+  /** Whether this file is active/visible to AI training */
+  isActive: boolean("isActive").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+// Export types
+export type AIKnowledgeBase = typeof aiKnowledgeBase.$inferSelect;
+export type InsertAIKnowledgeBase = typeof aiKnowledgeBase.$inferInsert;

@@ -143,6 +143,14 @@ export default function ProfileScreen() {
           onPress: () => router.push("/modules/admin-users"),
           roles: ["admin", "manager", "super-admin"],
         },
+        {
+          id: "ai-knowledge-base",
+          icon: "book.fill",
+          label: "AI Knowledge Base",
+          subtitle: "Manage training documents",
+          onPress: () => router.push("/modules/ai-knowledge-base"),
+          roles: ["admin", "super-admin"],
+        },
       ].filter((item) => !item.roles || item.roles.includes(userRole)) as SettingsRow[],
     },
     {
