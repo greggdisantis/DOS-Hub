@@ -92,6 +92,53 @@ async function startServer() {
     res.json({ ok: true, timestamp: Date.now() });
   });
 
+  // Deploy to Production endpoint - triggers GitHub Actions workflow
+  app.post("/api/deploy-to-production", async (req, res) => {
+    try {
+      const token = process.env.GITHUB_TOKEN;
+      if (!token) {
+        res.status(500).json({ error: "GitHub token not configured" });
+        return;
+      }
+
+      const owner = "greggdisantis";
+      const repo = "DOS-Hub";
+      const workflowId = "242198057"; // Numeric ID for deploy-to-cloud-run.yml
+
+      const response = await fetch(
+        `https://api.github.com/repos/${owner}/${repo}/actions/workflows/${workflowId}/dispatches`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `token ${token}`,
+            "Accept": "application/vnd.github.v3+json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            ref: "main",
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.text();
+        res.status(response.status).json({
+          error: `GitHub API error: ${response.statusText}`,
+          details: error,
+        });
+        return;
+      }
+
+      res.json({
+        success: true,
+        message: "Deployment to production triggered successfully",
+        workflowUrl: `https://github.com/${owner}/${repo}/actions/workflows/${workflowId}`,
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || "Deployment failed" });
+    }
+  });
+
   app.use(
     "/api/trpc",
     createExpressMiddleware({
