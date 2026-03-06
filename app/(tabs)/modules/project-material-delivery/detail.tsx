@@ -117,7 +117,7 @@ export default function DetailScreen() {
   const generatePdfMutation = trpc.projectMaterial.generatePdf.useMutation();
   const utils = trpc.useUtils();
 
-  const isManagerOrAdmin = me?.role === "admin" || me?.role === "manager";
+  const isManagerOrAdmin = me?.role === "admin" || me?.role === "manager" || me?.role === "super-admin";
   const isSupervisor = (me?.dosRoles as string[] | undefined)?.includes("Supervisor") ?? false;
 
   // Load data from server into local state

@@ -63,7 +63,7 @@ function OrderDetailContent() {
     },
   });
 
-  const isManagerOrAdmin = user?.role === "manager" || user?.role === "admin";
+  const isManagerOrAdmin = user?.role === "manager" || user?.role === "admin" || user?.role === "super-admin";
   const isOwner = order?.userId === user?.id;
 
   const handleStatusChange = (newStatus: string) => {

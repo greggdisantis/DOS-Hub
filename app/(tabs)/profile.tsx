@@ -23,6 +23,7 @@ const ROLE_LABELS: Record<string, string> = {
   technician: "Team Member",
   manager: "Manager",
   admin: "Administrator",
+  "super-admin": "Super Admin",
   user: "Team Member",
 };
 
@@ -33,6 +34,7 @@ const ROLE_COLORS: Record<string, string> = {
   technician: "#0a7ea4",
   manager: "#8B5CF6",
   admin: "#EF4444",
+  "super-admin": "#3B82F6",
   user: "#0a7ea4",
 };
 
@@ -43,8 +45,9 @@ export default function ProfileScreen() {
 
   const userRole = user?.role ?? "pending";
   const isApproved = user?.approved ?? false;
-  const isAdmin = userRole === "admin";
-  const isManagerOrAdmin = userRole === "manager" || userRole === "admin";
+  const isAdmin = userRole === "admin" || userRole === "super-admin";
+  const isSuperAdmin = userRole === "super-admin";
+  const isManagerOrAdmin = userRole === "manager" || userRole === "admin" || userRole === "super-admin";
 
   const SETTINGS_SECTIONS = [
     {
@@ -56,7 +59,7 @@ export default function ProfileScreen() {
           label: "Dashboard",
           subtitle: "Order status & team metrics",
           onPress: () => router.push("/modules/dashboard" as any),
-          roles: ["admin", "manager"],
+          roles: ["admin", "manager", "super-admin"],
         },
         {
           id: "my-orders",
@@ -71,7 +74,7 @@ export default function ProfileScreen() {
           label: "All Orders",
           subtitle: "Review team orders & revisions",
           onPress: () => router.push("/modules/order-review" as any),
-          roles: ["admin", "manager"],
+          roles: ["admin", "manager", "super-admin"],
         },
       ].filter((item) => !item.roles || item.roles.includes(userRole)) as SettingsRow[],
     },
@@ -106,7 +109,7 @@ export default function ProfileScreen() {
           label: "User Management",
           subtitle: "Approve users, set roles & permissions",
           onPress: () => router.push("/modules/admin-users"),
-          roles: ["admin"],
+          roles: ["admin", "super-admin"],
         },
         {
           id: "module-permissions",
@@ -114,7 +117,7 @@ export default function ProfileScreen() {
           label: "Module Permissions",
           subtitle: "Configure role-based access per module",
           onPress: () => router.push("/modules/module-permissions" as any),
-          roles: ["admin"],
+          roles: ["admin", "super-admin"],
         },
         {
           id: "team",
@@ -122,7 +125,7 @@ export default function ProfileScreen() {
           label: "Team Members",
           subtitle: "View team",
           onPress: () => router.push("/modules/admin-users"),
-          roles: ["admin", "manager"],
+          roles: ["admin", "manager", "super-admin"],
         },
       ].filter((item) => !item.roles || item.roles.includes(userRole)) as SettingsRow[],
     },

@@ -55,7 +55,7 @@ function OrderListContent() {
     setRefreshing(false);
   }, [refetch]);
 
-  const isManagerOrAdmin = user?.role === "manager" || user?.role === "admin";
+  const isManagerOrAdmin = user?.role === "manager" || user?.role === "admin" || user?.role === "super-admin";
 
   const renderOrder = ({ item }: { item: any }) => {
     const statusColor = STATUS_COLORS[item.status] || colors.muted;

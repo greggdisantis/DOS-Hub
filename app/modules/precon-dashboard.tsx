@@ -49,7 +49,7 @@ export function PreconDashboardContent() {
   const router = useRouter();
   const colors = useColors();
   const { user } = useAuth();
-  const isManagerOrAdmin = user?.role === "admin" || user?.role === "manager";
+  const isManagerOrAdmin = user?.role === "admin" || user?.role === "manager" || user?.role === "super-admin";
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");

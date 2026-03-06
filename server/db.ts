@@ -484,33 +484,7 @@ export async function getReceiptsWithFilters(filters: {
   return db.select().from(receipts).where(and(...conditions)).orderBy(desc(receipts.createdAt));
 }
 
-// TODO: Fix TypeScript type generation for archived field
-// export async function getArchivedReceipts() {
-//   const db = await getDb();
-//   if (!db) return [];
-//   return db.select().from(receipts)
-//     .where(eq((receipts as any).archived, true))
-//     .orderBy(desc((receipts as any).archivedAt));
-// }
 
-// TODO: Fix TypeScript type generation for archived field
-// export async function getArchivedReceiptsWithFilters(filters: {
-//   userId?: number;
-//   vendorName?: string;
-//   startDate?: string;
-//   endDate?: string;
-// }) {
-//   const db = await getDb();
-//   if (!db) return [];
-//
-//   const conditions: any[] = [eq((receipts as any).archived, true)];
-//   if (filters.userId) conditions.push(eq(receipts.userId, filters.userId));
-//   if (filters.vendorName) conditions.push(like(receipts.vendorName, `%${filters.vendorName}%`));
-//   if (filters.startDate) conditions.push(gte(receipts.purchaseDate, filters.startDate));
-//   if (filters.endDate) conditions.push(lte(receipts.purchaseDate, filters.endDate));
-//
-//   return db.select().from(receipts).where(and(...conditions)).orderBy(desc(receipts.archivedAt));
-// }
 
 export async function archiveReceipt(id: number, archivedBy: number) {
   const db = await getDb();
