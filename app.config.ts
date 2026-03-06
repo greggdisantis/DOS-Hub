@@ -32,7 +32,7 @@ const env = {
   appSlug: "dos-hub-mobile",
   // S3 URL of the app logo - set this to the URL returned by generate_image when creating custom logo
   // Leave empty to use the default icon from assets/images/icon.png
-  logoUrl: "https://d2xsxph8kpxj0f.cloudfront.net/310519663388439118/kseAyHgdHCF3tNKxdCJFMX/dos-hub-icon-jGHJo5eLWJJEMaxJZt542q.png",
+  logoUrl: "https://d2xsxph8kpxj0f.cloudfront.net/310519663388439118/kseAyHgdHCF3tNKxdCJFMX/icon-3CL7Cac9n28Ldc7KYucZNq.webp",
   scheme: schemeFromBundleId,
   iosBundleId: bundleId,
   androidPackage: bundleId,
