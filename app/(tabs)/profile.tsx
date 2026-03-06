@@ -104,6 +104,22 @@ export default function ProfileScreen() {
       title: "Administration",
       items: [
         {
+          id: "super-admin-dashboard",
+          icon: "chart.bar.fill",
+          label: "Super-Admin Dashboard",
+          subtitle: "System analytics & audit logs",
+          onPress: () => router.push("/modules/super-admin-dashboard"),
+          roles: ["super-admin"],
+        },
+        {
+          id: "super-admin-notifications",
+          icon: "bell.badge.fill",
+          label: "Critical Alerts",
+          subtitle: "System events & notifications",
+          onPress: () => router.push("/modules/super-admin-notifications"),
+          roles: ["super-admin"],
+        },
+        {
           id: "users",
           icon: "shield.fill",
           label: "User Management",
