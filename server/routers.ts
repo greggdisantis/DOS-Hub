@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { COOKIE_NAME } from "../shared/const.js";
+import { COOKIE_NAME, ONE_YEAR_MS } from "../shared/const.js";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
@@ -10,6 +10,7 @@ import { storagePut } from "./storage";
 import { logAuditAction, createSuperAdminNotification } from "./audit";
 import { superAdminRouter } from "./super-admin-routers";
 import { aiRouter } from "./ai-routers";
+import { hashPassword, verifyPassword } from "./password-auth";
 
 /**
  * Filter a list of user IDs by their notification preference for a given type.
@@ -36,6 +37,69 @@ export const appRouter = router({
 
   auth: router({
     me: publicProcedure.query((opts) => opts.ctx.user),
+    
+    login: publicProcedure
+      .input(
+        z.object({
+          email: z.string().email("Invalid email address"),
+          password: z.string().min(1, "Password is required"),
+        }),
+      )
+      .mutation(async ({ input, ctx }) => {
+        const { email, password } = input;
+
+        // Find user by email (case-insensitive)
+        const database = await db.getDb();
+        if (!database) throw new Error("Database not available");
+        
+        const user = await database.query.users.findFirst({
+          where: (users, { eq, sql }) => sql`LOWER(${users.email}) = LOWER(${email})`,
+        });
+
+        if (!user) {
+          throw new Error("Invalid email or password");
+        }
+
+        // Check if user has a password hash (email/password auth enabled)
+        if (!user.password_hash) {
+          throw new Error("This account does not support password login. Please use OAuth.");
+        }
+
+        // Verify password
+        const passwordValid = await verifyPassword(password, user.password_hash);
+        if (!passwordValid) {
+          throw new Error("Invalid email or password");
+        }
+
+        // Check if user is approved
+        if (!user.approved) {
+          throw new Error("Your account is pending approval. Please contact an administrator.");
+        }
+
+        // Create session cookie
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        const sessionToken = await ctx.sdk.createSessionToken(user.openId || user.email, {
+          name: user.name || user.email,
+          expiresInMs: ONE_YEAR_MS,
+        });
+        
+        ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+
+        // Update last signed in
+        await database.update(db.users).set({ lastSignedIn: new Date() }).where(db.eq(db.users.id, user.id));
+
+        return {
+          sessionToken,
+          user: {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: user.role,
+            approved: user.approved,
+          },
+        };
+      }),
+    
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });

@@ -4,7 +4,6 @@ import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
 import { useAuth } from "@/hooks/use-auth";
-import { startOAuthLogin } from "@/constants/oauth";
 
 type SettingsRow = {
   id: string;
@@ -196,7 +195,7 @@ export default function ProfileScreen() {
               </View>
             </View>
             <Pressable
-              onPress={() => startOAuthLogin()}
+              onPress={() => router.push("/login")}
               style={({ pressed }) => [
                 styles.signInButton,
                 { backgroundColor: colors.primary },

@@ -232,6 +232,19 @@
 - [x] Enforce RBAC: Team Member soft-delete goes to deleted bin (Manager/Admin can purge)
 - [x] Enforce RBAC: Manager can see and edit all team members' work
 
+## Email/Password Authentication (Replace GitHub OAuth)
+
+- [ ] Update database schema to add password_hash column to users table
+- [ ] Create password hashing utility (bcrypt)
+- [ ] Create email/password login endpoint
+- [ ] Create password reset endpoint
+- [ ] Build login screen UI with email/password form
+- [ ] Remove GitHub OAuth routes and callbacks
+- [ ] Update auth flow to use email/password instead of OAuth
+- [ ] Test login with existing users
+- [ ] Test password reset functionality
+- [ ] Deploy to production and test with real users
+
 ## Name Registration & Auto-fill
 
 - [x] Add firstName and lastName columns to users table in DB

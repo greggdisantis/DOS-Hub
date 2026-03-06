@@ -44,6 +44,11 @@ export const users = mysqlTable("users", {
    * Null means all notifications are enabled (default).
    */
   notificationPrefs: json("notification_prefs").$type<Record<string, boolean>>(),
+  /**
+   * Bcrypt hashed password for email/password authentication.
+   * If null, user must use OAuth. If set, user can log in with email + password.
+   */
+  password_hash: varchar("password_hash", { length: 255 }),
 });
 
 /**
