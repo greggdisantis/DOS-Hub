@@ -148,6 +148,27 @@ export default function ProfileScreen() {
     {
       title: "Support",
       items: [
+        {
+          id: "ai-training",
+          icon: "sparkles",
+          label: "AI Training Assistant",
+          subtitle: "Learn DOS Hub with AI",
+          onPress: () => router.push("/modules/ai-training"),
+        },
+        {
+          id: "training-material",
+          icon: "doc.text.fill",
+          label: "Generate Training Material",
+          subtitle: "Create training content with AI",
+          onPress: () => router.push("/modules/training-material-generator"),
+        },
+        {
+          id: "quiz-generator",
+          icon: "questionmark.circle.fill",
+          label: "Generate Quiz",
+          subtitle: "Create quizzes from material",
+          onPress: () => router.push("/modules/quiz-generator"),
+        },
         { id: "help", icon: "book.fill", label: "Help Center", subtitle: "FAQs & guides" },
         { id: "feedback", icon: "paperplane.fill", label: "Send Feedback" },
       ] as SettingsRow[],

@@ -9,6 +9,7 @@ import { generateCmrPDF } from "./cmr-pdf";
 import { storagePut } from "./storage";
 import { logAuditAction, createSuperAdminNotification } from "./audit";
 import { superAdminRouter } from "./super-admin-routers";
+import { aiRouter } from "./ai-routers";
 
 /**
  * Filter a list of user IDs by their notification preference for a given type.
@@ -31,6 +32,7 @@ const SYSTEM_ROLES = ["pending", "guest", "member", "manager", "admin", "super-a
 export const appRouter = router({
   system: systemRouter,
   superAdmin: superAdminRouter,
+  ai: aiRouter,
 
   auth: router({
     me: publicProcedure.query((opts) => opts.ctx.user),
