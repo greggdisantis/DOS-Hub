@@ -16,7 +16,8 @@ export const users = mysqlTable("users", {
    * - guest: read-only preview of permitted modules, no save/export/reports/settings
    * - member: full access to own work only (soft-delete goes to bin)
    * - manager: full access to all work + modifications, no admin tools
-   * - admin: no restrictions
+   * - admin: full access to all features and admin tools
+   * - super-admin: unrestricted access to everything, can promote others to super-admin
    */
   role: varchar("role", { length: 32 }).default("pending").notNull(),
   /** Whether the user has been approved by an admin */

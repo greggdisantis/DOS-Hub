@@ -24,7 +24,7 @@ async function filterByPref(userIds: number[], prefKey: string): Promise<number[
 }
 
 // System roles available in the app
-const SYSTEM_ROLES = ["pending", "guest", "member", "manager", "admin"] as const;
+const SYSTEM_ROLES = ["pending", "guest", "member", "manager", "admin", "super-admin"] as const;
 
 export const appRouter = router({
   system: systemRouter,
@@ -40,18 +40,18 @@ export const appRouter = router({
 
   // ─── USER MANAGEMENT (admin only) ──────────────────────────────────────────
   users: router({
-    /** Get all users (admin/manager only) */
+    /** Get all users (admin/manager/super-admin only) */
     list: protectedProcedure.query(async ({ ctx }) => {
-      if (ctx.user.role !== "admin" && ctx.user.role !== "manager") {
-        throw new Error("Unauthorized: admin or manager role required");
+      if (ctx.user.role !== "admin" && ctx.user.role !== "manager" && ctx.user.role !== "super-admin") {
+        throw new Error("Unauthorized: admin, manager, or super-admin role required");
       }
       return db.getAllUsers();
     }),
 
     /** Get pending (unapproved) users */
     pending: protectedProcedure.query(async ({ ctx }) => {
-      if (ctx.user.role !== "admin") {
-        throw new Error("Unauthorized: admin role required");
+      if (ctx.user.role !== "admin" && ctx.user.role !== "super-admin") {
+        throw new Error("Unauthorized: admin or super-admin role required");
       }
       return db.getPendingUsers();
     }),
@@ -65,8 +65,12 @@ export const appRouter = router({
         }),
       )
       .mutation(async ({ ctx, input }) => {
-        if (ctx.user.role !== "admin") {
-          throw new Error("Unauthorized: admin role required");
+        if (ctx.user.role !== "admin" && ctx.user.role !== "super-admin") {
+          throw new Error("Unauthorized: admin or super-admin role required");
+        }
+        // Only super-admin can approve someone as super-admin
+        if (input.role === "super-admin" && ctx.user.role !== "super-admin") {
+          throw new Error("Unauthorized: only super-admin can promote to super-admin");
         }
         await db.approveUser(input.userId, input.role);
         return { success: true };
@@ -76,8 +80,8 @@ export const appRouter = router({
     reject: protectedProcedure
       .input(z.object({ userId: z.number() }))
       .mutation(async ({ ctx, input }) => {
-        if (ctx.user.role !== "admin") {
-          throw new Error("Unauthorized: admin role required");
+        if (ctx.user.role !== "admin" && ctx.user.role !== "super-admin") {
+          throw new Error("Unauthorized: admin or super-admin role required");
         }
         await db.rejectUser(input.userId);
         return { success: true };
@@ -92,8 +96,12 @@ export const appRouter = router({
         }),
       )
       .mutation(async ({ ctx, input }) => {
-        if (ctx.user.role !== "admin") {
-          throw new Error("Unauthorized: admin role required");
+        if (ctx.user.role !== "admin" && ctx.user.role !== "super-admin") {
+          throw new Error("Unauthorized: admin or super-admin role required");
+        }
+        // Only super-admin can update someone to super-admin
+        if (input.role === "super-admin" && ctx.user.role !== "super-admin") {
+          throw new Error("Unauthorized: only super-admin can promote to super-admin");
         }
         await db.updateUserRole(input.userId, input.role);
         return { success: true };

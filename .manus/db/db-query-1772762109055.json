@@ -1,0 +1,22 @@
+{
+  "query": "SELECT id, email, name, role FROM users WHERE email IN ('greggdisantis@gmail.com', 'gdisantis@distinctiveos.com');",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user rUcyWo8oc4HgvHh.root --database kseAyHgdHCF3tNKxdCJFMX --execute SELECT id, email, name, role FROM users WHERE email IN ('greggdisantis@gmail.com', 'gdisantis@distinctiveos.com');",
+  "rows": [
+    {
+      "id": "1",
+      "email": "greggdisantis@gmail.com",
+      "name": "Gregg Disantis",
+      "role": "super-admin"
+    },
+    {
+      "id": "8",
+      "email": "gdisantis@distinctiveos.com",
+      "name": "gdisantis",
+      "role": "super-admin"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\temail\tname\trole\n1\tgreggdisantis@gmail.com\tGregg Disantis\tsuper-admin\n8\tgdisantis@distinctiveos.com\tgdisantis\tsuper-admin\n",
+  "stderr": "",
+  "execution_time_ms": 357
+}

@@ -1,0 +1,34 @@
+{
+  "query": "SELECT id, email, name, role FROM users WHERE email LIKE '%gdisantis%' OR email LIKE '%admin%' OR role = 'admin' LIMIT 20;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user rUcyWo8oc4HgvHh.root --database kseAyHgdHCF3tNKxdCJFMX --execute SELECT id, email, name, role FROM users WHERE email LIKE '%gdisantis%' OR email LIKE '%admin%' OR role = 'admin' LIMIT 20;",
+  "rows": [
+    {
+      "id": "1",
+      "email": "greggdisantis@gmail.com",
+      "name": "Gregg Disantis",
+      "role": "admin"
+    },
+    {
+      "id": "8",
+      "email": "gdisantis@distinctiveos.com",
+      "name": "gdisantis",
+      "role": "admin"
+    },
+    {
+      "id": "1291069",
+      "email": "z6rr82xkpq@privaterelay.appleid.com",
+      "name": "Jon Keller",
+      "role": "admin"
+    },
+    {
+      "id": "1530148",
+      "email": "judyantonucci32@salsnursery.com",
+      "name": "Judy Antonucci",
+      "role": "admin"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\temail\tname\trole\n1\tgreggdisantis@gmail.com\tGregg Disantis\tadmin\n8\tgdisantis@distinctiveos.com\tgdisantis\tadmin\n1291069\tz6rr82xkpq@privaterelay.appleid.com\tJon Keller\tadmin\n1530148\tjudyantonucci32@salsnursery.com\tJudy Antonucci\tadmin\n",
+  "stderr": "",
+  "execution_time_ms": 370
+}

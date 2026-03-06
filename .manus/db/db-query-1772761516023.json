@@ -1,0 +1,118 @@
+{
+  "query": "SELECT id, email, name, role FROM users ORDER BY createdAt DESC LIMIT 30;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user rUcyWo8oc4HgvHh.root --database kseAyHgdHCF3tNKxdCJFMX --execute SELECT id, email, name, role FROM users ORDER BY createdAt DESC LIMIT 30;",
+  "rows": [
+    {
+      "id": "1530211",
+      "email": "KHARRY@SALSNURSERY.COM",
+      "name": "KHARRY",
+      "role": "manager"
+    },
+    {
+      "id": "1530148",
+      "email": "judyantonucci32@salsnursery.com",
+      "name": "Judy Antonucci",
+      "role": "admin"
+    },
+    {
+      "id": "1291069",
+      "email": "z6rr82xkpq@privaterelay.appleid.com",
+      "name": "Jon Keller",
+      "role": "admin"
+    },
+    {
+      "id": "1290719",
+      "email": "mjohnson@distinctiveos.com",
+      "name": "mjohnson",
+      "role": "manager"
+    },
+    {
+      "id": "1260045",
+      "email": "greggd.distinctiveos@gmail.com",
+      "name": "Senior DiSantis",
+      "role": "member"
+    },
+    {
+      "id": "1230329",
+      "email": "nhitch@salsnursery.com",
+      "name": "Nadene Hitch",
+      "role": "manager"
+    },
+    {
+      "id": "1230294",
+      "email": "Zacharyd@distinctiveos.com",
+      "name": "Zacharyd",
+      "role": "member"
+    },
+    {
+      "id": "690003",
+      "email": "kpoarch@distinctiveos.com",
+      "name": "kpoarch",
+      "role": "manager"
+    },
+    {
+      "id": "630001",
+      "email": "sliney99@gmail.com",
+      "name": "Sarah Liney",
+      "role": "manager"
+    },
+    {
+      "id": "600001",
+      "email": "vcash@distinctiveos.com",
+      "name": "vcash",
+      "role": "member"
+    },
+    {
+      "id": "480021",
+      "email": "jantonucci@salsnursery.com",
+      "name": "John Antonucci",
+      "role": "manager"
+    },
+    {
+      "id": "180083",
+      "email": "sgiordano@distinctiveos.com",
+      "name": "sgiordano",
+      "role": "manager"
+    },
+    {
+      "id": "180007",
+      "email": "rmiller@distinctiveos.com",
+      "name": "rmiller",
+      "role": "member"
+    },
+    {
+      "id": "150008",
+      "email": "BThornton@DistinctiveOS.com",
+      "name": "Ben Thornton",
+      "role": "member"
+    },
+    {
+      "id": "88",
+      "email": "smelnyk@distinctiveos.com",
+      "name": "smelnyk",
+      "role": "manager"
+    },
+    {
+      "id": "60",
+      "email": "maksymm26@gmail.com",
+      "name": "Maksym Melnyk",
+      "role": "manager"
+    },
+    {
+      "id": "8",
+      "email": "gdisantis@distinctiveos.com",
+      "name": "gdisantis",
+      "role": "admin"
+    },
+    {
+      "id": "1",
+      "email": "greggdisantis@gmail.com",
+      "name": "Gregg Disantis",
+      "role": "admin"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\temail\tname\trole\n1530211\tKHARRY@SALSNURSERY.COM\tKHARRY\tmanager\n1530148\tjudyantonucci32@salsnursery.com\tJudy Antonucci\tadmin\n1291069\tz6rr82xkpq@privaterelay.appleid.com\tJon Keller\tadmin\n1290719\tmjohnson@distinctiveos.com\tmjohnson\tmanager\n1260045\tgreggd.distinctiveos@gmail.com\tSenior DiSantis\tmember\n1230329\tnhitch@salsnursery.com\tNadene Hitch\tmanager\n1230294\tZacharyd@distinctiveos.com\tZacharyd\tmember\n690003\tkpoarch@distinctiveos.com\tkpoarch\tmanager\n630001\tsliney99@gmail.com\tSarah Liney\tmanager\n600001\tvcash@distinctiveos.com\tvcash\tmember\n480021\tjantonucci@salsnursery.com\tJohn Antonucci\tmanager\n180083\tsgiordano@distinctiveos.com\tsgiordano\tmanager\n180007\trmiller@distinctiveos.com\trmiller\tmember\n150008\tBThornton@DistinctiveOS.com\tBen Thornton\tmember\n88\tsmelnyk@distinctiveos.com\tsmelnyk\tmanager\n60\tmaksymm26@gmail.com\tMaksym Melnyk\tmanager\n8\tgdisantis@distinctiveos.com\tgdisantis\tadmin\n1\tgreggdisantis@gmail.com\tGregg Disantis\tadmin\n",
+  "stderr": "",
+  "execution_time_ms": 387
+}
