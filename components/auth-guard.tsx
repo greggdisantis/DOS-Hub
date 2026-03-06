@@ -1,5 +1,5 @@
 import { useAuth } from "@/hooks/use-auth";
-import { startOAuthLogin } from "@/constants/oauth";
+import { useRouter } from "expo-router";
 import { ActivityIndicator, Text, View, Pressable, StyleSheet } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -21,6 +21,7 @@ type AuthGuardProps = {
 export function AuthGuard({ children, requireManager, requireAdmin }: AuthGuardProps) {
   const { user, isAuthenticated, loading: authLoading, refresh } = useAuth();
   const colors = useColors();
+  const router = useRouter();
 
   if (authLoading) {
     return (
@@ -46,7 +47,7 @@ export function AuthGuard({ children, requireManager, requireAdmin }: AuthGuardP
             Sign in to access DOS Hub features and save your work.
           </Text>
           <Pressable
-            onPress={() => startOAuthLogin()}
+            onPress={() => router.push("/login")}
             style={({ pressed }) => [
               styles.loginButton,
               { backgroundColor: colors.primary },

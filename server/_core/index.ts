@@ -54,12 +54,9 @@ async function startServer() {
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
-  // Serve static web files in production
-  const isProduction = process.env.NODE_ENV === "production";
-  if (isProduction) {
-    const path = await import("path");
-    app.use(express.static(path.join(process.cwd(), "dist/web")));
-  }
+  // Serve static web files
+  const path = await import("path");
+  app.use(express.static(path.join(process.cwd(), "dist/web")));
 
   registerOAuthRoutes(app);
 
@@ -100,12 +97,10 @@ async function startServer() {
   });
 
   // SPA fallback: serve index.html for all non-API routes
-  if (isProduction) {
+  app.get("*", async (_req, res) => {
     const path = await import("path");
-    app.get("*", (_req, res) => {
-      res.sendFile(path.join(process.cwd(), "dist/web/index.html"));
-    });
-  }
+    res.sendFile(path.join(process.cwd(), "dist/web/index.html"));
+  });
 
   // Deploy to Production endpoint - triggers GitHub Actions workflow
   app.post("/api/deploy-to-production", async (req, res) => {

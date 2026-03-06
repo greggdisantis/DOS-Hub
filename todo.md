@@ -230,11 +230,17 @@
 - [x] Enforce RBAC: Guest/Pending users cannot access Settings or Admin
 - [x] Enforce RBAC: Team Member sees only their own data in lists
 - [x] Enforce RBAC: Team Member soft-delete goes to deleted bin (Manager/Admin can purge)
-- [x] Enforce RBAC: Manager can see and edit all team members' work
+- [x] Enforce RBAC: Manager can see and edit all team members' work## Email/Password Authentication (Replace GitHub OAuth)
 
-## Email/Password Authentication (Replace GitHub OAuth)
-
-- [ ] Update database schema to add password_hash column to users table
+- [x] Add password_hash column to database schema
+- [x] Hash and store all 17 user passwords with bcrypt
+- [x] Implement auth.login endpoint for email/password authentication
+- [x] Build Expo web app and configure backend to serve it
+- [x] Update build script to compile both web and backend
+- [x] Push changes to GitHub
+- [x] Fix dashboard link to use email/password login instead of GitHub OAuth
+- [ ] Test email/password login flow end-to-end on production
+- [x] Deploy fixed version to productionema to add password_hash column to users table
 - [ ] Create password hashing utility (bcrypt)
 - [ ] Create email/password login endpoint
 - [ ] Create password reset endpoint
