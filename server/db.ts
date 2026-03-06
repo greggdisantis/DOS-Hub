@@ -493,7 +493,7 @@ export async function archiveReceipt(id: number, archivedBy?: number) {
     UPDATE receipts 
     SET archived = true, archivedAt = NOW(), archivedBy = ${archivedBy ?? null}
     WHERE id = ${id}
-  `);
+  ` as any);
 }
 
 export async function unarchiveReceipt(id: number) {
@@ -503,7 +503,7 @@ export async function unarchiveReceipt(id: number) {
     UPDATE receipts 
     SET archived = false, archivedAt = NULL, archivedBy = NULL
     WHERE id = ${id}
-  `);
+  ` as any);
 }
 
 export async function deleteReceipt(id: number) {
