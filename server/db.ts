@@ -1,5 +1,6 @@
 import { and, desc, eq, gte, lte, like, ne, isNull, or } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
+import { sql } from "drizzle-orm";
 import {
   InsertUser,
   InsertScreenOrder,
@@ -485,21 +486,24 @@ export async function getReceiptsWithFilters(filters: {
 }
 
 
-
-export async function archiveReceipt(id: number, archivedBy: number) {
+export async function archiveReceipt(id: number, archivedBy?: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await db.update(receipts)
-    .set({ archived: true, archivedAt: new Date(), archivedBy } as any)
-    .where(eq(receipts.id, id));
+  await db.execute(sql`
+    UPDATE receipts 
+    SET archived = true, archivedAt = NOW(), archivedBy = ${archivedBy ?? null}
+    WHERE id = ${id}
+  `);
 }
 
 export async function unarchiveReceipt(id: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await db.update(receipts)
-    .set({ archived: false, archivedAt: null, archivedBy: null } as any)
-    .where(eq(receipts.id, id));
+  await db.execute(sql`
+    UPDATE receipts 
+    SET archived = false, archivedAt = NULL, archivedBy = NULL
+    WHERE id = ${id}
+  `);
 }
 
 export async function deleteReceipt(id: number) {
@@ -1249,4 +1253,31 @@ export async function getUsedPTODays(userId: number, periodYear?: string): Promi
   if (periodYear) conditions.push(eq(timeOffRequests.periodYear, periodYear));
   const approved = await db.select().from(timeOffRequests).where(and(...conditions));
   return approved.reduce((sum, r) => sum + parseFloat(String(r.totalDays ?? "0")), 0);
+}
+
+
+/**
+ * Get user by email address
+ */
+export async function getUserByEmail(email: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const result = await db.execute(sql`
+    SELECT * FROM users WHERE email = ${email} LIMIT 1
+  `);
+  
+  return (result as any)[0]?.[0] || null;
+}
+
+/**
+ * Update user's last signed in timestamp
+ */
+export async function updateUserLastSignedIn(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  await db.execute(sql`
+    UPDATE users SET lastSignedIn = NOW() WHERE id = ${userId}
+  `);
 }

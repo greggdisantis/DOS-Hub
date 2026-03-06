@@ -1,7 +1,8 @@
 import { router, publicProcedure } from "./_core/trpc";
 import { z } from "zod";
+import { sql } from "drizzle-orm";
 import { hashPassword, verifyPassword } from "./password-auth";
-import { db } from "./_core/db";
+import { getDb, getUserByEmail, updateUserLastSignedIn } from "./db";
 import { COOKIE_NAME, ONE_YEAR_MS } from "../shared/const";
 import type { Express, Request, Response } from "express";
 import { getSessionCookieOptions } from "./_core/cookies";
@@ -27,9 +28,7 @@ export const authRouter = router({
       const { email, password } = input;
 
       // Find user by email
-      const user = await db.query.users.findFirst({
-        where: (users, { eq }) => eq(users.email, email),
-      });
+      const user = await getUserByEmail(email);
 
       if (!user) {
         throw new Error("Invalid email or password");
@@ -58,7 +57,7 @@ export const authRouter = router({
       });
 
       // Update last signed in
-      await db.update(users).set({ lastSignedIn: new Date() }).where(eq(users.id, user.id));
+      await updateUserLastSignedIn(user.id);
 
       return {
         sessionToken,
@@ -87,9 +86,7 @@ export const authRouter = router({
       const { email, password } = input;
 
       // Find user by email
-      const user = await db.query.users.findFirst({
-        where: (users, { eq }) => eq(users.email, email),
-      });
+      const user = await getUserByEmail(email);
 
       if (!user) {
         throw new Error("User not found");
@@ -99,10 +96,14 @@ export const authRouter = router({
       const passwordHash = await hashPassword(password);
 
       // Update user with password hash
-      await db
-        .update(users)
-        .set({ password_hash: passwordHash })
-        .where(eq(users.id, user.id));
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      
+      await db.execute(sql`
+        UPDATE users 
+        SET password_hash = ${passwordHash}
+        WHERE id = ${user.id}
+      `);
 
       return { success: true };
     }),
@@ -117,9 +118,7 @@ export const authRouter = router({
       const { email } = input;
 
       // Find user by email
-      const user = await db.query.users.findFirst({
-        where: (users, { eq }) => eq(users.email, email),
-      });
+      const user = await getUserByEmail(email);
 
       if (!user) {
         // Don't reveal if email exists (security best practice)
@@ -152,9 +151,7 @@ export function registerPasswordAuthRoutes(app: Express) {
       }
 
       // Find user by email
-      const user = await db.query.users.findFirst({
-        where: (users, { eq }) => eq(users.email, email),
-      });
+      const user = await getUserByEmail(email);
 
       if (!user) {
         res.status(401).json({ error: "Invalid email or password" });
@@ -191,7 +188,7 @@ export function registerPasswordAuthRoutes(app: Express) {
       res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
 
       // Update last signed in
-      await db.update(users).set({ lastSignedIn: new Date() }).where(eq(users.id, user.id));
+      await updateUserLastSignedIn(user.id);
 
       res.json({
         success: true,
@@ -210,6 +207,3 @@ export function registerPasswordAuthRoutes(app: Express) {
     }
   });
 }
-
-// Import required types
-import { eq, users } from "./db";
