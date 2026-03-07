@@ -1,6 +1,22 @@
-# Runtime stage - use pre-built artifacts from local build
-FROM node:22-alpine
+# Build stage for web frontend
+FROM node:22-alpine AS web-builder
+WORKDIR /app/web
+COPY web/package.json web/pnpm-lock.yaml ./
+RUN npm install -g pnpm && pnpm install --frozen-lockfile
+COPY web ./
+RUN pnpm run build
 
+# Build stage for backend
+FROM node:22-alpine AS server-builder
+WORKDIR /app
+COPY package.json pnpm-lock.yaml ./
+RUN npm install -g pnpm && pnpm install --frozen-lockfile
+COPY server ./server
+COPY tsconfig.json ./
+RUN pnpm run build
+
+# Runtime stage
+FROM node:22-alpine
 WORKDIR /app
 
 # Copy package files
@@ -9,9 +25,9 @@ COPY package.json pnpm-lock.yaml ./
 # Install production dependencies only
 RUN npm install -g pnpm && pnpm install --frozen-lockfile --prod
 
-# Copy pre-built artifacts (web app and backend server)
-# These are built locally and committed to git
-COPY dist ./dist
+# Copy pre-built artifacts from build stages
+COPY --from=server-builder /app/dist ./dist
+COPY --from=web-builder /app/web/dist ./dist/web
 
 # Expose port
 EXPOSE 3000
