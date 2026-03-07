@@ -6,15 +6,6 @@ RUN npm install -g pnpm && pnpm install --frozen-lockfile
 COPY web ./
 RUN pnpm run build
 
-# Build stage for backend
-FROM node:22-alpine AS server-builder
-WORKDIR /app
-COPY package.json pnpm-lock.yaml ./
-RUN npm install -g pnpm && pnpm install --frozen-lockfile
-COPY server ./server
-COPY tsconfig.json ./
-RUN pnpm run build
-
 # Runtime stage
 FROM node:22-alpine
 WORKDIR /app
@@ -25,8 +16,10 @@ COPY package.json pnpm-lock.yaml ./
 # Install production dependencies only
 RUN npm install -g pnpm && pnpm install --frozen-lockfile --prod
 
-# Copy pre-built artifacts from build stages
-COPY --from=server-builder /app/dist ./dist
+# Copy pre-built backend server (built locally)
+COPY dist ./dist
+
+# Copy web frontend from build stage
 COPY --from=web-builder /app/web/dist ./dist/web
 
 # Expose port
