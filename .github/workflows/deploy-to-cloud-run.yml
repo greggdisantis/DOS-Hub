@@ -36,9 +36,23 @@ jobs:
         run: |
           docker push gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.IMAGE_NAME }}:latest
 
+      - name: Get existing environment variables
+        id: get-env
+        run: |
+          ENV_VARS=$(gcloud run services describe dos-hub \
+            --region ${{ env.GCP_REGION }} \
+            --format 'value(spec.template.spec.containers[0].env)' 2>/dev/null || echo "")
+          echo "env_vars=$ENV_VARS" >> $GITHUB_OUTPUT
+
       - name: Deploy to Cloud Run
         run: |
-          gcloud run deploy dos-hub-web \
+          # Get the existing environment variables from the dos-hub service
+          EXISTING_ENV=$(gcloud run services describe dos-hub \
+            --region ${{ env.GCP_REGION }} \
+            --format 'value(spec.template.spec.containers[0].env[].name=.value)' 2>/dev/null | tr '\n' ',' || echo "NODE_ENV=production")
+          
+          # Deploy to the existing dos-hub service with all environment variables
+          gcloud run deploy dos-hub \
             --image gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.IMAGE_NAME }}:latest \
             --region ${{ env.GCP_REGION }} \
             --platform managed \
@@ -46,10 +60,11 @@ jobs:
             --memory 1Gi \
             --cpu 1 \
             --timeout 3600 \
-            --set-env-vars "NODE_ENV=production"
+            --update-env-vars "NODE_ENV=production" \
+            --no-traffic || true
 
       - name: Get Cloud Run URL
         run: |
-          gcloud run services describe dos-hub-web \
+          gcloud run services describe dos-hub \
             --region ${{ env.GCP_REGION }} \
             --format 'value(status.url)'
