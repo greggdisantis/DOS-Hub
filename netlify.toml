@@ -1,6 +1,10 @@
 [build]
+  command = "pnpm build"
   publish = "dist/web"
-  command = "echo 'No build needed - using pre-built artifacts'"
+
+[build.environment]
+  NODE_VERSION = "22.13.0"
+  EXPO_PUBLIC_API_BASE_URL = "https://dos-hub-199485151034.us-central1.run.app"
 
 [[redirects]]
   from = "/*"
