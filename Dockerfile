@@ -13,6 +13,7 @@ COPY package.json pnpm-lock.yaml ./
 RUN npm install -g pnpm && pnpm install --frozen-lockfile
 COPY server ./server
 COPY shared ./shared
+COPY drizzle ./drizzle
 COPY tsconfig.json ./
 RUN npm install -g esbuild && esbuild server/_core/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
 
