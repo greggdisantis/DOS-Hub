@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Auth from "@/lib/_core/auth";
-import * as Api from "@/lib/_core/api";
+import { trpc } from "@/lib/trpc";
 import { useColors } from "@/hooks/use-colors";
 
 export default function LoginScreen() {
@@ -44,7 +44,7 @@ export default function LoginScreen() {
     setError(null);
 
     try {
-      const response = await Api.trpc.auth.login.mutate({
+      const response = await trpc.auth.login.mutate({
         email: email.trim(),
         password,
       });
