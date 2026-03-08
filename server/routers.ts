@@ -45,60 +45,94 @@ export const appRouter = router({
           password: z.string().min(1, "Password is required"),
         }),
       )
-      .mutation(async ({ input, ctx }) => {
-        const { email, password } = input;
+.mutation(async ({ input, ctx }) => {
+  try {
+    const { email, password } = input;
+    console.log("[AUTH] login start: email=", email);
 
-        // Find user by email (case-insensitive)
-        const database = await db.getDb();
-        if (!database) throw new Error("Database not available");
-        
-        const user = await database.query.users.findFirst({
-          where: (users, { eq, sql }) => sql`LOWER(${users.email}) = LOWER(${email})`,
-        });
+    const database = await db.getDb();
+    if (!database) {
+      console.error("[AUTH] Database not available");
+      throw new Error("Database not available");
+    }
 
-        if (!user) {
-          throw new Error("Invalid email or password");
-        }
+    console.log("[AUTH] Querying user by email");
+    const user = await database.query.users.findFirst({
+      where: (users, { eq, sql }) => sql`LOWER(${users.email}) = LOWER(${email})`,
+    });
 
-        // Check if user has a password hash (email/password auth enabled)
-        if (!user.password_hash) {
-          throw new Error("This account does not support password login. Please use OAuth.");
-        }
+    if (!user) {
+      console.log("[AUTH] User not found for email:", email);
+      throw new Error("Invalid email or password");
+    }
 
-        // Verify password
-        const passwordValid = await verifyPassword(password, user.password_hash);
-        if (!passwordValid) {
-          throw new Error("Invalid email or password");
-        }
+    console.log(
+      "[AUTH] User found:",
+      user.id,
+      "approved=",
+      user.approved,
+      "hasPasswordHash=",
+      !!user.password_hash
+    );
 
-        // Check if user is approved
-        if (!user.approved) {
-          throw new Error("Your account is pending approval. Please contact an administrator.");
-        }
+    if (!user.password_hash) {
+      console.log("[AUTH] No password hash");
+      throw new Error("This account does not support password login.");
+    }
 
-        // Create session cookie
-        const cookieOptions = getSessionCookieOptions(ctx.req);
-        const sessionToken = await ctx.sdk.createSessionToken(user.openId || user.email, {
-          name: user.name || user.email,
-          expiresInMs: ONE_YEAR_MS,
-        });
-        
-        ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+    console.log("[AUTH] Verifying password");
+    const passwordValid = await verifyPassword(password, user.password_hash);
 
-        // Update last signed in
-        await database.update(db.users).set({ lastSignedIn: new Date() }).where(db.eq(db.users.id, user.id));
+    console.log("[AUTH] password valid =", passwordValid);
 
-        return {
-          sessionToken,
-          user: {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            role: user.role,
-            approved: user.approved,
-          },
-        };
-      }),
+    if (!passwordValid) {
+      throw new Error("Invalid email or password");
+    }
+
+    if (!user.approved) {
+      console.log("[AUTH] Not approved");
+      throw new Error("Your account is pending approval.");
+    }
+
+    console.log("[AUTH] Creating session");
+    const cookieOptions = getSessionCookieOptions(ctx.req);
+
+    const sessionToken = await ctx.sdk.createSessionToken(
+      user.openId || user.email,
+      {
+        name: user.name || user.email,
+        expiresInMs: ONE_YEAR_MS,
+      }
+    );
+
+    ctx.res.cookie(COOKIE_NAME, sessionToken, {
+      ...cookieOptions,
+      maxAge: ONE_YEAR_MS,
+    });
+
+    await database
+      .update(db.users)
+      .set({ lastSignedIn: new Date() })
+      .where(db.eq(db.users.id, user.id));
+
+    console.log("[AUTH] login success");
+
+    return {
+      sessionToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        approved: user.approved,
+      },
+    };
+
+  } catch (err) {
+    console.error("[AUTH] login error", err);
+    throw err;
+  }
+}),
     
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
