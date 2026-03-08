@@ -26,6 +26,7 @@ export const authRouter = router({
     )
     .mutation(async ({ input }) => {
       const { email, password } = input;
+      console.log("[AUTH-ROUTER] login start:", email);
 
       // Find user by email
       const user = await getUserByEmail(email);
