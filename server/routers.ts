@@ -97,13 +97,10 @@ export const appRouter = router({
           console.log("[AUTH] Creating session");
           const cookieOptions = getSessionCookieOptions(ctx.req);
 
-          const sessionToken = await ctx.sdk.createSessionToken(
-            user.openId || user.email,
-            {
-              name: user.name || user.email,
-              expiresInMs: ONE_YEAR_MS,
-            }
-          );
+          const sessionToken = await ctx.sdk.createSessionToken(user.openId || user.email, {
+            name: user.name || user.email,
+            expiresInMs: ONE_YEAR_MS,
+          });
 
           ctx.res.cookie(COOKIE_NAME, sessionToken, {
             ...cookieOptions,
@@ -132,29 +129,6 @@ export const appRouter = router({
           throw err;
         }
       }),
-    await database
-      .update(db.users)
-      .set({ lastSignedIn: new Date() })
-      .where(db.eq(db.users.id, user.id));
-
-    console.log("[AUTH] login success");
-
-    return {
-      sessionToken,
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role,
-        approved: user.approved,
-      },
-    };
-
-  } catch (err) {
-    console.error("[AUTH] login error", err);
-    throw err;
-  }
-}),
     
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
